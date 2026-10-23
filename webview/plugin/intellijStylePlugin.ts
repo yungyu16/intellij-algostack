@@ -1,6 +1,5 @@
 import type {Plugin} from 'vite';
 
-const excludes = ['luoguYiDun/index.html'];
 
 /**
  * Vite 插件：自动注入样式表链接和重载功能
@@ -10,10 +9,7 @@ export function intellijStylePostPlugin(): Plugin {
         name: 'intellij-style-post-plugin',
         transformIndexHtml: {
             order: 'post',
-            handler: (html, ctx) => {
-                if (excludes.some(exclude => ctx.path.endsWith(exclude))) {
-                    return html;
-                }
+            handler: (html) => {
                 return {
                     html,
                     tags: [
@@ -56,10 +52,7 @@ export function intellijStylePrePlugin(): Plugin {
         name: 'intellij-style-plugin',
         transformIndexHtml: {
             order: "pre",
-            handler: (html, ctx) => {
-                if (excludes.some(exclude => ctx.path.endsWith(exclude))) {
-                    return html;
-                }
+            handler: (html) => {
                 return {
                     html,
                     tags: [

@@ -1,24 +1,27 @@
+# IDE and local configuration
 .DS_Store
 .idea/
-.bloop/
-.metals/
-node_modules/
-package-lock.json
-metals.sbt
+*.iml
 .bsp/
+.metals/
 .vscode/
+.env*
+
+# Build output and caches
+.gradle/
+.kotlin/
+.intellijPlatform/
+build/
+node_modules/
 out/
-dist/*
 target/
-project/boot/
-project/plugins/project/
-.history
-.cache
-.lib/
-testResources/apiTestData/*
+*.log
+*.tsbuildinfo
+*~
+
+# Local API fixtures and development credentials
+src/test/resources/apiTestData/*
+!src/test/resources/apiTestData/.gitkeep
 tempData/
-tools/*
-/jflex-1.9.1.jar
-/idea-flex.skeleton
-/flyway.user.toml
-/flyway.toml
+flyway.toml
+flyway.user.toml

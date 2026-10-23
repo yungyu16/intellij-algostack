@@ -58,7 +58,14 @@
             <nobr><font face="verdana" size="-2"><strong>${challenge.description}</strong></font></nobr>
         </td>
         <td width="10">&nbsp;</td>
-        <td valign="top"><font face="verdana" size="-1">A brief description of the challenge.</font></td>
+        <td valign="top"><font face="verdana" size="-1">The HTML description, preserved for existing templates.</font></td>
+    </tr>
+    <tr>
+        <td valign="top">
+            <nobr><font face="verdana" size="-2"><strong>${challenge.descriptionText}</strong></font></nobr>
+        </td>
+        <td width="10">&nbsp;</td>
+        <td valign="top"><font face="verdana" size="-1">Description text for source block comments: removes a limited set of known HTML tags and preserves existing line breaks; uses ^ and _ for superscripts and subscripts, shows image URLs, and replaces */ with * /. Unknown tags are preserved; this is not a general HTML sanitizer. Reference this variable in a custom template; default templates do not insert the description.</font></td>
     </tr>
     <tr>
         <td valign="top">

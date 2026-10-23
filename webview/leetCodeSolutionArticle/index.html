@@ -14,11 +14,10 @@
     <script type="application/javascript">
         const content = `{{articleContent}}`;
         const codeDojo = `{{codeDojo}}`;
-        const getIframeUrl = `{{getIframeUrl}}`;
     </script>
     <script type="module">
         import showSolutionArticle from "./app.ts";
-        showSolutionArticle(content, codeDojo, getIframeUrl);
+        showSolutionArticle(content, codeDojo);
     </script>
 </head>
 <body data-overlayscrollbars-initialize>

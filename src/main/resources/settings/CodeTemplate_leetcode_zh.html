@@ -44,7 +44,14 @@
             <nobr><font face="verdana" size="-2"><strong>${challenge.description}</strong></font></nobr>
         </td>
         <td width="10">&nbsp;</td>
-        <td valign="top"><font face="verdana" size="-1">题目的简要描述。</font></td>
+        <td valign="top"><font face="verdana" size="-1">题目的 HTML 描述，保留既有模板兼容性。</font></td>
+    </tr>
+    <tr>
+        <td valign="top">
+            <nobr><font face="verdana" size="-2"><strong>${challenge.descriptionText}</strong></font></nobr>
+        </td>
+        <td width="10">&nbsp;</td>
+        <td valign="top"><font face="verdana" size="-1">适合源码块注释的题面文本：清理有限的已知 HTML 标签，保留原有换行；上下标使用 ^ 和 _，图片显示链接，*/ 替换为 * /。未知标签保留，不是通用 HTML 过滤器。默认模板不自动插入题面，需在自定义模板中引用此变量。</font></td>
     </tr>
     <tr>
         <td valign="top">

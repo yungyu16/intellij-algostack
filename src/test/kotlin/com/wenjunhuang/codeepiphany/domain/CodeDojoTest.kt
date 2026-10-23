@@ -1,0 +1,26 @@
+package com.wenjunhuang.codeepiphany.domain
+
+import org.junit.Assert.*
+import org.junit.Test
+import java.net.HttpCookie
+
+class CodeDojoTest {
+    @Test fun persistedSiteIdentifiersRemainStable() {
+        assertEquals(setOf("leetcode", "leetcodecn"), CodeDojo.entries.map { it.value }.toSet())
+        assertEquals(CodeDojo.LeetCodeCN, CodeDojo.fromString("LEETCODECN"))
+        assertNull(CodeDojo.fromString("unsupported-site"))
+    }
+    @Test fun cookieHostsResolveToTheCorrectSite() {
+        assertEquals(CodeDojo.LeetCode, CodeDojo.fromHostname(".leetcode.com"))
+        assertEquals(CodeDojo.LeetCodeCN, CodeDojo.fromHostname("WWW.LEETCODE.CN"))
+        assertNull(CodeDojo.fromHostname("leetcode.com.example.org"))
+        assertNull(CodeDojo.fromHostname("notleetcode.cn"))
+    }
+    @Test fun loginRequiresANonEmptySessionCookie() {
+        for (dojo in CodeDojo.entries) {
+            assertFalse(com.wenjunhuang.codeepiphany.runtime.CookieStore.hasSession(listOf(HttpCookie("LEETCODE_SESSION", ""))))
+            assertFalse(com.wenjunhuang.codeepiphany.runtime.CookieStore.hasSession(listOf(HttpCookie("csrftoken", "token"))))
+            assertTrue(com.wenjunhuang.codeepiphany.runtime.CookieStore.hasSession(listOf(HttpCookie("LEETCODE_SESSION", "session"))))
+        }
+    }
+}

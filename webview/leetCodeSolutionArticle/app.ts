@@ -6,21 +6,10 @@ import 'katex/dist/katex.css';
 import renderMathInElement from 'katex/contrib/auto-render';
 import katex_extension from "./katex_extension";
 
-declare global {
-    interface Window {
-        showSolutionArticle: (content: string,
-                              codeDojo: string,
-                              getIframeUrl: string) => void;
-    }
-}
-
 const showSolutionArticle = (contentBased64: string,
-                             codeDojoBased64: string,
-                             getIframeUrlBased64: string) => {
+                             codeDojoBased64: string) => {
     const content = decodeBase64(contentBased64);
     const codeDojo = decodeBase64(codeDojoBased64);
-    // @ts-ignore
-    const getIframeUrl = decodeBase64(getIframeUrlBased64);
     const container = document.getElementById('container')!;
     let marked = new Marked(markedHighlight({
         emptyLangClass: 'hljs',
@@ -46,14 +35,6 @@ const showSolutionArticle = (contentBased64: string,
             throwOnError: true
         });
 
-        // document.querySelectorAll('iframe').forEach((iframe) => {
-        //     const src = iframe.src;
-        //     console.log(src);
-        //     if (src.includes('leetcode.com')) {
-        //         const original = iframe.src;
-        //         iframe.src = getIframeUrl + "?url=" + encodeURI(original);
-        //     }
-        // });
     }
 
 }

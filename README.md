@@ -1,88 +1,30 @@
-🌐 语言:
-[中文](README.md) | [English](README_en.md)
+# LeetCode Epiphany
 
-## LeetCode Epiphany 🌟
+面向 IntelliJ IDEA 的个人维护版刷题插件，仅支持 [LeetCode](https://leetcode.com) 和[力扣中国站](https://leetcode.cn)。基于 [WenjunHuang/CodeEpiphany](https://github.com/WenjunHuang/CodeEpiphany) 开发，采用 [Apache License 2.0](LICENSE)。
 
-[![CI](https://github.com/WenjunHuang/CodeEpiphany/actions/workflows/ci-main.yml/badge.svg)](https://github.com/WenjunHuang/CodeEpiphany/actions/workflows/ci.yml)
-[![License](https://img.shields.io/github/license/WenjunHuang/CodeEpiphany)](LICENSE)
-[![GitHub issues](https://img.shields.io/github/issues/WenjunHuang/CodeEpiphany)](https://github.com/WenjunHuang/CodeEpiphany/issues)
+支持题目搜索与筛选、自定义语言模板、测试和提交代码、提交记录、多解法管理及题解阅读。提供已保存会话的静默恢复，以及供本机 Agent 调用的 Java／Go Challenge 初始化入口；初始化只生成骨架与关联，不实现解法或提交。两个站点的账号与项目配置独立保存。
 
+## 安装与使用
 
-**现已推出安卓版本！** 📱 从 [Google Play](https://play.google.com/store/apps/details?id=com.wenjunhuang.codeepiphanyapp) 下载我们的移动应用，随时随地刷题练习。您的支持是我们前进的动力！
+目标平台为 **IntelliJ IDEA 2026.2**。从本仓库 CI 构建产物下载插件 ZIP，或按[开发指南](docs/开发指南.md)在本地构建。
 
-[<img src="https://play.google.com/intl/en_us/badges/static/images/badges/zh-cn_badge_web_generic.png" width="200" alt="Get it on Google Play">](https://play.google.com/store/apps/details?id=com.wenjunhuang.codeepiphanyapp)
+1. 打开 **Settings → Plugins → 齿轮 → Install Plugin from Disk**，选择构建出的 ZIP，按提示重启 IDE。
+2. 在 **Settings → Tools → LeetCode Epiphany** 中选择 LeetCode 或 LeetCodeCN，配置编程语言、文件保存路径和代码模板。
+3. 打开插件工具窗口，登录对应站点，然后搜索题目、编码、测试和提交。
 
+此 fork 保留原插件 ID，与上游插件互相替换，不可同时安装。安装前保存工作；已有项目的 `.idea/CodeEpiphany/` 包含本机配置与刷题数据库，建议自行备份。账号凭据不应提交到 Git。
 
-**专为JetBrains IDE设计的全功能插件，助您高效应对编程挑战**
+## 开发
 
-🚀 **LeetCode Epiphany** 将主流编程竞赛平台深度集成至JetBrains IDE。无需切换界面，即可无缝完成题目解答、调试与优化。
+使用 **JDK 25、Node.js 24** 和仓库自带的 **Gradle Wrapper**。在 IDEA 中打开仓库根目录，按 Gradle 工程导入；配置 Gradle JVM 为 JDK 25。不再使用 SBT。
 
----
+```bash
+./gradlew buildPlugin
+```
 
-### 当前支持平台
+构建自动安装锁定的 npm 依赖、打包 WebView、生成词法分析器，编译 Kotlin / Java 并处理 UI Designer 表单。安装包位于 `build/distributions/`。业务与 IDEA 集成已迁移到 Kotlin，保留 Java 表单；持久化使用 SQLite JDBC，不再需要 Scala 或 jOOQ。
 
-- **[LeetCode](https://www.leetcode.com)**
-- **[力扣(LeetCode中文)](https://www.leetcode.cn)**
-- **[洛谷(LuoGu)](https://www.luogu.com.cn/)**
-- **[AtCoder](https://atcoder.jp)**
-- **[CodeForces](https://codeforces.com/)**
-- **[HackerRank](https://www.hackerrank.com)**
-
----
-
-#### 功能特性
-
-| **功能**         | **完成情况** |
-|----------------|----------|
-| **问题查询**       |          |
-| - 通过查询参数筛选问题列表 | [x]      |
-| - 通过关键字查询问题列表  | [x]      |
-| **解答配置**       |          |
-| - 设置编程语言的解题模板  | [x]      |
-| **问题解答**       |          | 
-| - 在IDE中打开问题    | [x]      |
-| - 查看问题描述       | [x]      |
-| - 向代码平台提交问题    | [x]      |
-| - 提交问题评价跟踪     | [x]      |
-| - 提交历史记录       | [x]      |
-| - 同一问题多种解答     | [x]      |
-| - 不同解答代码比较     | [x]      |
-| **问题方案**       |          |
-| - 为问题编写多种解决方案  | [x]      |
-| **竞赛**         |          | 
-| - 查看竞赛列表       | [ ]      |
-| - 查看竞赛详情       | [ ]      |
-| - 参加竞赛         | [ ]      |
-| - 竞赛时间提醒       | [ ]      |
-| - 提交竞赛答案       | [ ]      |
-| - 查看竞赛结果排名     | [ ]      |
-
-**说明：**
-
-- `[x]` 表示该功能已经实现。
-- `[ ]` 表示该功能尚未实现。
-
-#### 核心功能:
-
-- 🌐 **平台直连**: 在IDE内直接获取各大编程平台的题目
-- ⚡ **一键提交**: 代码秒速提交并获取实时反馈，告别浏览器切换
-- 🔄 **多平台多语言支持**: 单一项目中兼容多个编程平台与多种编程语言。算法爱好者无需多开IDE或创建多个项目，即可轻松切换不同解题环境
-- ✍️ **多解法支持**: 同一题目支持编写多种解法。您可为每种方案编写代码、测试用例与解题说明，全方位探索不同思路
-- 📊 **持续更新**: 更多强大功能即将上线，全面提升您的编程竞赛体验！
-
-### 🛠️ 安装指南
-
-1. 打开JetBrains IDE，进入 **插件 > 市场**
-2. 搜索 **LeetCode Epiphany** 并点击 **安装**
-3. 重启IDE激活插件
-
----
-
-### 🔗 了解更多
-
-- **[📖使用文档](https://github.com/WenjunHuang/CodeEpiphany/wiki)**
-- **[🐛 提交问题](https://github.com/WenjunHuang/CodeEpiphany/issues)**
-
-💡立即使用 **LeetCode Epiphany**，开启您的算法征服之旅！
-
----
+- [开发指南](docs/开发指南.md)：构建、调试、测试与代码生成。
+- [工程结构](docs/工程结构.md)：源码边界、数据兼容性和维护约定。
+- [定制功能与自动初始化](docs/定制功能与自动初始化.md)：源码移植、CLI、权限及客户端验收边界。
+- [更新记录](CHANGELOG.md) · [上游历史](docs/上游更新记录.md)。
