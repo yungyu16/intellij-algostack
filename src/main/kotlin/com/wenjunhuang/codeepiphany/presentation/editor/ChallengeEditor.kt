@@ -27,7 +27,6 @@ import com.wenjunhuang.codeepiphany.model.Actions
 import com.wenjunhuang.codeepiphany.runtime.ProjectTasks
 import com.wenjunhuang.codeepiphany.runtime.onEdt
 import com.wenjunhuang.codeepiphany.storage.ChallengeRepository
-import com.wenjunhuang.codeepiphany.storage.SolutionRecord
 import kotlinx.coroutines.*
 import org.jdom.Element
 import java.awt.AWTEvent
@@ -45,7 +44,6 @@ class EditorState(val project: Project, val file: VirtualFile) : Disposable {
     private val scope = CoroutineScope(parent.coroutineContext + job)
     private var loading: Job? = null
     @Volatile var title: String? = null; private set
-    @Volatile var solutions: List<SolutionRecord> = emptyList(); private set
     val association get() = ChallengeSettings.getInstance(project).findChallengeId(file)
     init {
         project.messageBus.connect(this).subscribe(ChallengeRepository.CHANGED, ChallengeRepository.Listener { reload() })
@@ -56,17 +54,14 @@ class EditorState(val project: Project, val file: VirtualFile) : Disposable {
         val association = association ?: return
         loading = scope.launch {
             try {
-                val data = ChallengeRepository.getInstance(project).query { it.challenge(association.challengeId) to it.solutions(association.challengeId) }
+                val data = ChallengeRepository.getInstance(project).query { it.challenge(association.challengeId) }
                 onEdt {
-                    title = data.first?.title; solutions = data.second
+                    title = data?.title
                     FileEditorManagerEx.getInstanceEx(project).updateFilePresentation(file)
                 }
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (failure: Exception) { com.intellij.openapi.diagnostic.Logger.getInstance(EditorState::class.java).warn("Cannot load editor context", failure) }
         }
-    }
-    fun select(solutionId: Long) {
-        ChallengeSettings.getInstance(project).setChallengeSolutionId(file, solutionId)
     }
     override fun dispose() { job.cancel() }
     companion object { val KEY = Key.create<EditorState>("CodeEpiphany.EditorState") }

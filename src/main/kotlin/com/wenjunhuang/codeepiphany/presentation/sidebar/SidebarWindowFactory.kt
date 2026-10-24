@@ -19,7 +19,13 @@ import com.wenjunhuang.codeepiphany.toolwindows.sidebar.notes.NotesListPresenter
 import com.wenjunhuang.codeepiphany.toolwindows.dojo.SetupRequiredPromptView
 
 class SidebarWindowFactory : ToolWindowFactory, DumbAware {
+    /** 项目 root 有 .leetcode 目录才注册整个工具窗口；普通项目零感知。 */
+    override fun isApplicable(project: Project): Boolean =
+        project.basePath?.let { java.nio.file.Path.of(it, ".leetcode").toFile().isDirectory } == true
+
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
+        // 项目 root 有 .leetcode 标记才激活题目面板；非刷题项目只保留 Console。
+        PlatformSettings.migrateLegacyStorage(project)
         val manager = toolWindow.contentManager
         val console = LogConsole.getInstance(project).view
         val consolePanel = SimpleToolWindowPanel(false, true).apply {
@@ -37,6 +43,7 @@ class SidebarWindowFactory : ToolWindowFactory, DumbAware {
         project.messageBus.connect(project).subscribe(CodeEpiphanySettings.TOPIC,
             CodeEpiphanySettings.CodeEpiphanySettingsChangedListener { addChallengeTabs(project, manager) })
     }
+
     /** 题库按站点各占一个标签页；未配置语言时给出配置提示。 */
     private fun addChallengeTabs(project: Project, manager: com.intellij.ui.content.ContentManager) {
         manager.contents.filter { it.component is ChallengesView || it.displayName == PluginBundle.message("ui.setupView.title") }

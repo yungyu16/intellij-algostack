@@ -39,7 +39,7 @@ class SqliteStoreTest {
 
     @Test fun recordsSubmissionStatesMetricsFiltersAndRemarks() = fixture { database, _ ->
         val challenge = database.transaction { it.saveChallenge(draft()) }
-        val id = database.transaction { it.createSubmission(challenge.languageId, challenge.solutionId, "local", "submitted") }
+        val id = database.transaction { it.createSubmission(challenge.languageId, "local", "submitted") }
         database.transaction { it.updateSubmission(id, SubmissionResult.Success, "accepted", "42", SubmissionMetrics(memory = 123, totalCorrect = 10, totalTestcases = 10)) }
         database.read {
             val row = it.submission(id)!!
@@ -53,7 +53,6 @@ class SqliteStoreTest {
         val note = database.transaction { it.createSolution(challenge.challengeId, "Alternative") }
         database.transaction { it.renameSolution(note, "Renamed"); it.saveRemark(note, "# Notes\nUnicode 中文") }
         assertEquals("# Notes\nUnicode 中文", database.read { it.solution(note)!!.remark })
-        assertThrows(IllegalArgumentException::class.java) { database.transaction { it.renameSolution(challenge.solutionId, "Forbidden") } }
     }
 
     @Test fun readsLegacyLongIdsAndBothSQLiteTimestampRepresentations() = fixture { database, file ->
@@ -86,9 +85,9 @@ class SqliteStoreTest {
         val saved = database.transaction { it.saveChallenge(draft()) }
         DriverManager.getConnection("jdbc:sqlite:${file.absolutePath}").use { connection ->
             connection.createStatement().use { statement ->
-                statement.executeQuery("SELECT typeof(createDateTime),createDateTime FROM solution WHERE id=${saved.solutionId}").use { rows ->
+                statement.executeQuery("SELECT typeof(createDateTime),createDateTime FROM solution WHERE id=(SELECT id FROM solution WHERE challengeId=${saved.challengeId} AND isDefault=1)").use { rows ->
                     assertTrue(rows.next()); assertEquals("text", rows.getString(1))
-                    assertEquals(Timestamp.valueOf(rows.getString(2)).toLocalDateTime(), database.read { it.solution(saved.solutionId)!!.createdAt })
+                    assertEquals(Timestamp.valueOf(rows.getString(2)).toLocalDateTime(), database.read { it.solution(database.read { db -> db.solutions(saved.challengeId).single { s -> s.isDefault }.id })!!.createdAt })
                 }
             }
         }
@@ -96,21 +95,23 @@ class SqliteStoreTest {
 
     @Test fun refusesWritesOutsideATransactionAndPreservesTerminalResults() = fixture { database, _ ->
         val challenge = database.transaction { it.saveChallenge(draft()) }
-        assertThrows(IllegalStateException::class.java) { database.read { it.saveRemark(challenge.solutionId, "must not persist") } }
-        assertEquals("", database.read { it.solution(challenge.solutionId)!!.remark })
-        val id = database.transaction { it.createSubmission(challenge.languageId, challenge.solutionId, "local", "code") }
+        val defaultSolution = database.read { it.solutions(challenge.challengeId).single { s -> s.isDefault }.id }
+        assertThrows(IllegalStateException::class.java) { database.read { it.saveRemark(defaultSolution, "must not persist") } }
+        assertEquals("", database.read { it.solution(defaultSolution)!!.remark })
+        val id = database.transaction { it.createSubmission(challenge.languageId, "local", "code") }
         database.transaction { it.updateSubmission(id, SubmissionResult.Success, "accepted", "remote") }
         database.transaction { it.failSubmission(id, "late cancellation") }
         assertEquals(SubmissionResult.Success.value, database.read { it.submission(id)!!.result })
     }
 
-    @Test fun rejectsCrossChallengeSubmissionAssociations() = fixture { database, _ ->
+    @Test fun submissionsBindToTheDefaultSolutionOfTheirOwnChallenge() = fixture { database, _ ->
         val first = database.transaction { it.saveChallenge(draft()) }
         val second = database.transaction { it.saveChallenge(draft().copy(dojoId = "2", slug = "second")) }
-        assertThrows(IllegalStateException::class.java) {
-            database.transaction { it.createSubmission(first.languageId, second.solutionId, "local", "code") }
-        }
-        assertEquals(0, database.read { it.submissions(SubmissionFilter(), 0, 20).total })
+        val id = database.transaction { it.createSubmission(first.languageId, "local", "code") }
+        val bound = database.read { it.submission(id)!!.solutionId }
+        val secondDefault = database.read { it.solutions(second.challengeId).single { s -> s.isDefault }.id }
+        assertNotEquals(bound, secondDefault)
+        assertEquals(1, database.read { it.submissions(SubmissionFilter(), 0, 20).total })
     }
 
     @Test fun switchesDatabaseFilesWithoutSharingRows() {

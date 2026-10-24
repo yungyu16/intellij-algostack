@@ -71,36 +71,3 @@ enum class QueryMode(val legacyPresenter: String, val label: String) {
     CompanyQuery("LeetCodeCompanyQueryPresenter", "ui.query.company");
     val show: String get() = PluginBundle.message(label)
 }
-
-/** Explicit legacy keys and JSON shapes survive changes to implementation class names. */
-object SavedQueryState {
-    private val json get() = LeetCodeJson.format
-    const val LAST_MODE_KEY = "LeetCodeChallengesView-lastUI"
-    private const val LEGACY_KEYWORD_CRITERIA = "LeetCodeKeywordQueryPresenter-criteria"
-
-    /** 旧版独立的关键词查询已并入参数查询，旧的模式记录回到统一查询。 */
-    fun loadMode(values: Map<String, String>): QueryMode = when (values[LAST_MODE_KEY]?.lowercase()) {
-        "companyquery", "company" -> QueryMode.CompanyQuery
-        else -> QueryMode.QueryParameters
-    }
-    inline fun <reified T> load(values: Map<String, String>, mode: QueryMode, fallback: T): T =
-        values["${mode.legacyPresenter}-criteria"]?.let {
-            runCatching { LeetCodeJson.format.decodeFromString<T>(it) }.getOrNull()
-        } ?: fallback
-    inline fun <reified T> save(values: MutableMap<String, String>, mode: QueryMode, criteria: T, page: Pagination) {
-        values["${mode.legacyPresenter}-criteria"] = LeetCodeJson.format.encodeToString(criteria)
-        values["${mode.legacyPresenter}-pageSize"] = page.pageSize.value.toString()
-    }
-    fun page(values: Map<String, String>, mode: QueryMode): Pagination = Pagination(pageSize =
-        PageSize.entries.find { it.value.toString() == values["${mode.legacyPresenter}-pageSize"] } ?: PageSize.Twenty)
-
-    /** 旧版关键词条件并入统一查询，避免升级后丢失已输入的关键词。 */
-    fun migrateLegacyKeyword(values: Map<String, String>, criteria: ProblemCriteria): ProblemCriteria {
-        if (criteria.keyword.isNotEmpty()) return criteria
-        val legacy = values[LEGACY_KEYWORD_CRITERIA] ?: return criteria
-        val keyword = runCatching {
-            json.decodeFromString<JsonObject>(legacy)["keyword"]?.jsonPrimitive?.content
-        }.getOrNull()
-        return if (keyword.isNullOrEmpty()) criteria else criteria.copy(keyword = keyword)
-    }
-}

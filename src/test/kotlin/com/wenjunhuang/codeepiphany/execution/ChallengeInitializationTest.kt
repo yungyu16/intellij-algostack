@@ -37,7 +37,7 @@ class ChallengeInitializationTest {
                     persistAndAssociate = {
                         val saved = db.transaction { it.saveChallenge(prepared.draft) }; writes++
                         settings.addChallenge(target.toString(), ChallengeSettings.Association(saved.challengeId, saved.languageId,
-                            CodeDojo.LeetCodeCN, language, saved.solutionId, listOf(ChallengeSettings.TestCase("custom", "keep")), emptyList()))
+                            CodeDojo.LeetCodeCN, language, listOf(ChallengeSettings.TestCase("custom", "keep")), emptyList()))
                     }, open = {})
                 val result = initialize()
                 assertEquals("created", result.status); assertTrue(result.associated)

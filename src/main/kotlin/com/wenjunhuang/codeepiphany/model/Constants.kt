@@ -24,9 +24,10 @@ object Constants {
   const val CHALLENGE_SETTING_FILE = SETTINGS_FOLDER + "/challenge.xml"
 
   const val LEETCODE_CN_SETTING = PROJECT_ID + ".leetcodecn.settings"
-  const val LEETCODE_CN_SETTING_FILE = SETTINGS_FOLDER + "/leetcodecn.xml"
+  // 模板与语言配置是项目级的稳定资产，放 .leetcode 便于提交到 git。
+  const val LEETCODE_CN_SETTING_FILE = ".leetcode/leetcodecn.xml"
   const val LEETCODE_SETTING = PROJECT_ID + ".leetcode.settings"
-  const val LEETCODE_SETTING_FILE = SETTINGS_FOLDER + "/leetcode.xml"
+  const val LEETCODE_SETTING_FILE = ".leetcode/leetcode.xml"
 
   const val SUBMIT_CODE_REGION_BEGIN = "IMPORTANT!! Submit Code Region Begin(Do not remove this line)"
   const val SUBMIT_CODE_REGION_END = "IMPORTANT!! Submit Code Region End(Do not remove this line)"

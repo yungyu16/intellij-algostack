@@ -20,7 +20,7 @@ class ChallengeSettings : PersistentStateComponent<ChallengeSettings.ChallengeSe
     @Synchronized fun addChallenge(path: String, item: Association) {
         settingsState.challenges[path] = ChallengeSettingsStateItem().also {
             it.challengeId = item.challengeId; it.challengeLanguageId = item.challengeLanguageId
-            it.solutionId = item.solutionId; it.dojo = item.dojo; it.language = item.language
+            it.dojo = item.dojo; it.language = item.language
             it.testCases = item.testCases.map { case -> case.copy() }.toMutableList()
             it.defaultTestCases = item.defaultTestCases.map { case -> case.copy() }.toMutableList()
         }
@@ -31,7 +31,7 @@ class ChallengeSettings : PersistentStateComponent<ChallengeSettings.ChallengeSe
     @Synchronized fun findChallengeId(path: String): Association? {
         val item = settingsState.challenges[path] ?: return null
         return Association(item.challengeId, item.challengeLanguageId, item.dojo ?: return null,
-            item.language ?: return null, item.solutionId,
+            item.language ?: return null,
             item.testCases.map { it.copy() }, item.defaultTestCases.map { it.copy() })
     }
     fun findChallengeId(file: VirtualFile): Association? = findChallengeId(path(file))
@@ -39,9 +39,6 @@ class ChallengeSettings : PersistentStateComponent<ChallengeSettings.ChallengeSe
         settingsState.challenges[path]?.testCases = cases.map { it.copy() }.toMutableList()
     }
     fun updateChallengeTestCases(file: VirtualFile, cases: List<TestCase>) = updateChallengeTestCases(path(file), cases)
-    @Synchronized fun setChallengeSolutionId(file: VirtualFile, solutionId: SolutionId) {
-        settingsState.challenges[path(file)]?.solutionId = solutionId
-    }
     @Synchronized fun modifyCodeFilePath(old: String, new: String) {
         settingsState.challenges.remove(old)?.let { settingsState.challenges[new] = it }
     }
@@ -55,14 +52,13 @@ class ChallengeSettings : PersistentStateComponent<ChallengeSettings.ChallengeSe
 
     data class Association(
         val challengeId: ChallengeId, val challengeLanguageId: ChallengeLanguageId,
-        val dojo: CodeDojo, val language: Language, val solutionId: SolutionId,
+        val dojo: CodeDojo, val language: Language,
         val testCases: List<TestCase>, val defaultTestCases: List<TestCase>
     )
     class ChallengeSettingsState { var challenges: MutableMap<String, ChallengeSettingsStateItem> = linkedMapOf() }
     class ChallengeSettingsStateItem {
         var challengeId: Long = 0
         var challengeLanguageId: Long = 0
-        var solutionId: Long = 0
         @get:OptionTag(converter = ConfigConverters.CodeDojoConverter::class)
         var dojo: CodeDojo? = null
         @get:OptionTag(converter = ConfigConverters.LanguageConverter::class)

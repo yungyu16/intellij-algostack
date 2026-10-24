@@ -61,7 +61,9 @@ class SqliteStore internal constructor(private val connection: Connection) {
         update("UPDATE challenge_language SET codeTemplate=? WHERE id=?", draft.template, languageId)
         update("INSERT INTO leetcode_challenge(id,frontendQuestionId,testCase) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET frontendQuestionId=excluded.frontendQuestionId,testCase=excluded.testCase",
             challengeId, draft.frontendId, draft.testCases)
-        return StoredChallenge(challengeId, languageId, defaultSolution(challengeId))
+        // 多解法已取消，但默认解法仍是提交历史的锚点，保存题目时确保它存在。
+        defaultSolution(challengeId)
+        return StoredChallenge(challengeId, languageId)
     }
 
     fun defaultSolution(challengeId: Long): Long = rows("SELECT id FROM solution WHERE challengeId=? AND isDefault=1", listOf(challengeId)) { it.getLong(1) }
@@ -79,9 +81,11 @@ class SqliteStore internal constructor(private val connection: Connection) {
             Language.fromString(it.text("language")) ?: error("Unknown stored language"), LanguageVersion.fromString(it.text("languageVersion")))
     }.firstOrNull()
 
-    fun createSubmission(languageId: Long, solutionId: Long, localCode: String, submitCode: String, id: Long = IdGenerator.nextId()): Long {
-        check(rows("SELECT 1 FROM challenge_language cl JOIN solution s ON s.challengeId=cl.challengeId WHERE cl.id=? AND s.id=?",
-            listOf(languageId, solutionId)) { it.getInt(1) }.isNotEmpty()) { "Solution and language must belong to the same challenge" }
+    fun createSubmission(languageId: Long, localCode: String, submitCode: String, id: Long = IdGenerator.nextId()): Long {
+        // 多解法已取消：提交固定挂在该题语言的默认解法上，作为提交历史的锺点。
+        val solutionId = rows("SELECT s.id FROM challenge_language cl JOIN solution s ON s.challengeId=cl.challengeId AND s.isDefault=1 WHERE cl.id=?",
+            listOf(languageId)) { it.getLong(1) }.firstOrNull()
+            ?: defaultSolution(rows("SELECT challengeId FROM challenge_language WHERE id=?", listOf(languageId)) { it.getLong(1) }.first())
         update("INSERT INTO solution_submission(id,challengeLanguageId,solutionId,localCode,submitCode,submitDateTime,result) VALUES(?,?,?,?,?,?,?)",
             id, languageId, solutionId, localCode, submitCode, LocalDateTime.now(), SubmissionResult.Processing.value)
         return id

@@ -154,6 +154,8 @@ tasks.named<InstrumentCodeTask>("instrumentCode") {
 }
 
 tasks.test {
+    // instrument 产物是表单绑定代码重复生成的检测对象，测试前必须先产出。
+    dependsOn("instrumentCode")
     useJUnit()
     systemProperty("java.awt.headless", "true")
     maxHeapSize = "2g"

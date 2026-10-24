@@ -10,7 +10,7 @@ data class ChallengeRecord(val id: Long, val dojo: CodeDojo, val dojoId: String,
 data class ChallengeDraft(val dojo: CodeDojo, val dojoId: String, val title: String, val slug: String,
     val difficulty: String, val description: String, val frontendId: String, val testCases: String,
     val language: Language, val version: LanguageVersion, val template: String)
-data class StoredChallenge(val challengeId: Long, val languageId: Long, val solutionId: Long)
+data class StoredChallenge(val challengeId: Long, val languageId: Long)
 data class ExecutionRequest(val questionId: String, val slug: String, val defaultCases: String,
     val language: Language, val version: LanguageVersion)
 data class SolutionRecord(val id: Long, val challengeId: Long, val title: String, val remark: String,

@@ -47,11 +47,10 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
     private val settings get() = PlatformSettings.getInstance(project, dojo).state
     private val auth get() = AuthService.getInstance(project)
     private val api get() = HttpService.getInstance().api(dojo)
-    override var mode = SavedQueryState.loadMode(settings.queryCriteria); private set
-    private var parameters = SavedQueryState.migrateLegacyKeyword(settings.queryCriteria,
-        SavedQueryState.load(settings.queryCriteria, QueryMode.QueryParameters, ProblemCriteria()))
-    private var company = SavedQueryState.load(settings.queryCriteria, QueryMode.CompanyQuery, CompanyCriteria())
-    private val pages = QueryMode.entries.associateWith { SavedQueryState.page(settings.queryCriteria, it) }.toMutableMap()
+    override var mode = QueryMode.QueryParameters; private set
+    private var parameters = ProblemCriteria()
+    private var company = CompanyCriteria()
+    private val pages = QueryMode.entries.associateWith { Pagination() }.toMutableMap()
     private var metadata: Metadata? = null
     private var ready = false
     private var readyRevision = -1L
@@ -211,7 +210,7 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
                 onEdt {
                     if (!closed && auth.isLoggedIn(dojo) && auth.sessionRevision(dojo) == revision) {
                         metadata = data; readyRevision = revision; ready = true
-                        switchTo(SavedQueryState.loadMode(settings.queryCriteria))
+                        switchTo(mode)
                     }
                 }
             } catch (cancelled: CancellationException) { throw cancelled }
@@ -227,12 +226,11 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
             catch (_: Exception) { delay(500L shl attempt) } }
         return block()
     }
-    override fun logout() { scope.launch { auth.logout(dojo); onEdt { ready = false; settings.queryCriteria[SavedQueryState.LAST_MODE_KEY] = "Unauthenticated"; showBody() } } }
+    override fun logout() { scope.launch { auth.logout(dojo); onEdt { ready = false; showBody() } } }
     override fun showProfile() { userInfo?.userSlug?.let { openWebPreview(project, dojo, "https://${dojo.domain}/u/$it", userInfo?.username ?: dojo.show) } }
     override fun switchTo(mode: QueryMode) {
         this.mode = mode
         model.rows = emptyList(); model.fireTableStructureChanged()
-        if (ready) settings.queryCriteria[SavedQueryState.LAST_MODE_KEY] = mode.name
         updatingControls = true
         search.text = if (mode == QueryMode.CompanyQuery) company.keyword else parameters.keyword
         search.isVisible = true
@@ -249,8 +247,6 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
     private fun request(reset: Boolean = false) {
         if (!ready || closed) return
         if (reset) pages[mode] = pages.getValue(mode).resetToFirstPage()
-        // 保存用户选择不依赖查询成功，避免网络失败后重启又恢复已删除的条件。
-        saveCriteria()
         updateTags()
         refreshHeaders(table)
         query.submit(currentRequest())
@@ -269,10 +265,6 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
         }
         return Page(request, result.questions, result.total)
     }
-    private fun saveCriteria() { when (mode) {
-        QueryMode.QueryParameters -> SavedQueryState.save(settings.queryCriteria, mode, parameters, pages.getValue(mode))
-        QueryMode.CompanyQuery -> SavedQueryState.save(settings.queryCriteria, mode, company, pages.getValue(mode))
-    } }
     private fun updateFooter() {
         updatingControls = true
         val page = pages.getValue(mode); val spinner = pageSpinner.model as SpinnerNumberModel

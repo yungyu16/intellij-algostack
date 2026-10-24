@@ -63,7 +63,7 @@ private suspend fun associateChallenge(project: Project, prepared: PreparedChall
     currentCoroutineContext().ensureActive()
     check(!project.isDisposed) { "Project closed" }
     ChallengeSettings.getInstance(project).addChallenge(file, ChallengeSettings.Association(
-        stored.challengeId, stored.languageId, prepared.draft.dojo, prepared.draft.language, stored.solutionId,
+        stored.challengeId, stored.languageId, prepared.draft.dojo, prepared.draft.language,
         prepared.template.cases, prepared.template.cases))
 }
 
@@ -106,7 +106,7 @@ suspend fun initializeChallenge(project: Project, dojo: CodeDojo, slug: String, 
                     val challenge = store.challenge(item.challengeId)
                     val execution = store.executionRequest(item.challengeId, item.challengeLanguageId)
                     challenge?.dojo == dojo && challenge.slug == slug && execution?.language == language
-                        && execution.version == LanguageVersion.AnyVersion && store.solution(item.solutionId)?.challengeId == item.challengeId
+                        && execution.version == LanguageVersion.AnyVersion
                 }
             }
         },

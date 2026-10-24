@@ -11,7 +11,7 @@ import org.junit.Test
 class LegacySettingsTest {
     @Test fun directoryMovesAndDeletesKeepFileAssociationsConsistent() {
         val settings = ChallengeSettings()
-        val item = ChallengeSettings.Association(1, 2, CodeDojo.LeetCodeCN, Language.Java, 3, emptyList(), emptyList())
+        val item = ChallengeSettings.Association(1, 2, CodeDojo.LeetCodeCN, Language.Java, emptyList(), emptyList())
         settings.addChallenge("/code/old/A.java", item)
         settings.addChallenge("/code/old/nested/B.java", item)
         settings.addChallenge("/code/old-neighbor/C.java", item)
@@ -75,13 +75,13 @@ class LegacySettingsTest {
 
     @Test fun fileAssociationsAreReadAsIndependentSnapshotsAndRenamedAtomically() {
         val settings = ChallengeSettings()
-        settings.addChallenge("old.java", ChallengeSettings.Association(1, 2, CodeDojo.LeetCodeCN, Language.Java, 3,
+        settings.addChallenge("old.java", ChallengeSettings.Association(1, 2, CodeDojo.LeetCodeCN, Language.Java,
             listOf(ChallengeSettings.TestCase("[1,2]", "[0,1]")), emptyList()))
         val first = settings.findChallengeId("old.java")!!
         first.testCases.single().input = "changed"
         assertEquals("[1,2]", settings.findChallengeId("old.java")!!.testCases.single().input)
         settings.modifyCodeFilePath("old.java", "new.java")
         assertNull(settings.findChallengeId("old.java"))
-        assertEquals(3L, settings.findChallengeId("new.java")!!.solutionId)
+        assertEquals(Language.Java, settings.findChallengeId("new.java")!!.language)
     }
 }

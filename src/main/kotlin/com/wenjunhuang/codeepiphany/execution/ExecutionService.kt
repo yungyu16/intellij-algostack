@@ -88,7 +88,7 @@ class ExecutionService(private val project: Project, private val scope: Coroutin
         console: LogConsole, repository: ChallengeRepository) {
         val id = IdGenerator.nextId()
         try {
-            repository.transaction { it.createSubmission(item.challengeLanguageId, item.solutionId, local, code, id) }
+            repository.transaction { it.createSubmission(item.challengeLanguageId, local, code, id) }
             HttpService.getInstance().api(item.dojo).submitAnswer(request.questionId, request.slug,
                 request.language.toLeetCode(request.version), code).collect { response ->
                 val state = if (response is LeetCodeSubmitAnswerResult.Success) SubmissionResult.fromApi(response.statusMsg) else SubmissionResult.Processing

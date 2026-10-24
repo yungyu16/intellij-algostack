@@ -63,9 +63,6 @@
             <action id="CodeEpiphany.Actions.SurroundSubmissionRegion"
                     class="com.wenjunhuang.codeepiphany.presentation.editor.SurroundSubmissionRegionAction"
                     icon="CodeEpiphanyIcons.APP_BRACKETS"/>
-            <action id="CodeEpiphany.Actions.SolutionSelection"
-                    class="com.wenjunhuang.codeepiphany.presentation.editor.SolutionSelectionAction">
-            </action>
         </group>
         <group id="CodeEpiphany.LeetCode.Group">
             <action id="CodeEpiphany.Actions.LeetCode.Favorite"
@@ -85,7 +82,6 @@
             <reference ref="CodeEpiphany.Actions.RunTest"/>
             <reference ref="CodeEpiphany.Actions.SubmitCode"/>
             <reference ref="CodeEpiphany.Actions.SurroundSubmissionRegion"/>
-            <reference ref="CodeEpiphany.Actions.SolutionSelection"/>
             <reference ref="CodeEpiphany.Actions.ActivateSolutionsView"/>
             <reference ref="CodeEpiphany.Actions.ActivateNotesView"/>
             <reference ref="CodeEpiphany.Actions.ActivateDescriptionView"/>
@@ -97,7 +93,6 @@
             <reference ref="CodeEpiphany.Actions.RunTest"/>
             <reference ref="CodeEpiphany.Actions.SubmitCode"/>
             <reference ref="CodeEpiphany.Actions.SurroundSubmissionRegion"/>
-            <reference ref="CodeEpiphany.Actions.SolutionSelection"/>
             <reference ref="CodeEpiphany.Actions.ActivateSolutionsView"/>
             <reference ref="CodeEpiphany.Actions.ActivateNotesView"/>
             <reference ref="CodeEpiphany.Actions.ActivateDescriptionView"/>

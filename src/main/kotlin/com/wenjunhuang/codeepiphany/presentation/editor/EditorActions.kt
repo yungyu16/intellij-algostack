@@ -47,22 +47,6 @@ class EditorMenuActionGroup : DefaultActionGroup(), DumbAware {
         event.presentation.isEnabledAndVisible = project != null && file != null && ChallengeSettings.getInstance(project).findChallengeId(file) != null
     }
 }
-class SolutionSelectionAction : ComboBoxAction(), DumbAware {
-    override fun getActionUpdateThread() = ActionUpdateThread.EDT
-    override fun update(event: AnActionEvent) {
-        val state = editorState(event.dataContext)
-        event.presentation.isEnabled = state?.solutions?.isNotEmpty() == true
-        event.presentation.text = state?.solutions?.find { it.id == state.association?.solutionId }?.title ?: "Select Solution"
-    }
-    override fun createPopupActionGroup(button: JComponent, context: DataContext): DefaultActionGroup {
-        val state = editorState(context) ?: return DefaultActionGroup()
-        return DefaultActionGroup(state.solutions.map { solution -> object : CheckboxAction(solution.title), DumbAware {
-            override fun getActionUpdateThread() = ActionUpdateThread.EDT
-            override fun isSelected(event: AnActionEvent) = state.association?.solutionId == solution.id
-            override fun setSelected(event: AnActionEvent, selected: Boolean) { if (selected) state.select(solution.id) }
-        } })
-    }
-}
 class SurroundSubmissionRegionAction : DumbAwareAction() {
     override fun getActionUpdateThread() = ActionUpdateThread.EDT
     override fun update(event: AnActionEvent) { event.presentation.isEnabled = editorState(event.dataContext) != null && event.getData(CommonDataKeys.EDITOR)?.selectionModel?.hasSelection() == true }
