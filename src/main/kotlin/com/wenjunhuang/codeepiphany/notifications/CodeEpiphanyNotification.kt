@@ -12,7 +12,6 @@ import icons.CodeEpiphanyIcons
 object CodeEpiphanyNotification {
     const val GITHUB_URL = "https://github.com/yungyu16/CodeEpiphany"
     const val CHANGELOG_URL = "$GITHUB_URL/blob/main/CHANGELOG.md"
-    const val DONATION_URL = "https://leetcodeepiphany.pages.dev/"
     fun notifyFirstInstall(project: Project) = show(project, PluginBundle.message("notification.firstlyDownloaded.title"), PluginBundle.message("notification.firstlyDownloaded.description"))
     fun notifyRelease(project: Project) {
         val notes = javaClass.getResourceAsStream("/META-INF/release-notes.html")?.bufferedReader()?.use { it.readText() }
@@ -25,7 +24,6 @@ object CodeEpiphanyNotification {
                 icon = CodeEpiphanyIcons.PLUGIN
                 addAction(NotificationAction.createSimple("GitHub") { BrowserUtil.browse(GITHUB_URL) })
                 addAction(NotificationAction.createSimple(PluginBundle.message("notification.changeLog")) { BrowserUtil.browse(CHANGELOG_URL) })
-                addAction(NotificationAction.createSimple(PluginBundle.message("donate")) { BrowserUtil.browse(DONATION_URL) })
                 notify(project)
             }
     }

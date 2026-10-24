@@ -66,8 +66,9 @@ class ArticlesPanel(project: Project) : SidebarPanel(project), UiDataProvider, F
             override fun getTableCellRendererComponent(owner: JTable, value: Any?, selected: Boolean, focused: Boolean, row: Int, column: Int): java.awt.Component {
                 val component = super.getTableCellRendererComponent(owner, value, selected, focused, row, column)
                 val item = model.rows.getOrNull(row)
-                icon = if (column == 1 && item != null) avatars.getOrPut(item.author.userAvatar) { AvatarIcon(scope, item.author.userAvatar, 16) } else null
-                toolTipText = if (column == 4) item?.summary else null
+                val modelColumn = owner.convertColumnIndexToModel(column)
+                icon = if (modelColumn == 1 && item != null) avatars.getOrPut(item.author.userAvatar) { AvatarIcon(scope, item.author.userAvatar, 16) } else null
+                toolTipText = if (modelColumn == 4) item?.summary else null
                 if (!selected) foreground = if (item?.isPremium == true && challenge?.let { AuthService.getInstance(project).userInfo(it.dojo)?.isPremium } != true)
                     UIManager.getColor("Label.disabledForeground") else owner.foreground
                 return component
@@ -93,7 +94,7 @@ class ArticlesPanel(project: Project) : SidebarPanel(project), UiDataProvider, F
         } }
         table.addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(event: MouseEvent) {
-                if (event.clickCount == 2 && table.columnAtPoint(event.point) == 1) {
+                if (event.clickCount == 2 && modelColumnAt(table, event.point) == 1) {
                     val item = model.rows.getOrNull(table.rowAtPoint(event.point)) ?: return
                     val dojo = challenge?.dojo ?: return
                     openWebPreview(project, dojo, "https://${dojo.domain}/u/${item.author.userSlug}/", item.author.username)

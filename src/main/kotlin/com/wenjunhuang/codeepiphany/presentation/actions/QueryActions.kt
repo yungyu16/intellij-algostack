@@ -12,23 +12,24 @@ import icons.CodeEpiphanyIcons
 import javax.swing.JComponent
 
 fun site(event: AnActionEvent): SiteHost? = event.getData(ActionContext.SITE) ?: event.project?.let {
-    ToolWindowManager.getInstance(it).getToolWindow("LeetCode Epiphany")?.contentManager?.selectedContent?.component as? SiteHost
+    ToolWindowManager.getInstance(it).getToolWindow("leetcode-editor")?.contentManager?.selectedContent?.component as? SiteHost
 }
 abstract class FilterAction(private val kind: FilterKind) : ComboBoxAction(), DumbAware {
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
     override fun update(event: AnActionEvent) {
         val host = event.getData(ActionContext.FILTERS)
-        event.presentation.isEnabledAndVisible = host != null && host.items(kind).isNotEmpty()
+        event.presentation.isEnabledAndVisible = host != null && filterChoices(host.items(kind), host.selected(kind)).isNotEmpty()
     }
     public override fun createPopupActionGroup(button: JComponent, context: DataContext): DefaultActionGroup {
         val host = ActionContext.FILTERS.getData(context) ?: return DefaultActionGroup()
         val root = DefaultActionGroup()
         val groups = linkedMapOf<String, DefaultActionGroup>()
-        for (item in host.items(kind)) {
+        for (item in filterChoices(host.items(kind), host.selected(kind))) {
             val action = object : CheckboxAction(item.text, item.text, item.icon), DumbAware {
                 override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
                 override fun isSelected(event: AnActionEvent): Boolean = item.id in host.selected(kind)
                 override fun setSelected(event: AnActionEvent, selected: Boolean) {
+                    if ((!selected && !kind.clearable)) return
                     if (selected != (item.id in host.selected(kind))) host.toggle(kind, item.id)
                 }
             }
@@ -72,7 +73,7 @@ class ModeAction : ActionGroup(), DumbAware {
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
     override fun update(event: AnActionEvent) {
         val owner = site(event); event.presentation.isEnabledAndVisible = owner?.loggedIn == true
-        event.presentation.icon = when (owner?.mode) { QueryMode.SearchByKeyword -> CodeEpiphanyIcons.SEARCH; QueryMode.CompanyQuery -> CodeEpiphanyIcons.BUILDING; else -> CodeEpiphanyIcons.QUERY_PARAM }
+        event.presentation.icon = when (owner?.mode) { QueryMode.CompanyQuery -> CodeEpiphanyIcons.BUILDING; else -> CodeEpiphanyIcons.QUERY_PARAM }
     }
     override fun getChildren(event: AnActionEvent?): Array<AnAction> {
         val owner = event?.let(::site) ?: return emptyArray()

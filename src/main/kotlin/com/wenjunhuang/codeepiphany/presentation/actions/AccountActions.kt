@@ -39,6 +39,3 @@ class AccountGroup : DefaultActionGroup(), DumbAware {
         event.presentation.icon = owner?.avatar
     }
 }
-class DonationAction : DumbAwareAction() {
-    override fun actionPerformed(event: AnActionEvent) = com.intellij.ide.BrowserUtil.browse("https://leetcodeepiphany.pages.dev/")
-}

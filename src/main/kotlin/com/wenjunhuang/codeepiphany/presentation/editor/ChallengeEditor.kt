@@ -1,8 +1,11 @@
 package com.wenjunhuang.codeepiphany.presentation.editor
 
+import com.intellij.ide.DataManager
 import com.intellij.ide.FileIconPatcher
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.fileEditor.*
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
@@ -33,6 +36,8 @@ import java.awt.event.KeyEvent
 import javax.swing.Icon
 import javax.swing.JComponent
 import javax.swing.JLayeredPane
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 
 class EditorState(val project: Project, val file: VirtualFile) : Disposable {
     private val parent = ProjectTasks.getInstance(project).scope
@@ -67,7 +72,8 @@ class EditorState(val project: Project, val file: VirtualFile) : Disposable {
     companion object { val KEY = Key.create<EditorState>("CodeEpiphany.EditorState") }
 }
 
-class ChallengeEditor(private val delegate: TextEditor, project: Project, file: VirtualFile) : TextEditor by delegate {
+class ChallengeEditor(delegate: TextEditor, project: Project, file: VirtualFile) : DelegatingTextEditor(delegate, file) {
+    private val logger = Logger.getInstance(ChallengeEditor::class.java)
     val state = EditorState(project, file)
     private val ui by lazy {
         val editorComponent = delegate.component
@@ -81,13 +87,39 @@ class ChallengeEditor(private val delegate: TextEditor, project: Project, file: 
         }
         val group = ActionManager.getInstance().getAction(Actions.CHALLENGE_EDITOR_TOOLBAR_GROUP) as ActionGroup
         val toolbar = LayoutActionsFloatingToolbar(layered, group, this)
-        layered.add(editorComponent, JLayeredPane.DEFAULT_LAYER); layered.add(toolbar, JLayeredPane.POPUP_LAYER)
+        // JLayeredPane 的层常量是 Integer；Kotlin 会优先匹配 add(Component, Int) 重载，
+        // 把层约束退化成索引，工具栏就会与编辑器同层而无法保证绘制在上层。显式装箱走 Object 重载。
+        layered.add(editorComponent, JLayeredPane.DEFAULT_LAYER as Any)
+        layered.add(toolbar, JLayeredPane.POPUP_LAYER as Any)
+        logger.info("challenge editor ui built: file=${state.file.name}, group=${Actions.CHALLENGE_EDITOR_TOOLBAR_GROUP}, toolbar=${toolbar.javaClass.simpleName}")
         val alarm = Alarm(Alarm.ThreadToUse.POOLED_THREAD, this)
-        StartupUiUtil.addAwtListener(AWTEvent.MOUSE_MOTION_EVENT_MASK, this) {
+        // 悬浮工具栏问题需要悬停现场才能定位；按时间间隔记录悬停/隐藏状态与数据上下文。
+        val hoverLogs = AtomicInteger(); val hideLogs = AtomicInteger()
+        val lastHoverLog = AtomicLong(0); val lastHideLog = AtomicLong(0)
+        StartupUiUtil.addAwtListener(AWTEvent.MOUSE_MOTION_EVENT_MASK, this) { event ->
+            logger.debug("mouse motion event: $event")
+            val now = System.currentTimeMillis()
             if (layered.mousePosition != null) {
-                alarm.cancelAllRequests(); toolbar.scheduleShow()
+                alarm.cancelAllRequests()
+                if (now - lastHoverLog.get() >= 1500 && hoverLogs.getAndIncrement() < 10) {
+                    lastHoverLog.set(now)
+                    val context = DataManager.getInstance().getDataContext(toolbar)
+                    logger.info("challenge toolbar hover: file=${state.file.name}, toolbarVisible=${toolbar.isVisible}, visibleActions=${toolbar.hasVisibleActions()}, bounds=${toolbar.bounds}, preferred=${toolbar.preferredSize}, layer=${JLayeredPane.getLayer(toolbar)}, virtualFile=${CommonDataKeys.VIRTUAL_FILE.getData(context)?.name}, fileEditor=${PlatformCoreDataKeys.FILE_EDITOR.getData(context)?.javaClass?.simpleName}, project=${PlatformCoreDataKeys.PROJECT.getData(context)?.name}")
+                    alarm.addRequest({
+                        ApplicationManager.getApplication().invokeLater {
+                            logger.info("challenge toolbar after show: file=${state.file.name}, toolbarVisible=${toolbar.isVisible}, visibleActions=${toolbar.hasVisibleActions()}, bounds=${toolbar.bounds}, preferred=${toolbar.preferredSize}, layer=${JLayeredPane.getLayer(toolbar)}")
+                        }
+                    }, 900)
+                }
+                toolbar.scheduleShow()
                 if (toolbar.mousePosition == null) alarm.addRequest({ toolbar.scheduleHide() }, 1400)
-            } else if (toolbar.mousePosition == null) toolbar.scheduleHide()
+            } else if (toolbar.mousePosition == null) {
+                if (now - lastHideLog.get() >= 5000 && hideLogs.getAndIncrement() < 5) {
+                    lastHideLog.set(now)
+                    logger.info("challenge toolbar leave: file=${state.file.name}, toolbarVisible=${toolbar.isVisible}")
+                }
+                toolbar.scheduleHide()
+            }
         }
         val listener = object : KeyAdapter() { override fun keyTyped(event: KeyEvent) { toolbar.scheduleHide() } }
         delegate.editor.contentComponent.addKeyListener(listener)
@@ -95,12 +127,15 @@ class ChallengeEditor(private val delegate: TextEditor, project: Project, file: 
         layered
     }
     init {
+        logger.info("challenge editor created: file=${file.name}")
         delegate.putUserData(EditorState.KEY, state)
         Disposer.register(this, state); Disposer.register(this, delegate)
     }
     override fun getComponent(): JComponent = ui
     override fun getName(): String = "ChallengeEditor"
-    override fun dispose() = Unit
+    override fun dispose() {
+        logger.info("challenge editor disposed: file=${state.file.name}")
+    }
 }
 
 class ChallengeEditorProvider : FileEditorProvider, DumbAware {

@@ -8,6 +8,8 @@ import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.ui.DocumentAdapter
+import com.intellij.ui.SearchTextField
+import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.*
 import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.JBUI
@@ -21,6 +23,7 @@ import com.wenjunhuang.codeepiphany.model.Actions
 import com.wenjunhuang.codeepiphany.presentation.*
 import com.wenjunhuang.codeepiphany.presentation.browser.openWebPreview
 import com.wenjunhuang.codeepiphany.runtime.*
+import com.wenjunhuang.codeepiphany.utils.ColorUtils
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
 import java.awt.*
@@ -35,7 +38,7 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
     JPanel(BorderLayout()), UiDataProvider, Disposable, SiteHost, ChallengeHost, FilterHost, QueryHost {
     private data class Metadata(val categories: List<LeetCodeCategoryListItem>, val favorites: List<LeetCodeFavoriteItem>,
         val tags: List<LeetCodeTagTypeWithTags>, val companies: List<LeetCodeQuestionCompanyTag>, val positions: List<LeetCodeProblemsetPositionTag>)
-    private data class Request(val mode: QueryMode, val parameters: ProblemCriteria, val keyword: KeywordCriteria,
+    private data class Request(val mode: QueryMode, val parameters: ProblemCriteria,
         val company: CompanyCriteria, val page: Pagination)
     private data class Page(val request: Request, val rows: List<LeetCodeChallengeListItem>, val total: Int)
     private val logger = Logger.getInstance(ChallengesView::class.java)
@@ -45,8 +48,8 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
     private val auth get() = AuthService.getInstance(project)
     private val api get() = HttpService.getInstance().api(dojo)
     override var mode = SavedQueryState.loadMode(settings.queryCriteria); private set
-    private var parameters = SavedQueryState.load(settings.queryCriteria, QueryMode.QueryParameters, ProblemCriteria())
-    private var keyword = SavedQueryState.load(settings.queryCriteria, QueryMode.SearchByKeyword, KeywordCriteria())
+    private var parameters = SavedQueryState.migrateLegacyKeyword(settings.queryCriteria,
+        SavedQueryState.load(settings.queryCriteria, QueryMode.QueryParameters, ProblemCriteria()))
     private var company = SavedQueryState.load(settings.queryCriteria, QueryMode.CompanyQuery, CompanyCriteria())
     private val pages = QueryMode.entries.associateWith { SavedQueryState.page(settings.queryCriteria, it) }.toMutableMap()
     private var metadata: Metadata? = null
@@ -67,7 +70,10 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
     override val isBusy: Boolean get() = loggingIn || query.states.value is QueryState.Loading
     private val model = ProblemTable()
     private val table = JBTable(model).apply { setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION); autoCreateRowSorter = false }
-    private val search = JBTextField()
+    private val search = SearchTextField(true).apply {
+        textEditor.emptyText.appendText(PluginBundle.message("ui.query.searchHint"),
+            SimpleTextAttributes(SimpleTextAttributes.STYLE_PLAIN, ColorUtils.LABEL_GRAY_COLOR))
+    }
     private var updatingControls = false
     private val tagsPanel = JPanel(FlowLayout(FlowLayout.LEFT, 4, 2))
     private val message = JBLabel(PluginBundle.message("unauthenticatedView.message", dojo.show), SwingConstants.CENTER)
@@ -79,8 +85,13 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
     private val pageSize = JComboBox(PageSize.entries.map { it.value }.toTypedArray())
 
     init {
-        val toolbar = ActionManager.getInstance().createActionToolbar(Actions.TOOLBAR_PLACE,
-            ActionManager.getInstance().getAction(Actions.LEETCODE_TOOLBAR_GROUP) as ActionGroup, true)
+        // 筛选动作与站点动作（模式切换、登录、账号、捐赠）合并到面板工具栏。
+        val toolbarGroup = DefaultActionGroup().apply {
+            add(ActionManager.getInstance().getAction(Actions.LEETCODE_TOOLBAR_GROUP) as ActionGroup)
+            addSeparator()
+            add(ActionManager.getInstance().getAction(Actions.LEETCODE_SITE_ACTIONS_GROUP) as ActionGroup)
+        }
+        val toolbar = ActionManager.getInstance().createActionToolbar(Actions.TOOLBAR_PLACE, toolbarGroup, true)
         toolbar.targetComponent = this
         val north = JPanel(BorderLayout()).apply {
             add(toolbar.component, BorderLayout.NORTH); add(search, BorderLayout.CENTER); add(tagsPanel, BorderLayout.SOUTH)
@@ -95,9 +106,15 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
         content.add(footer, BorderLayout.SOUTH)
         val prompt = JPanel(BorderLayout()).apply { add(message, BorderLayout.CENTER); add(loginButton, BorderLayout.SOUTH); border = JBUI.Borders.empty(12) }
         body.add(prompt, "prompt"); body.add(content, "query"); add(body, BorderLayout.CENTER)
-        search.document.addDocumentListener(object : DocumentAdapter() {
+        search.textEditor.document.addDocumentListener(object : DocumentAdapter() {
             override fun textChanged(event: DocumentEvent) {
-                if (!updatingControls && mode == QueryMode.SearchByKeyword) { keyword = keyword.copy(keyword = search.text); request(true) }
+                if (!updatingControls) {
+                    when (mode) {
+                        QueryMode.QueryParameters -> parameters = parameters.withKeyword(search.text)
+                        QueryMode.CompanyQuery -> company = company.withKeyword(search.text)
+                    }
+                    request(true)
+                }
             }
         })
         pageSpinner.addChangeListener { if (!updatingControls) setPage((pageSpinner.value as Number).toInt()) }
@@ -115,13 +132,12 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
         })
         table.tableHeader.addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(event: MouseEvent) {
-                val field = model.fields.getOrNull(table.columnAtPoint(event.point)) ?: return
+                val field = model.fields.getOrNull(modelColumnAt(table, event.point)) ?: return
                 val old = order()
                 val next = if (old?.field != field) QueryOrder(field, OrderDirection.Ascending)
                     else if (old.direction == OrderDirection.Ascending) old.copy(direction = OrderDirection.Descending) else null
                 when (mode) {
                     QueryMode.QueryParameters -> parameters = parameters.copy(orderBy = next)
-                    QueryMode.SearchByKeyword -> keyword = keyword.copy(orderBy = next)
                     QueryMode.CompanyQuery -> company = company.copy(orderBy = next)
                 }; request(true)
             }
@@ -145,14 +161,14 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
         scope.launch { query.states.collectLatest { state -> onEdt {
             if (closed) return@onEdt
             when (state) {
-                is QueryState.Success -> if (ready && state.value.request.mode == mode) {
+                is QueryState.Success -> if (ready && state.value.request == currentRequest()) {
                     model.rows = state.value.rows; pages[mode] = state.value.request.page.copy(totalSize = state.value.total)
-                    model.fireTableDataChanged(); saveCriteria(); updateFooter()
+                    model.fireTableDataChanged(); updateFooter()
                 }
                 is QueryState.Failure -> {
                     pageLabel.text = PluginBundle.message("query.error", state.error.message.orEmpty())
                     logger.warn("Question query failed", state.error)
-                    scope.launch { LogConsole.getInstance(project).print(dojo, pageLabel.text, true) }
+                    scope.launch { LogConsole.getInstance(project).error(dojo, pageLabel.text) }
                 }
                 else -> Unit
             }
@@ -217,24 +233,32 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
         this.mode = mode
         model.rows = emptyList(); model.fireTableStructureChanged()
         if (ready) settings.queryCriteria[SavedQueryState.LAST_MODE_KEY] = mode.name
-        updatingControls = true; search.text = keyword.keyword; search.isVisible = mode == QueryMode.SearchByKeyword; updatingControls = false
+        updatingControls = true
+        search.text = if (mode == QueryMode.CompanyQuery) company.keyword else parameters.keyword
+        search.isVisible = true
+        updatingControls = false
         updateTags(); updateFooter(); showBody()
         if (ready) request()
     }
     private fun showBody() = (body.layout as CardLayout).show(body, if (ready) "query" else "prompt")
     override fun refresh() { if (ready) request() else login() }
     private fun setPage(page: Int) { if (page in 1..pages.getValue(mode).totalPages) { pages[mode] = pages.getValue(mode).copy(currentPage = page); request() } }
-    private fun order(): QueryOrder? = when (mode) { QueryMode.QueryParameters -> parameters.orderBy; QueryMode.SearchByKeyword -> keyword.orderBy; QueryMode.CompanyQuery -> company.orderBy }
+    private fun order(): QueryOrder? = when (mode) { QueryMode.QueryParameters -> parameters.orderBy; QueryMode.CompanyQuery -> company.orderBy }
+    private val activeFilterKinds get() = mode.activeFilters(dojo, parameters.selectedFavorite != null)
+    private fun currentRequest() = Request(mode, parameters, company, pages.getValue(mode))
     private fun request(reset: Boolean = false) {
         if (!ready || closed) return
         if (reset) pages[mode] = pages.getValue(mode).resetToFirstPage()
-        updateTags(); query.submit(Request(mode, parameters, keyword, company, pages.getValue(mode)))
+        // 保存用户选择不依赖查询成功，避免网络失败后重启又恢复已删除的条件。
+        saveCriteria()
+        updateTags()
+        refreshHeaders(table)
+        query.submit(currentRequest())
     }
     private suspend fun loadPage(request: Request): Page {
         val page = request.page
         val result = when (request.mode) {
             QueryMode.QueryParameters -> api.searchChallenges(page.offset, page.limit, request.parameters.api())
-            QueryMode.SearchByKeyword -> api.searchChallengesWithKeyword(page.offset, page.limit, request.keyword.keyword, request.keyword.orderBy?.api())
             QueryMode.CompanyQuery -> if (request.company.selectedCompanies.isEmpty()) LeetCodeChallengeList(emptyList(), 0) else {
                 val criteria = request.company
                 val result = api.searchCompanyChallenges(page.offset, page.limit, criteria.selectedInterviewPeriod.slug,
@@ -247,7 +271,6 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
     }
     private fun saveCriteria() { when (mode) {
         QueryMode.QueryParameters -> SavedQueryState.save(settings.queryCriteria, mode, parameters, pages.getValue(mode))
-        QueryMode.SearchByKeyword -> SavedQueryState.save(settings.queryCriteria, mode, keyword, pages.getValue(mode))
         QueryMode.CompanyQuery -> SavedQueryState.save(settings.queryCriteria, mode, company, pages.getValue(mode))
     } }
     private fun updateFooter() {
@@ -261,8 +284,8 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
         TagSelection(it.tag.nameTranslated?.takeIf(String::isNotEmpty) ?: it.tag.name, it.tag.slug, group.name, it.tag)
     } }
     override fun items(kind: FilterKind): List<FilterItem> {
+        if (kind !in activeFilterKinds) return emptyList()
         val data = metadata ?: return emptyList()
-        if (mode == QueryMode.SearchByKeyword) return emptyList()
         return when (kind) {
             FilterKind.Category -> if (mode == QueryMode.QueryParameters) data.categories.map { FilterItem(it.slug, it.title) } else emptyList()
             FilterKind.Favorite -> if (mode == QueryMode.QueryParameters) data.favorites.map { FilterItem(it.id, it.name) } else emptyList()
@@ -275,39 +298,47 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
             else -> emptyList()
         }
     }
-    override fun selected(kind: FilterKind): Set<String> = when (kind) {
-        FilterKind.Category -> setOfNotNull(parameters.selectedCategory?.slug)
-        FilterKind.Favorite -> setOfNotNull(parameters.selectedFavorite?.id)
-        FilterKind.Company -> company.selectedCompanies.map { it.slug }.toSet()
-        FilterKind.Position -> company.selectedPositions.map { it.slug }.toSet()
-        FilterKind.InterviewPeriod -> setOf(company.selectedInterviewPeriod.slug)
-        FilterKind.Difficulty -> setOfNotNull((if (mode == QueryMode.CompanyQuery) company.selectedDifficulty else parameters.selectedDifficulty)?.value)
-        FilterKind.Status -> setOfNotNull((if (mode == QueryMode.CompanyQuery) company.selectedStatus else parameters.selectedStatus)?.value)
-        FilterKind.Tags -> (if (mode == QueryMode.CompanyQuery) company.selectedTags else parameters.selectedTags).map { it.value }.toSet()
-        else -> emptySet()
+    override fun selected(kind: FilterKind): Set<String> {
+        if (kind !in activeFilterKinds) return emptySet()
+        return when (kind) {
+            FilterKind.Category -> setOfNotNull(parameters.selectedCategory?.slug)
+            FilterKind.Favorite -> setOfNotNull(parameters.selectedFavorite?.id)
+            FilterKind.Company -> company.selectedCompanies.map { it.slug }.toSet()
+            FilterKind.Position -> company.selectedPositions.map { it.slug }.toSet()
+            FilterKind.InterviewPeriod -> setOf(company.selectedInterviewPeriod.slug)
+            FilterKind.Difficulty -> setOfNotNull((if (mode == QueryMode.CompanyQuery) company.selectedDifficulty else parameters.selectedDifficulty)?.value)
+            FilterKind.Status -> setOfNotNull((if (mode == QueryMode.CompanyQuery) company.selectedStatus else parameters.selectedStatus)?.value)
+            FilterKind.Tags -> (if (mode == QueryMode.CompanyQuery) company.selectedTags else parameters.selectedTags).map { it.value }.toSet()
+            else -> emptySet()
+        }
     }
     override fun toggle(kind: FilterKind, id: String) {
+        if (kind !in activeFilterKinds) return
         val data = metadata ?: return
-        val current = selected(kind)
-        val ids = if (multiple(kind)) current.toMutableSet().apply { if (!add(id)) remove(id) }
-            else if (id in current) emptySet() else setOf(id)
         when (kind) {
-            FilterKind.Category -> parameters = parameters.copy(selectedCategory = data.categories.find { it.slug in ids })
-            FilterKind.Favorite -> parameters = parameters.copy(selectedFavorite = data.favorites.find { it.id in ids })
-            FilterKind.Company -> company = company.copy(selectedCompanies = data.companies.filter { it.slug in ids }.toSet())
-            FilterKind.Position -> company = company.copy(selectedPositions = data.positions.filter { it.slug in ids })
-            FilterKind.InterviewPeriod -> company = company.copy(selectedInterviewPeriod = InterviewPeriod.entries.find { it.slug == id } ?: InterviewPeriod.ThirtyDays)
-            FilterKind.Difficulty -> if (mode == QueryMode.CompanyQuery) company = company.copy(selectedDifficulty = ChallengeDifficulty.fromString(ids.firstOrNull())) else parameters = parameters.copy(selectedDifficulty = ChallengeDifficulty.fromString(ids.firstOrNull()))
-            FilterKind.Status -> if (mode == QueryMode.CompanyQuery) company = company.copy(selectedStatus = ChallengeStatus.fromString(ids.firstOrNull())) else parameters = parameters.copy(selectedStatus = ChallengeStatus.fromString(ids.firstOrNull()))
-            FilterKind.Tags -> if (mode == QueryMode.CompanyQuery) company = company.copy(selectedTags = tagChoices().filter { it.value in ids }) else parameters = parameters.copy(selectedTags = tagChoices().filter { it.value in ids })
-            else -> Unit
-        }; request(true)
+            FilterKind.Category -> parameters = parameters.copy(selectedCategory = toggleSingle(parameters.selectedCategory, data.categories, id) { it.slug })
+            FilterKind.Favorite -> parameters = parameters.copy(selectedFavorite = toggleSingle(parameters.selectedFavorite, data.favorites, id) { it.id })
+            FilterKind.Company -> company = company.copy(selectedCompanies = toggleMultiple(company.selectedCompanies.toList(), data.companies, id) { it.slug }.toSet())
+            FilterKind.Position -> company = company.copy(selectedPositions = toggleMultiple(company.selectedPositions, data.positions, id) { it.slug })
+            FilterKind.InterviewPeriod -> InterviewPeriod.entries.find { it.slug == id }?.let { company = company.copy(selectedInterviewPeriod = it) }
+            FilterKind.Difficulty -> {
+                val choices = listOf(ChallengeDifficulty.Easy, ChallengeDifficulty.Medium, ChallengeDifficulty.Hard)
+                if (mode == QueryMode.CompanyQuery) company = company.copy(selectedDifficulty = toggleSingle(company.selectedDifficulty, choices, id) { it.value })
+                else parameters = parameters.copy(selectedDifficulty = toggleSingle(parameters.selectedDifficulty, choices, id) { it.value })
+            }
+            FilterKind.Status -> if (mode == QueryMode.CompanyQuery) company = company.copy(selectedStatus = toggleSingle(company.selectedStatus, ChallengeStatus.entries, id) { it.value })
+                else parameters = parameters.copy(selectedStatus = toggleSingle(parameters.selectedStatus, ChallengeStatus.entries, id) { it.value })
+            FilterKind.Tags -> if (mode == QueryMode.CompanyQuery) company = company.copy(selectedTags = toggleMultiple(company.selectedTags, tagChoices(), id) { it.value })
+                else parameters = parameters.copy(selectedTags = toggleMultiple(parameters.selectedTags, tagChoices(), id) { it.value })
+            else -> return
+        }
+        request(true)
     }
     private fun updateTags() {
         tagsPanel.removeAll()
-        FilterKind.entries.forEach { kind -> val choices = items(kind).associateBy { it.id }
+        activeFilterKinds.forEach { kind -> val choices = items(kind).associateBy { it.id }
             selected(kind).map { choices[it] ?: FilterItem(it, it) }.forEach { item ->
-            tagsPanel.add(JButton("${item.text} ×").apply { isFocusable = false; addActionListener { toggle(kind, item.id) } })
+            tagsPanel.add(filterChip(kind, item) { toggle(kind, item.id) })
         } }; tagsPanel.revalidate(); tagsPanel.repaint()
     }
     private fun selectedRows(): List<LeetCodeChallengeListItem> = table.selectedRows.asSequence().mapNotNull { model.rows.getOrNull(it) }.toList()
@@ -316,7 +347,7 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
         selectedRows().filter { !it.paidOnly || userInfo?.isPremium == true }.forEach { item -> scope.launch {
             try { openChallenge(project, dojo, item.titleSlug, language, version) }
             catch (cancelled: CancellationException) { throw cancelled }
-            catch (failure: Exception) { LogConsole.getInstance(project).print(dojo, failure.message.orEmpty(), true) }
+            catch (failure: Exception) { LogConsole.getInstance(project).error(dojo, failure.message.orEmpty()) }
         } }
     }
     private inner class ProblemTable : AbstractTableModel() {
@@ -327,8 +358,12 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
             (if (premium) listOf("FREQUENCY") else emptyList()) + "AC_RATE"
         override fun getRowCount(): Int = rows.size
         override fun getColumnCount(): Int = fields.size
-        override fun getColumnName(column: Int): String = when (fields[column]) {
-            null -> ""; "FRONTEND_ID" -> "Title"; "DIFFICULTY" -> "Difficulty"; "SOLUTION_NUM" -> "Solutions"; "FREQUENCY" -> "Frequency"; else -> "Acceptance"
+        override fun getColumnName(column: Int): String {
+            val field = fields[column]
+            val title = when (field) {
+                null -> ""; "FRONTEND_ID" -> "Title"; "DIFFICULTY" -> "Difficulty"; "SOLUTION_NUM" -> "Solutions"; "FREQUENCY" -> "Frequency"; else -> "Acceptance"
+            }
+            return sortedHeader(title, field, order())
         }
         override fun getValueAt(row: Int, column: Int): Any? {
             val item = rows[row]

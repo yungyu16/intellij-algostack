@@ -5,12 +5,12 @@ object Actions {
   const val LEETCODE_TOOLBAR_GROUP   = "CodeEpiphany.Dojos.LeetCode.Toolbar"
   const val TOOLBAR_PLACE            = "CodeEpiphany.Dojos.Toolbar.Place"
 
+  // 题库面板迁入底部工具窗口后，站点相关动作（模式切换、登录、账号、捐赠）挂在面板工具栏
+  const val LEETCODE_SITE_ACTIONS_GROUP = "CodeEpiphany.Dojos.LeetCode.SiteActions"
+
   // title toolbar is located at the top of CodeEpiphany Dojo toolwindow
   const val TITLE_TOOLBAR_GROUP = "CodeEpiphany.Dojos.TitleToolbar"
   const val TITLE_TOOLBAR_PLACE = "CodeEpiphany.Dojos.TitleToolbar.Place"
-
-  const val LEETCODE_TITLE_TOOLBAR_GROUP = "CodeEpiphany.Dojos.TitleToolbar.LeetCode"
-  const val LEETCODE_TITLE_TOOLBAR_PLACE = "CodeEpiphany.Dojos.TitleToolbar.LeetCode.Place"
 
   // popup menu of challenges table
   const val CHALLENGES_TABLE_POPUP_GROUP = "CodeEpiphany.Dojos.ChallengesTable.Popupmenu"

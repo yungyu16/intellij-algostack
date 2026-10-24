@@ -1,4 +1,4 @@
-# LeetCode Epiphany
+# leetcode-editor
 
 面向 IntelliJ IDEA 的个人维护版刷题插件，仅支持 [LeetCode](https://leetcode.com) 和[力扣中国站](https://leetcode.cn)。基于 [WenjunHuang/CodeEpiphany](https://github.com/WenjunHuang/CodeEpiphany) 开发，采用 [Apache License 2.0](LICENSE)。
 
@@ -9,10 +9,10 @@
 目标平台为 **IntelliJ IDEA 2026.2**。从本仓库 CI 构建产物下载插件 ZIP，或按[开发指南](docs/开发指南.md)在本地构建。
 
 1. 打开 **Settings → Plugins → 齿轮 → Install Plugin from Disk**，选择构建出的 ZIP，按提示重启 IDE。
-2. 在 **Settings → Tools → LeetCode Epiphany** 中选择 LeetCode 或 LeetCodeCN，配置编程语言、文件保存路径和代码模板。
+2. 在 **Settings → Tools → leetcode-editor** 中选择 LeetCode 或 LeetCodeCN，配置编程语言、文件保存路径和代码模板。
 3. 打开插件工具窗口，登录对应站点，然后搜索题目、编码、测试和提交。
 
-此 fork 保留原插件 ID，与上游插件互相替换，不可同时安装。安装前保存工作；已有项目的 `.idea/CodeEpiphany/` 包含本机配置与刷题数据库，建议自行备份。账号凭据不应提交到 Git。
+插件 ID 为 `com.yungyu.leetcode-editor`，与上游插件不可同时安装。安装前保存工作；已有项目的 `.idea/CodeEpiphany/` 包含本机配置与刷题数据库，建议自行备份。账号凭据不应提交到 Git。
 
 ## 开发
 

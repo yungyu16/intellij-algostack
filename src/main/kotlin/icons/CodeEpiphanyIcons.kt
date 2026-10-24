@@ -55,8 +55,6 @@ object CodeEpiphanyIcons {
   val APP_BRACKETS: Icon = IconLoader.getIcon("/icons/app-brackets.svg", CodeEpiphanyIcons::class.java.classLoader)
 
   @JvmField
-  val HEART: Icon = IconLoader.getIcon("/icons/heart.svg", CodeEpiphanyIcons::class.java.classLoader)
-  @JvmField
   val LOADING: AnimatedIcon = AnimatedIcon.Default.INSTANCE
 
   object Dojos {

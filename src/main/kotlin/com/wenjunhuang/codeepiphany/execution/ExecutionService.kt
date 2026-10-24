@@ -3,6 +3,7 @@ package com.wenjunhuang.codeepiphany.execution
 import com.wenjunhuang.codeepiphany.presentation.*
 
 import com.intellij.openapi.components.Service
+import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.ide.progress.withBackgroundProgress
@@ -12,6 +13,7 @@ import com.wenjunhuang.codeepiphany.domain.*
 import com.wenjunhuang.codeepiphany.leetcode.api.model.LeetCodeRunResult
 import com.wenjunhuang.codeepiphany.leetcode.api.model.LeetCodeSubmitAnswerResult
 import com.wenjunhuang.codeepiphany.presentation.LogConsole
+import com.wenjunhuang.codeepiphany.presentation.ConsoleSegment
 import com.wenjunhuang.codeepiphany.presentation.browser.openWebPreview
 import com.wenjunhuang.codeepiphany.runtime.HttpService
 import com.wenjunhuang.codeepiphany.runtime.onEdt
@@ -40,12 +42,14 @@ class ExecutionService(private val project: Project, private val scope: Coroutin
                     val repository = ChallengeRepository.getInstance(project)
                     val request = repository.query { it.executionRequest(item.challengeId, item.challengeLanguageId) }
                         ?: error("LeetCode challenge data not found")
-                    console.print(item.dojo, PluginBundle.message(if (submit) "submit.code.start" else "test.code.start", file.name, item.dojo.show))
+                    console.info(item.dojo, PluginBundle.message(if (submit) "submit.code.start" else "test.code.start", file.name, item.dojo.show))
                     if (submit) submit(item, request, code, processed, console, repository)
                     else evaluate(item, request, processed, cases ?: item.testCases.takeIf { it.isNotEmpty() }, console)
                 }
             } catch (cancelled: CancellationException) { throw cancelled }
-            catch (failure: Exception) { console.print(null, failure.message.orEmpty(), true) }
+            catch (failure: Exception) {
+                console.error(null, PluginBundle.message(if (submit) "error.submit.code" else "test.code.error", failure.message.orEmpty()))
+            }
         }
         if (running.putIfAbsent(file, job) == null) {
             job.invokeOnCompletion { running.remove(file, job) }; job.start()
@@ -59,18 +63,24 @@ class ExecutionService(private val project: Project, private val scope: Coroutin
             if (result is LeetCodeRunResult.Success) {
                 val state = SubmissionResult.fromApi(result.statusMsg, result.correctAnswer)
                 val message = when (state) {
-                    SubmissionResult.Success -> PluginBundle.message("submission.passed")
+                    // 只有明确返回 correct_answer=true 才算通过，与上游判定口径一致。
+                    SubmissionResult.Success -> if (result.correctAnswer == true) PluginBundle.message("submission.passed")
+                        else result.statusMsg
                     SubmissionResult.CompilationError -> result.fullCompileError ?: result.compileError ?: result.statusMsg
                     SubmissionResult.RuntimeError -> result.fullRuntimeError ?: result.runtimeError ?: result.statusMsg
                     SubmissionResult.Failure -> result.codeAnswer.zip(result.expectedCodeAnswer).mapIndexed { index, pair ->
                         "${PluginBundle.message("testcases.title", index + 1)}\n=========================\n" +
                             "${PluginBundle.message("leetcode.submissionResult.wrongAnswer.input.text")}:\n${cases?.getOrNull(index)?.input ?: input.lines().getOrNull(index).orEmpty()}\n" +
+                            "-------------------------\n" +
                             "${PluginBundle.message("leetcode.submissionResult.wrongAnswer.output.text")}:\n${pair.first}\n" +
+                            "-------------------------\n" +
                             "${PluginBundle.message("leetcode.submissionResult.wrongAnswer.expected.text")}:\n${pair.second}"
                     }.joinToString("\n")
                     else -> result.statusMsg
                 }
-                console.print(item.dojo, "${state.show}\n$message", state != SubmissionResult.Success)
+                console.print(item.dojo,
+                    if (state == SubmissionResult.Success) ConsoleViewContentType.LOG_INFO_OUTPUT else ConsoleViewContentType.LOG_ERROR_OUTPUT,
+                    ConsoleSegment.Text("${state.show}\n$message"))
             }
         }
     }
@@ -97,11 +107,18 @@ class ExecutionService(private val project: Project, private val scope: Coroutin
                 ) else null
                 repository.transaction { it.updateSubmission(id, state, message, remoteId, metrics) }
                 if (response is LeetCodeSubmitAnswerResult.Success) {
-                    console.print(item.dojo, "${state.show}\n$message", state != SubmissionResult.Success)
-                    console.link(PluginBundle.message("submissionResult.viewDetails")) { owner ->
+                    val details = ConsoleSegment.Link(PluginBundle.message("submissionResult.viewDetails")) { owner ->
                         openWebPreview(owner, item.dojo, "https://${item.dojo.domain}/problems/${request.slug}/submissions/$remoteId/", remoteId)
                     }
-                    console.print(null, "")
+                    if (state == SubmissionResult.Success) {
+                        console.print(item.dojo, ConsoleViewContentType.LOG_INFO_OUTPUT,
+                            ConsoleSegment.Text("${PluginBundle.message("submission.passed")}\n$message"),
+                            ConsoleSegment.Text("\n"), details)
+                    } else {
+                        console.print(item.dojo, ConsoleViewContentType.LOG_ERROR_OUTPUT,
+                            details, ConsoleSegment.Text("\n"),
+                            ConsoleSegment.Text("${state.show}\n$message"))
+                    }
                 }
             }
         } catch (failure: Throwable) {
@@ -112,14 +129,35 @@ class ExecutionService(private val project: Project, private val scope: Coroutin
         }
     }
     private fun submissionMessage(state: SubmissionResult, response: LeetCodeSubmitAnswerResult.Success): String = when (state) {
-        SubmissionResult.Success -> "Runtime: ${response.statusRuntime} (Beats ${"%.2f".format(response.runtimePercentile ?: 0f)}%)\n" +
-            "Memory: ${response.statusMemory} (Beats ${"%.2f".format(response.memoryPercentile ?: 0f)}%)"
+        SubmissionResult.Success -> formatSubmissionTable(
+            listOf("Metric", "Value"),
+            listOf("Runtime", "${response.statusRuntime} (Beats ${"%.2f".format(response.runtimePercentile ?: 0f)}%)"),
+            listOf("Memory", "${response.statusMemory} (Beats ${"%.2f".format(response.memoryPercentile ?: 0f)}%)")
+        )
         SubmissionResult.CompilationError -> response.fullCompileError ?: response.compileError ?: response.statusMsg
         SubmissionResult.RuntimeError -> response.fullRuntimeError ?: response.runtimeError ?: response.statusMsg
-        SubmissionResult.Failure -> "${PluginBundle.message("leetcode.submissionResult.wrongAnswer.input.text")}:\n${response.input.orEmpty()}\n" +
+        SubmissionResult.Failure -> "\n-------------------------\n" +
+            "${PluginBundle.message("leetcode.submissionResult.wrongAnswer.input.text")}:\n${response.input.orEmpty()}\n" +
+            "-------------------------\n" +
             "${PluginBundle.message("leetcode.submissionResult.wrongAnswer.output.text")}:\n${response.codeOutput.orEmpty()}\n" +
-            "${PluginBundle.message("leetcode.submissionResult.wrongAnswer.expected.text")}:\n${response.expectedOutput.orEmpty()}"
+            "-------------------------\n" +
+            "${PluginBundle.message("leetcode.submissionResult.wrongAnswer.expected.text")}:\n${response.expectedOutput.orEmpty()}\n" +
+            "-------------------------\n"
         else -> response.statusMsg
     }
     companion object { @JvmStatic fun getInstance(project: Project): ExecutionService = project.getService(ExecutionService::class.java) }
+}
+
+/**
+ * 与上游 Tabulator 一致的带边框表格：首行为表头，列宽取各列最大值，单元格右对齐。
+ * 表头与数据行之间、末行之后各有一条分隔线。
+ */
+internal fun formatSubmissionTable(header: List<String>, vararg rows: List<String>): String {
+    val all = listOf(header) + rows
+    val widths = header.indices.map { column -> all.maxOf { it.getOrElse(column) { "" }.length } }
+    fun separator() = widths.joinToString("+", "+", "+") { "-".repeat(it) }
+    fun line(cells: List<String>) = cells.mapIndexed { index, cell ->
+        cell.padStart(widths[index])
+    }.joinToString("|", "|", "|")
+    return (listOf(separator(), line(header), separator()) + rows.map { line(it) } + separator()).joinToString("\n")
 }

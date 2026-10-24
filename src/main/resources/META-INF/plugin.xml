@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <idea-plugin>
-    <id>com.wenjunhuang.codeepiphany</id>
-    <name>LeetCode Epiphany</name>
+    <id>com.yungyu.leetcode-editor</id>
+    <name>leetcode-editor</name>
     <vendor>Wenjun Huang</vendor>
     <version>0.0.0</version>
     <description>Your ultimate plugin for mastering coding challenges directly in Idea platforms!</description>
@@ -24,9 +24,6 @@
             <action id="CodeEpiphany.Actions.Refresh"
                     class="com.wenjunhuang.codeepiphany.presentation.actions.RefreshAction"
                     icon="AllIcons.Actions.Refresh"/>
-            <action id="CodeEpiphany.Actions.Donation"
-                    class="com.wenjunhuang.codeepiphany.presentation.actions.DonationAction"
-                    icon="CodeEpiphanyIcons.HEART"/>
             <action id="CodeEpiphany.Actions.Login"
                     class="com.wenjunhuang.codeepiphany.presentation.actions.LoginAction"
                     icon="CodeEpiphanyIcons.LOGIN"/>
@@ -137,10 +134,13 @@
         <group id="CodeEpiphany.Dojos.TitleToolbar">
             <reference ref="CodeEpiphany.Actions.Login"/>
             <reference ref="CodeEpiphany.Dojos.TitleToolbar.Account"/>
-            <reference ref="CodeEpiphany.Actions.Donation"/>
         </group>
-        <group id="CodeEpiphany.Dojos.TitleToolbar.LeetCode">
+
+        <!-- 题库面板迁入底部工具窗口后，站点相关动作改挂在面板工具栏上 -->
+        <group id="CodeEpiphany.Dojos.LeetCode.SiteActions">
             <reference ref="CodeEpiphany.Actions.LeetCode.ChangeUI"/>
+            <reference ref="CodeEpiphany.Actions.Login"/>
+            <reference ref="CodeEpiphany.Dojos.TitleToolbar.Account"/>
         </group>
 
         <group id="CodeEpiphany.Dojos.ChallengesTable.Popupmenu">
@@ -200,18 +200,15 @@
         <notificationGroup displayType="STICKY_BALLOON" id="Code Epiphany" isLogByDefault="true"/>
         <postStartupActivity implementation="com.wenjunhuang.codeepiphany.activities.CodeEpiphanyStartupActivity"/>
         <toolWindow factoryClass="com.wenjunhuang.codeepiphany.presentation.sidebar.SidebarWindowFactory"
-                    id="LeetCode Epiphany Sidebar"
+                    id="leetcode-editor"
                     secondary="false"
                     anchor="bottom"
                     icon="CodeEpiphanyIcons.PLUGIN"/>
-        <toolWindow factoryClass="com.wenjunhuang.codeepiphany.presentation.dojo.DojoWindowFactory"
-                    icon="CodeEpiphanyIcons.PLUGIN"
-                    id="LeetCode Epiphany" anchor="left"/>
 
         <registryKey defaultValue="false" description="Enable debug" key="codeepiphany.debug"/>
 
         <projectConfigurable parentId="tools"
-                             displayName="LeetCode Epiphany"
+                             displayName="leetcode-editor"
                              id="CodeEpiphany.Settings"
                              instance="com.wenjunhuang.codeepiphany.settings.CodeEpiphanySettingsConfigurable">
             <configurable id="CodeEpiphany.Settings.LeetCodeCN"

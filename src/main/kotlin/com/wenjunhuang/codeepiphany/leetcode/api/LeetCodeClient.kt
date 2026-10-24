@@ -35,7 +35,8 @@ class LeetCodeClient(
         val difficulty: String? = null,
         val status: String? = null,
         val tags: List<String> = emptyList(),
-        val order: Sort? = null
+        val order: Sort? = null,
+        val keyword: String = ""
     )
 
     class HttpException(val status: Int, val domain: String) : IOException("$domain returned HTTP $status")
@@ -126,14 +127,13 @@ class LeetCodeClient(
         listOf(LeetCodeTagTypeWithTags("All Tags", null, tags.map { LeetCodeTagRelation(it.questions.size, it) }))
     }
 
-    private fun classicFilters(filters: Filters, keyword: String? = null) = buildJsonObject {
-        if (keyword != null) put("searchKeywords", keyword)
-        else {
-            filters.favoriteId?.let { put("listId", it) }
-            filters.difficulty?.let { put("difficulty", it) }
-            filters.status?.let { put("status", it) }
-            if (filters.tags.isNotEmpty()) put("tags", strings(filters.tags))
-        }
+    /** 关键词与各项筛选可以同时生效，接口对两种查询使用同一个 operation。 */
+    private fun classicFilters(filters: Filters) = buildJsonObject {
+        if (filters.keyword.isNotEmpty()) put("searchKeywords", filters.keyword)
+        filters.favoriteId?.let { put("listId", it) }
+        filters.difficulty?.let { put("difficulty", it) }
+        filters.status?.let { put("status", it) }
+        if (filters.tags.isNotEmpty()) put("tags", strings(filters.tags))
         sort(filters.order, "orderBy").forEach { (key, value) -> put(key, value) }
     }
 
@@ -161,18 +161,15 @@ class LeetCodeClient(
                     it.questionFrontendId, it.title, null, it.titleSlug)
             }, result.total)
         }
-        return search(offset, limit, filters, null)
+        return search(offset, limit, filters)
     }
 
-    suspend fun searchChallengesWithKeyword(offset: Int, limit: Int, keyword: String, order: Sort?): LeetCodeChallengeList =
-        search(offset, limit, Filters(order = order), keyword)
-
-    private suspend fun search(offset: Int, limit: Int, filters: Filters, keyword: String?): LeetCodeChallengeList {
+    private suspend fun search(offset: Int, limit: Int, filters: Filters): LeetCodeChallengeList {
         val operation = if (isChina) "problemsetQuestionList" else "problemsetQuestionListV2"
         val variables = buildJsonObject {
             put("skip", offset); put("limit", limit); put("categorySlug", filters.categorySlug)
-            put("filters", if (isChina) classicFilters(filters, keyword) else modernFilters(filters))
-            if (!isChina) { put("sortBy", sort(filters.order, "sortField", defaultSort)); put("searchKeyword", keyword.orEmpty()) }
+            put("filters", if (isChina) classicFilters(filters) else modernFilters(filters))
+            if (!isChina) { put("sortBy", sort(filters.order, "sortField", defaultSort)); put("searchKeyword", filters.keyword) }
         }
         val data = graphQL(operation, variables).required(operation)
         return if (isChina) decode(data) else decode<LeetCodeChallengeListV2>(data).toV1()
@@ -187,7 +184,7 @@ class LeetCodeClient(
             put("skip", offset); put("limit", limit)
             put("favoriteSlug", if (interviewPeriod == null) favorite else "$favorite-$interviewPeriod")
             put("filtersV2", modernFilters(filters, companies.drop(1), positions))
-            put("sortBy", sort(filters.order, "sortField", defaultSort)); put("searchKeyword", "")
+            put("sortBy", sort(filters.order, "sortField", defaultSort)); put("searchKeyword", filters.keyword)
         }
         return decode(graphQL("favoriteQuestionList", variables).required("favoriteQuestionList"))
     }

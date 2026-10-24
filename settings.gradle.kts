@@ -1,1 +1,1 @@
-rootProject.name = "CodeEpiphany"
+rootProject.name = "leetcode-editor"

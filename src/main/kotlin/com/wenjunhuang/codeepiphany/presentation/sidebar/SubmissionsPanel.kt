@@ -50,8 +50,9 @@ class SubmissionsPanel(project: Project) : SidebarPanel(project), UiDataProvider
         } }
         table.tableHeader.addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(event: MouseEvent) {
-                val sort = model.sorts.getOrNull(table.columnAtPoint(event.point)) ?: return
+                val sort = model.sorts.getOrNull(modelColumnAt(table, event.point)) ?: return
                 filter = filter.copy(sort = sort, ascending = if (filter.sort == sort) !filter.ascending else true)
+                refreshHeaders(table)
                 page = page.resetToFirstPage(); refresh()
             }
         })
@@ -114,13 +115,14 @@ class SubmissionsPanel(project: Project) : SidebarPanel(project), UiDataProvider
         if (files.size == 1) sink[CommonDataKeys.VIRTUAL_FILE] = files.single()
     }
     override fun dispose() { query.close(); detailQuery.close(); super.dispose() }
-    private class SubmissionsModel : AbstractTableModel() {
+    private inner class SubmissionsModel : AbstractTableModel() {
         var rows: List<SubmissionRecord> = emptyList()
         val sorts = listOf(SubmissionSort.Site, SubmissionSort.Language, SubmissionSort.Title, SubmissionSort.Difficulty, SubmissionSort.Solution, SubmissionSort.Result, SubmissionSort.Time)
         private val columns = arrayOf("Site", "Language", "Title", "Difficulty", "Solution", "Result", "Submitted")
         override fun getRowCount() = rows.size
         override fun getColumnCount() = columns.size
-        override fun getColumnName(column: Int) = columns[column]
+        override fun getColumnName(column: Int) = sortedHeader(columns[column], sorts[column].name,
+            QueryOrder(filter.sort.name, if (filter.ascending) OrderDirection.Ascending else OrderDirection.Descending))
         override fun getValueAt(row: Int, column: Int): Any { val item = rows[row]; return when (column) {
             0 -> item.dojo.show; 1 -> Language.prettyPrint(item.language, item.languageVersion); 2 -> item.challengeTitle
             3 -> ChallengeDifficulty.fromString(item.difficulty)?.showAsHtml().orEmpty(); 4 -> item.solutionTitle

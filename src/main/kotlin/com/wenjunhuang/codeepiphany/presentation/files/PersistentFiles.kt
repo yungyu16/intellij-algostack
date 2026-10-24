@@ -23,6 +23,7 @@ import com.wenjunhuang.codeepiphany.storage.SubmissionRecord
 import com.wenjunhuang.codeepiphany.storage.SolutionRecord
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.*
+import org.jdom.Element
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -144,6 +145,8 @@ class CodeEditorProvider : FileEditorProvider, DumbAware {
     override fun createEditor(project: Project, file: VirtualFile) = delegate.createEditor(project, file)
     override fun getPolicy() = FileEditorPolicy.HIDE_DEFAULT_EDITOR
     override fun getEditorTypeId() = "CodeEpiphany.SubmissionCode.${delegate.editorTypeId}"
+    override fun readState(element: Element, project: Project, file: VirtualFile): FileEditorState = delegate.readState(element, project, file)
+    override fun writeState(state: FileEditorState, project: Project, element: Element) = delegate.writeState(state, project, element)
 }
 
 fun openNote(project: Project, row: SolutionRecord, dojo: CodeDojo, challengeTitle: String) {
