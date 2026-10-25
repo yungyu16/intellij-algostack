@@ -1,65 +1,37 @@
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) 2024 TypeFox and others.
- * Licensed under the MIT License. See LICENSE in the package root for license information.
- * ------------------------------------------------------------------------------------------ */
 import {defineConfig} from 'vite';
-import importMetaUrlPlugin from '@codingame/esbuild-import-meta-url-plugin';
 import {dirname, resolve} from 'node:path'
 import {fileURLToPath} from "node:url";
-import {intellijStylePrePlugin,intellijStylePostPlugin} from './plugin/intellijStylePlugin';
+import {intellijStylePostPlugin} from './plugin/intellijStylePlugin';
 
+// 构建配置基于上游 CodeEpiphany（TypeFox 系模板，MIT）精简：仅保留两个页面的产物入口与
+// intellijStyle.css 注入；dev server 相关的 COOP/COEP、optimizeDeps 等浏览器调试配置已移除。
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export const definedViteConfig = defineConfig({
     build: {
         target: 'ES2022',
         outDir: "../build/webviewResources/webview",
-        chunkSizeWarningLimit: 1000, // 提高警告阈值到1MB
         rollupOptions: {
             input: {
                 challengeDescription: resolve(__dirname, 'challengeDescription/index.html'),
                 leetCodeSolutionArticle: resolve(__dirname, 'leetCodeSolutionArticle/index.html'),
-            }
+            },
+            output: {
+                manualChunks(id): string | undefined {
+                    if (id.endsWith('plugin/runtime.js')) return 'runtime';
+                    return undefined;
+                },
+            },
         },
         assetsDir: 'assets',
     },
     server: {
         port: 5173,
         host: true,
-        cors: {
-            origin: '*'
-        },
-        headers: {
-            'Cross-Origin-Opener-Policy': 'same-origin',
-            'Cross-Origin-Embedder-Policy': 'require-corp',
-        },
-        watch: {
-            ignored: [
-                '**/.chrome/**/*'
-            ]
-        }
-    },
-    optimizeDeps: {
-        esbuildOptions: {
-            plugins: [
-                importMetaUrlPlugin
-            ]
-        },
-        include: []
     },
     plugins: [
-        intellijStylePrePlugin(),
-        intellijStylePostPlugin()
+        intellijStylePostPlugin(),
     ],
-    define: {
-        rootDirectory: JSON.stringify(__dirname),
-    },
-    worker: {
-        format: 'es'
-    },
-    esbuild: {
-        minifySyntax: false
-    }
 });
 
 export default definedViteConfig;

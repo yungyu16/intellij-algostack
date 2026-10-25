@@ -4,7 +4,7 @@ import path from 'node:path';
 import os from 'node:os';
 import {fileURLToPath} from 'node:url';
 
-const defaultDirectory = path.join(os.homedir(), '.local/state/yy-leetcode/bridge');
+const defaultDirectory = path.join(os.homedir(), '.local/state/algostack/bridge');
 
 export function readDescriptor(file) {
     const stat = fs.lstatSync(file);
@@ -72,7 +72,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
             if (!['created', 'already_exists'].includes(result.status)) process.exitCode = 1;
         } else throw new Error('用法：status [--project 路径] | initialize --slug 题目slug --language java|go [--dojo leetcodecn] [--project 路径]');
     } catch (e) {
-        console.error(e.name === 'TimeoutError' ? '等待超时；IDEA 中操作可能仍在进行。先检查文件与关联，不自动重试创建。' : e.message);
+        console.error(e.name === 'TimeoutError' ? '等待超时；IDEA 中操作可能仍在进行。先检查文件和源码身份，不自动重试创建。' : e.message);
         process.exitCode = 1;
     }
 }

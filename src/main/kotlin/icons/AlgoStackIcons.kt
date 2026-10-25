@@ -18,13 +18,6 @@ object AlgoStackIcons {
     IconLoader.getIcon("/icons/logout.svg", AlgoStackIcons::class.java.classLoader)
 
   @JvmField
-  val BUILDING: Icon =
-    IconLoader.getIcon("/icons/building.svg", AlgoStackIcons::class.java.classLoader)
-
-  @JvmField
-  val EDIT_TESTCASES: Icon = IconLoader.getIcon("/icons/vialVirus.svg", AlgoStackIcons::class.java.classLoader)
-
-  @JvmField
   val RUN: Icon = IconLoader.getIcon("/icons/run.svg", AlgoStackIcons::class.java.classLoader)
 
   @JvmField
@@ -32,15 +25,6 @@ object AlgoStackIcons {
 
   @JvmField
   val SOLUTION: Icon = IconLoader.getIcon("/icons/solution.svg", AlgoStackIcons::class.java.classLoader)
-
-  @JvmField
-  val CONSOLE: Icon = IconLoader.getIcon("/icons/console.svg", AlgoStackIcons::class.java.classLoader)
-
-  @JvmField
-  val SEARCH: Icon = IconLoader.getIcon("/icons/search.svg", AlgoStackIcons::class.java.classLoader)
-
-  @JvmField
-  val QUERY_PARAM: Icon = IconLoader.getIcon("/icons/filter.svg", AlgoStackIcons::class.java.classLoader)
 
   @JvmField
   val DESCRIPTION: Icon = IconLoader.getIcon("/icons/book.svg", AlgoStackIcons::class.java.classLoader)

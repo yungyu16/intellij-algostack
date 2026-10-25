@@ -1,0 +1,31 @@
+# WebView 前端
+
+两个 JCEF 渲染页：`challengeDescription/`（题面）与 `leetCodeSolutionArticle/`（题解文章）。vite 构建产物输出到 `build/webviewResources/webview`，随插件 JAR 分发；由 Kotlin 侧 `WebResources`（本地 HttpServer）与 `WebDocumentView` 装载。
+
+## 页面结构
+
+| 文件 | 职责 |
+|---|---|
+| `challengeDescription/index.html` | 题面骨架；Kotlin 侧将题面 HTML 直接替换进 `<!--descriptionContent-->` 占位符（不转义，内容由 flexmark 渲染） |
+| `leetCodeSolutionArticle/index.html` + `app.ts` + `katex_extension.ts` | 题解渲染；内容以 base64 替换进 `{{articleContent}}`、站点进 `{{codeDojo}}`（防注入，见 `WebResources.articlePage`） |
+| `app.scss` | 按主题变量 `data-theme` 切换 highlight.js a11y 明暗主题 |
+| `plugin/runtime.js` | 共享运行时：normalize/滚动条样式、OverlayScrollbars、缩放子系统、宿主通信；**每个页面入口显式 import 一次** |
+| `plugin/intellijStylePlugin.ts` | 构建期注入 `intellijStyle.css` link 与同步主题回调（见文件头注释，勿移入 module） |
+
+## Kotlin ↔ JS 契约（改动需双侧同步）
+
+| 项 | Kotlin 侧 | JS 侧 |
+|---|---|---|
+| 缩放调用 | `WebDocumentView#zoom/actualZoom` → `executeJavaScript("window.setZoom(<n>)")` | `runtime.js` 全局 `window.setZoom/zoomIn/zoomOut/actualZoom` |
+| 缩放范围 | `coerceIn(25.0, 500.0)` | `MIN_ZOOM/MAX_ZOOM = 25/500` |
+| 状态回传 | `UiDataProvider` 读取 | `window.sendInfo(JSON)`（`{zoom, canZoomIn, canZoomOut}`） |
+| 主题注入 | `WebDocumentView#style()` 生成 `intellijStyle.css`（含 `--darkMode`、编辑器字体配色） | link onload → `onIntellijStyleLoaded()` → 设置 `data-theme` |
+| 内容替换 | `WebResources.descriptionPage/articlePage` | 页面占位符（见上表） |
+
+## 命令
+
+```bash
+npm run build        # 产出 build/webviewResources/webview
+npm run typecheck    # tsc --noEmit（已接入 Gradle check 任务）
+npm run dev          # 本地调试（一般不需要，调试走 IDEA 内 JCEF）
+```

@@ -1,5 +1,4 @@
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
-import org.jetbrains.intellij.platform.gradle.tasks.InstrumentCodeTask
 
 plugins {
     kotlin("jvm") version "2.4.0"
@@ -7,7 +6,7 @@ plugins {
     id("org.jetbrains.intellij.platform") version "2.19.0"
 }
 
-group = "com.wenjunhuang.algostack"
+group = "io.github.yungyu16.algostack"
 version = providers.gradleProperty("pluginVersion").get()
 
 repositories {
@@ -135,17 +134,13 @@ tasks.processResources {
     from(layout.buildDirectory.dir("releaseNotes"))
 }
 
-tasks.named<InstrumentCodeTask>("instrumentCode") {
-    formsDirs.from(fileTree("src/main/java") { include("**/*.form") })
-    sourceDirs.from("src/main/java", "src/main/kotlin")
-}
-
 // 增量编译删除旧包后可能留下空目录，不将退休功能的空包打入插件。
 tasks.withType<org.gradle.jvm.tasks.Jar>().configureEach { includeEmptyDirs = false }
 
 tasks.test {
-    // instrument 产物是表单绑定代码重复生成的检测对象，测试前必须先产出。
-    dependsOn("instrumentCode", "composedJar")
+    // 产物回归直接检查最终插件 JAR。
+    dependsOn("composedJar")
+    systemProperty("algostack.pluginVersion", project.version.toString())
     systemProperty("algostack.pluginArtifact", tasks.named<org.jetbrains.intellij.platform.gradle.tasks.ComposedJarTask>("composedJar").get().archiveFile.get().asFile.absolutePath)
     useJUnit()
     systemProperty("java.awt.headless", "true")

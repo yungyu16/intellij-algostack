@@ -1,1 +1,1 @@
-rootProject.name = "leetcode-editor"
+rootProject.name = "AlgoStack"
