@@ -2,7 +2,7 @@
 
 - 本仓库是个人维护的 IDEA 插件，仅支持 LeetCodeCN。默认中文沟通。
 - 修改前检查工作区、分支及真实调用链，保留用户并行修改。默认在当前分支操作，不创建 worktree。
-- 工程入口为 Gradle Wrapper；环境和命令见 `docs/开发指南.md`，目录和兼容边界见 `docs/工程结构.md`。
+- 工程入口为 Gradle Wrapper。`docs/` 的核心说明按三份维护：`开发指南.md` 放构建、测试、验收、排障与安装操作，`工程结构.md` 放实现和兼容契约，`挑战初始化桥接接口.md` 放外部协议、CLI 与失败处理；WebView 局部契约维护在 `webview/README.md`。
 - 业务与 IDEA 集成使用 Kotlin，源码放 `src/main/kotlin/`，资源放 `src/main/resources/`。UI 使用 Kotlin 构建 Swing 组件，不维护 Java UI Designer 表单或 `.form` 插桩配置。构建已移除 Scala、jOOQ、SQLite 和 Flyway，不引入本地数据库或数据迁移。
 - 目标为 IDEA 2026.2，使用 JDK 25 与 Node.js 24。不要恢复旧 SBT 构建或旧平台分支。
 - 保留插件 ID、LeetCodeCN 站点标识及配置名。不得打开、改写、迁移或删除用户历史数据库；已退休的数据库迁移仅保留在 Git 历史。

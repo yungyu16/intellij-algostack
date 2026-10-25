@@ -1,5 +1,10 @@
 # 更新记录
 
+## 1.0.8
+
+- 补齐文本编辑器包装契约：`isEditorLoaded()` 透传底层异步加载状态；属性事件以包装器为 source 交付，保留属性值和 propagationId。监听器按对象身份配对，支持重复注册及逐次移除，避免平台按底层编辑器身份找不到 composite。
+- 新增加载状态及属性监听器回归；真实 IDEA 的编辑／保存图标刷新、文件失效与关闭行为仍需验收。
+
 ## 1.0.7
 
 - Web 预览编辑器 Provider 显式实现 `DumbAware`，满足 `HIDE_DEFAULT_EDITOR` 的平台约束，修复打开预览时的 PluginException。该入口不依赖索引；新增遍历 plugin.xml 实际注册 Provider 的策略回归，不启动 JCEF。
@@ -173,4 +178,4 @@
 - 恢复 HTTP 证书与主机名校验，贯通后台任务取消，避免提交记录筛选在界面线程查询数据库。
 - 更新通知与安装包说明统一从本更新记录生成，明确个人 fork 和上游支持入口。
 
-上游历史见[上游更新记录](docs/上游更新记录.md)。
+上游历史见 [WenjunHuang/CodeEpiphany 发布记录](https://github.com/WenjunHuang/CodeEpiphany/releases)。
