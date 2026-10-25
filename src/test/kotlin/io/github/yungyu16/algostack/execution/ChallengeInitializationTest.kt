@@ -10,6 +10,10 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 class ChallengeInitializationTest {
+    companion object {
+        @org.junit.BeforeClass @JvmStatic fun initializeApplication() { com.intellij.testFramework.TestApplicationManager.getInstance() }
+    }
+
     private fun fixture(block: suspend (Path) -> Unit) = runBlocking {
         val root = Files.createTempDirectory("initialize-challenge-").toRealPath()
         try { block(root) }

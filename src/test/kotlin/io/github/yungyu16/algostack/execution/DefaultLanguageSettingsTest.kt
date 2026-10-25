@@ -8,6 +8,10 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 class DefaultLanguageSettingsTest {
+    companion object {
+        @org.junit.BeforeClass @JvmStatic fun initializeApplication() { com.intellij.testFramework.TestApplicationManager.getInstance() }
+    }
+
     @Test fun onlyJavaAndGoAnyVersionAreOffered() {
         assertEquals(listOf(Language.Java to LanguageVersion.AnyVersion, Language.GO to LanguageVersion.AnyVersion), ChallengeConventions.languages)
         for ((language, version) in listOf(Language.Python to LanguageVersion.AnyVersion, Language.Java to LanguageVersion.SpecificVersion("17"))) {

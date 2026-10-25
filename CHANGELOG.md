@@ -1,5 +1,9 @@
 # 更新记录
 
+## 1.0.4
+
+- Java 新题骨架的空方法体填入 `throw new UnsupportedOperationException("Not implemented");`，避免有返回值的方法因缺少 return 而无法编译；保留方法签名、构造器、注释和已有实现，Go 代码与已有题目文件不变。使用 IDEA 内置 Java PSI 识别方法，新增 Java 8 编译及模板回归。
+
 ## 1.0.3
 
 - 为题目编辑器公共容器显式提供 Project、VirtualFile、Editor 和 FileEditor 的动作上下文，修复悬浮工具栏无法读取文本编辑器选区、Surround region 在选中代码后仍禁用的问题；新增上下文快照及选区启用回归，不依赖全局焦点猜测编辑器。

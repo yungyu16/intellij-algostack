@@ -10,6 +10,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ChallengeDescriptionTextTest {
+    companion object {
+        @org.junit.BeforeClass @JvmStatic fun initializeApplication() { com.intellij.testFramework.TestApplicationManager.getInstance() }
+    }
+
     @Test fun preservesFontNumbersAndMath() {
         assertEquals("1 <= n <= 10^5; a_i > 0", ChallengeDescriptionText.convert(
             "<p><font color='red'>1</font> &lt;= n &lt;= <FONT size=2>10</FONT><SUP>5</SUP>; a<sub>i</sub> &gt; 0</p>"

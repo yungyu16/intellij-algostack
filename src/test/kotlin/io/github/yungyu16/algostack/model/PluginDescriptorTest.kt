@@ -120,6 +120,11 @@ class PluginDescriptorTest {
         }
     }
 
+    @Test fun javaPsiDependencyIsDeclaredForTemplateStubs() {
+        val dependencies = descriptor().getElementsByTagName("depends")
+        assertTrue((0 until dependencies.length).any { dependencies.item(it).textContent.trim() == "com.intellij.java" })
+    }
+
     @Test fun keepsJcefDependencyForTheLoginBrowser() {
         val dependencies = descriptor().getElementsByTagName("depends")
         assertTrue((0 until dependencies.length).any { dependencies.item(it).textContent.trim() == "com.intellij.modules.jcef" })

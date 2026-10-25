@@ -10,6 +10,10 @@ import java.nio.file.Path
 import javax.xml.parsers.DocumentBuilderFactory
 
 class LanguageProjectInitializationTest {
+    companion object {
+        @org.junit.BeforeClass @JvmStatic fun initializeApplication() { com.intellij.testFramework.TestApplicationManager.getInstance() }
+    }
+
     private fun fixture(block: suspend (Path) -> Unit) = runBlocking {
         val root = Files.createTempDirectory("language-project-").toRealPath()
         try { block(root) } finally { root.toFile().deleteRecursively() }

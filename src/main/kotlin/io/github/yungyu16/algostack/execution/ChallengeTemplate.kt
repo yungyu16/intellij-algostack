@@ -30,7 +30,7 @@ class ChallengeTemplate(
     val content: LeetCodeChallengeData
 ) {
     fun getDescriptionText(): String = ChallengeDescriptionText.convert(description)
-    fun getCode(): String = language.encloseCodeInRegion(rawCode)
+    fun getCode(): String = language.encloseCodeInRegion(if (language == Language.Java) javaTemplateStub(rawCode) else rawCode)
     fun getCodeDojo(): String = dojo.value
     fun getLanguage(): String = language.value
     fun getLanguageVersion(): String = languageVersion.version
