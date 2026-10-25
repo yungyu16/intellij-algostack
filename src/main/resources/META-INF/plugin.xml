@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <idea-plugin>
     <id>com.yungyu.leetcode-editor</id>
-    <name>leetcode-editor</name>
+    <name>题栈</name>
     <vendor>Wenjun Huang</vendor>
     <version>0.0.0</version>
     <description>Your ultimate plugin for mastering coding challenges directly in Idea platforms!</description>
@@ -15,149 +15,149 @@
 
     <resource-bundle>messages.PluginBundle</resource-bundle>
     <actions>
-        <group id="CodeEpiphany.Dojos.Actions.OpenChallengeGroup"
+        <group id="AlgoStack.Dojos.Actions.OpenChallengeGroup"
                popup="true"
-               class="com.wenjunhuang.codeepiphany.presentation.actions.OpenChallengeGroup"/>
-        <group id="CodeEpiphany.Group">
-            <action id="CodeEpiphany.Actions.Refresh"
-                    class="com.wenjunhuang.codeepiphany.presentation.actions.RefreshAction"
+               class="com.wenjunhuang.algostack.presentation.actions.OpenChallengeGroup"/>
+        <group id="AlgoStack.Group">
+            <action id="AlgoStack.Actions.Refresh"
+                    class="com.wenjunhuang.algostack.presentation.actions.RefreshAction"
                     icon="AllIcons.Actions.Refresh"/>
-            <action id="CodeEpiphany.Actions.Login"
-                    class="com.wenjunhuang.codeepiphany.presentation.actions.LoginAction"
-                    icon="CodeEpiphanyIcons.LOGIN"/>
-            <action id="CodeEpiphany.Actions.Logout"
-                    class="com.wenjunhuang.codeepiphany.presentation.actions.LogoutAction"
-                    icon="CodeEpiphanyIcons.LOGOUT"/>
-            <action id="CodeEpiphany.Actions.Difficulty"
-                    class="com.wenjunhuang.codeepiphany.presentation.actions.DifficultyAction"/>
-            <action id="CodeEpiphany.Actions.Status"
-                    class="com.wenjunhuang.codeepiphany.presentation.actions.StatusAction"/>
-            <action id="CodeEpiphany.Actions.Tags"
-                    class="com.wenjunhuang.codeepiphany.presentation.actions.TagsAction"/>
+            <action id="AlgoStack.Actions.Login"
+                    class="com.wenjunhuang.algostack.presentation.actions.LoginAction"
+                    icon="AlgoStackIcons.LOGIN"/>
+            <action id="AlgoStack.Actions.Logout"
+                    class="com.wenjunhuang.algostack.presentation.actions.LogoutAction"
+                    icon="AlgoStackIcons.LOGOUT"/>
+            <action id="AlgoStack.Actions.Difficulty"
+                    class="com.wenjunhuang.algostack.presentation.actions.DifficultyAction"/>
+            <action id="AlgoStack.Actions.Status"
+                    class="com.wenjunhuang.algostack.presentation.actions.StatusAction"/>
+            <action id="AlgoStack.Actions.Tags"
+                    class="com.wenjunhuang.algostack.presentation.actions.TagsAction"/>
 
-            <action id="CodeEpiphany.Actions.EditTestCases"
-                    class="com.wenjunhuang.codeepiphany.presentation.editor.TestCasesEditionAction"
-                    icon="CodeEpiphanyIcons.EDIT_TESTCASES"/>
-            <action id="CodeEpiphany.Actions.RunTest"
-                    class="com.wenjunhuang.codeepiphany.presentation.editor.RunTestAction"
-                    icon="CodeEpiphanyIcons.RUN"/>
-            <action id="CodeEpiphany.Actions.SubmitCode"
-                    class="com.wenjunhuang.codeepiphany.presentation.editor.SubmitCodeAction"
-                    icon="CodeEpiphanyIcons.SUBMIT"/>
-            <action id="CodeEpiphany.Actions.ActivateDescriptionView"
-                    class="com.wenjunhuang.codeepiphany.presentation.sidebar.ActivateDescriptionAction"
-                    icon="CodeEpiphanyIcons.DESCRIPTION"/>
-            <action id="CodeEpiphany.Actions.ActivateSolutionsView"
-                    class="com.wenjunhuang.codeepiphany.presentation.sidebar.ActivateSolutionsAction"
-                    icon="CodeEpiphanyIcons.SOLUTION"/>
-            <action id="CodeEpiphany.Actions.SurroundSubmissionRegion"
-                    class="com.wenjunhuang.codeepiphany.presentation.editor.SurroundSubmissionRegionAction"
-                    icon="CodeEpiphanyIcons.APP_BRACKETS"/>
+            <action id="AlgoStack.Actions.EditTestCases"
+                    class="com.wenjunhuang.algostack.presentation.editor.TestCasesEditionAction"
+                    icon="AlgoStackIcons.EDIT_TESTCASES"/>
+            <action id="AlgoStack.Actions.RunTest"
+                    class="com.wenjunhuang.algostack.presentation.editor.RunTestAction"
+                    icon="AlgoStackIcons.RUN"/>
+            <action id="AlgoStack.Actions.SubmitCode"
+                    class="com.wenjunhuang.algostack.presentation.editor.SubmitCodeAction"
+                    icon="AlgoStackIcons.SUBMIT"/>
+            <action id="AlgoStack.Actions.ActivateDescriptionView"
+                    class="com.wenjunhuang.algostack.presentation.sidebar.ActivateDescriptionAction"
+                    icon="AlgoStackIcons.DESCRIPTION"/>
+            <action id="AlgoStack.Actions.ActivateSolutionsView"
+                    class="com.wenjunhuang.algostack.presentation.sidebar.ActivateSolutionsAction"
+                    icon="AlgoStackIcons.SOLUTION"/>
+            <action id="AlgoStack.Actions.SurroundSubmissionRegion"
+                    class="com.wenjunhuang.algostack.presentation.editor.SurroundSubmissionRegionAction"
+                    icon="AlgoStackIcons.APP_BRACKETS"/>
         </group>
-        <group id="CodeEpiphany.LeetCode.Group">
-            <action id="CodeEpiphany.Actions.LeetCode.Favorite"
-                    class="com.wenjunhuang.codeepiphany.presentation.actions.FavoriteAction"/>
-            <action id="CodeEpiphany.Actions.LeetCode.Category"
-                    class="com.wenjunhuang.codeepiphany.presentation.actions.CategoryAction"/>
-            <action id="CodeEpiphany.Actions.LeetCode.Company"
-                    class="com.wenjunhuang.codeepiphany.presentation.actions.CompanyAction"/>
-            <action id="CodeEpiphany.Actions.LeetCode.Position"
-                    class="com.wenjunhuang.codeepiphany.presentation.actions.PositionAction"/>
-            <action id="CodeEpiphany.Actions.LeetCode.InterviewPeriod"
-                    class="com.wenjunhuang.codeepiphany.presentation.actions.InterviewPeriodAction"/>
-        </group>
-
-        <group id="CodeEpiphany.Editor.Group">
-            <reference ref="CodeEpiphany.Actions.EditTestCases"/>
-            <reference ref="CodeEpiphany.Actions.RunTest"/>
-            <reference ref="CodeEpiphany.Actions.SubmitCode"/>
-            <reference ref="CodeEpiphany.Actions.SurroundSubmissionRegion"/>
-            <reference ref="CodeEpiphany.Actions.ActivateSolutionsView"/>
-            <reference ref="CodeEpiphany.Actions.ActivateDescriptionView"/>
+        <group id="AlgoStack.LeetCode.Group">
+            <action id="AlgoStack.Actions.LeetCode.Favorite"
+                    class="com.wenjunhuang.algostack.presentation.actions.FavoriteAction"/>
+            <action id="AlgoStack.Actions.LeetCode.Category"
+                    class="com.wenjunhuang.algostack.presentation.actions.CategoryAction"/>
+            <action id="AlgoStack.Actions.LeetCode.Company"
+                    class="com.wenjunhuang.algostack.presentation.actions.CompanyAction"/>
+            <action id="AlgoStack.Actions.LeetCode.Position"
+                    class="com.wenjunhuang.algostack.presentation.actions.PositionAction"/>
+            <action id="AlgoStack.Actions.LeetCode.InterviewPeriod"
+                    class="com.wenjunhuang.algostack.presentation.actions.InterviewPeriodAction"/>
         </group>
 
-        <group id="CodeEpiphany.ChallengeEditor.Toolbar.Group">
-            <reference ref="CodeEpiphany.Actions.EditTestCases"/>
-            <reference ref="CodeEpiphany.Actions.RunTest"/>
-            <reference ref="CodeEpiphany.Actions.SubmitCode"/>
-            <reference ref="CodeEpiphany.Actions.SurroundSubmissionRegion"/>
-            <reference ref="CodeEpiphany.Actions.ActivateSolutionsView"/>
-            <reference ref="CodeEpiphany.Actions.ActivateDescriptionView"/>
+        <group id="AlgoStack.Editor.Group">
+            <reference ref="AlgoStack.Actions.EditTestCases"/>
+            <reference ref="AlgoStack.Actions.RunTest"/>
+            <reference ref="AlgoStack.Actions.SubmitCode"/>
+            <reference ref="AlgoStack.Actions.SurroundSubmissionRegion"/>
+            <reference ref="AlgoStack.Actions.ActivateSolutionsView"/>
+            <reference ref="AlgoStack.Actions.ActivateDescriptionView"/>
         </group>
 
-        <group id="CodeEpiphany.Editor.Menu" class="com.wenjunhuang.codeepiphany.presentation.editor.EditorMenuActionGroup"
+        <group id="AlgoStack.ChallengeEditor.Toolbar.Group">
+            <reference ref="AlgoStack.Actions.EditTestCases"/>
+            <reference ref="AlgoStack.Actions.RunTest"/>
+            <reference ref="AlgoStack.Actions.SubmitCode"/>
+            <reference ref="AlgoStack.Actions.SurroundSubmissionRegion"/>
+            <reference ref="AlgoStack.Actions.ActivateSolutionsView"/>
+            <reference ref="AlgoStack.Actions.ActivateDescriptionView"/>
+        </group>
+
+        <group id="AlgoStack.Editor.Menu" class="com.wenjunhuang.algostack.presentation.editor.EditorMenuActionGroup"
                popup="true">
-            <reference ref="CodeEpiphany.Editor.Group"/>
+            <reference ref="AlgoStack.Editor.Group"/>
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
         </group>
 
 
 
-        <group id="CodeEpiphany.Dojos.LeetCode.Toolbar">
-            <reference ref="CodeEpiphany.Actions.LeetCode.Category"/>
-            <reference ref="CodeEpiphany.Actions.LeetCode.Favorite"/>
-            <reference ref="CodeEpiphany.Actions.LeetCode.Company"/>
-            <reference ref="CodeEpiphany.Actions.LeetCode.Position"/>
-            <reference ref="CodeEpiphany.Actions.Difficulty"/>
-            <reference ref="CodeEpiphany.Actions.Status"/>
-            <reference ref="CodeEpiphany.Actions.Tags"/>
-            <reference ref="CodeEpiphany.Actions.LeetCode.InterviewPeriod"/>
-            <reference ref="CodeEpiphany.Actions.Refresh"/>
+        <group id="AlgoStack.Dojos.LeetCode.Toolbar">
+            <reference ref="AlgoStack.Actions.LeetCode.Category"/>
+            <reference ref="AlgoStack.Actions.LeetCode.Favorite"/>
+            <reference ref="AlgoStack.Actions.LeetCode.Company"/>
+            <reference ref="AlgoStack.Actions.LeetCode.Position"/>
+            <reference ref="AlgoStack.Actions.Difficulty"/>
+            <reference ref="AlgoStack.Actions.Status"/>
+            <reference ref="AlgoStack.Actions.Tags"/>
+            <reference ref="AlgoStack.Actions.LeetCode.InterviewPeriod"/>
+            <reference ref="AlgoStack.Actions.Refresh"/>
         </group>
 
 
-        <group id="CodeEpiphany.Dojos.TitleToolbar.Account" popup="true"
-               class="com.wenjunhuang.codeepiphany.presentation.actions.AccountGroup">
-            <action id="CodeEpiphany.Actions.UserAccountInfo"
-                    class="com.wenjunhuang.codeepiphany.presentation.actions.UserInfoAction"/>
-            <reference ref="CodeEpiphany.Actions.Logout"/>
+        <group id="AlgoStack.Dojos.TitleToolbar.Account" popup="true"
+               class="com.wenjunhuang.algostack.presentation.actions.AccountGroup">
+            <action id="AlgoStack.Actions.UserAccountInfo"
+                    class="com.wenjunhuang.algostack.presentation.actions.UserInfoAction"/>
+            <reference ref="AlgoStack.Actions.Logout"/>
         </group>
-        <group id="CodeEpiphany.Dojos.TitleToolbar">
-            <reference ref="CodeEpiphany.Actions.Login"/>
-            <reference ref="CodeEpiphany.Dojos.TitleToolbar.Account"/>
+        <group id="AlgoStack.Dojos.TitleToolbar">
+            <reference ref="AlgoStack.Actions.Login"/>
+            <reference ref="AlgoStack.Dojos.TitleToolbar.Account"/>
         </group>
 
         <!-- 题库面板迁入底部工具窗口后，站点相关动作改挂在面板工具栏上 -->
-        <group id="CodeEpiphany.Dojos.LeetCode.SiteActions">
-            <reference ref="CodeEpiphany.Actions.Login"/>
-            <reference ref="CodeEpiphany.Dojos.TitleToolbar.Account"/>
+        <group id="AlgoStack.Dojos.LeetCode.SiteActions">
+            <reference ref="AlgoStack.Actions.Login"/>
+            <reference ref="AlgoStack.Dojos.TitleToolbar.Account"/>
         </group>
 
-        <group id="CodeEpiphany.Dojos.ChallengesTable.Popupmenu">
-            <reference ref="CodeEpiphany.Dojos.Actions.OpenChallengeGroup"/>
+        <group id="AlgoStack.Dojos.ChallengesTable.Popupmenu">
+            <reference ref="AlgoStack.Dojos.Actions.OpenChallengeGroup"/>
         </group>
 
-        <group id="CodeEpiphany.Sidebar">
-            <action id="CodeEpiphany.Actions.Webview.ZoomIn"
-                    class="com.wenjunhuang.codeepiphany.presentation.sidebar.ZoomInAction"
+        <group id="AlgoStack.Sidebar">
+            <action id="AlgoStack.Actions.Webview.ZoomIn"
+                    class="com.wenjunhuang.algostack.presentation.sidebar.ZoomInAction"
                     icon="AllIcons.General.ZoomIn"/>
-            <action id="CodeEpiphany.Actions.Webview.ZoomOut"
-                    class="com.wenjunhuang.codeepiphany.presentation.sidebar.ZoomOutAction"
+            <action id="AlgoStack.Actions.Webview.ZoomOut"
+                    class="com.wenjunhuang.algostack.presentation.sidebar.ZoomOutAction"
                     icon="AllIcons.General.ZoomOut"/>
-            <action id="CodeEpiphany.Actions.Webview.ActualZoom"
-                    class="com.wenjunhuang.codeepiphany.presentation.sidebar.ActualZoomAction"
+            <action id="AlgoStack.Actions.Webview.ActualZoom"
+                    class="com.wenjunhuang.algostack.presentation.sidebar.ActualZoomAction"
                     icon="AllIcons.General.ActualZoom"/>
         </group>
 
-        <group id="CodeEpiphany.Sidebar.Webview.Toolbar">
-            <reference ref="CodeEpiphany.Actions.Webview.ZoomIn"/>
-            <reference ref="CodeEpiphany.Actions.Webview.ZoomOut"/>
-            <reference ref="CodeEpiphany.Actions.Webview.ActualZoom"/>
+        <group id="AlgoStack.Sidebar.Webview.Toolbar">
+            <reference ref="AlgoStack.Actions.Webview.ZoomIn"/>
+            <reference ref="AlgoStack.Actions.Webview.ZoomOut"/>
+            <reference ref="AlgoStack.Actions.Webview.ActualZoom"/>
         </group>
-        <group id="CodeEpiphany.Sidebar.Webview.PopupMenu">
+        <group id="AlgoStack.Sidebar.Webview.PopupMenu">
             <reference ref="$Copy"/>
             <separator/>
             <reference ref="FindUsages"/>
             <separator/>
-            <reference ref="CodeEpiphany.Sidebar.Webview.Toolbar"/>
+            <reference ref="AlgoStack.Sidebar.Webview.Toolbar"/>
         </group>
 
 
 
-        <group id="CodeEpiphany.Sidebar.LeetCodeArticles.Toolbar.Group">
-            <reference ref="CodeEpiphany.Actions.Tags"/>
-            <action id="CodeEpiphany.Sidebar.Solutions.Actions.LeetCodeArticlesOrderBy"
-                    class="com.wenjunhuang.codeepiphany.presentation.sidebar.ArticleOrderAction"/>
+        <group id="AlgoStack.Sidebar.LeetCodeArticles.Toolbar.Group">
+            <reference ref="AlgoStack.Actions.Tags"/>
+            <action id="AlgoStack.Sidebar.Solutions.Actions.LeetCodeArticlesOrderBy"
+                    class="com.wenjunhuang.algostack.presentation.sidebar.ArticleOrderAction"/>
         </group>
 
 
@@ -165,63 +165,62 @@
 
 
     <extensions defaultExtensionNs="com.intellij">
-        <notificationGroup displayType="STICKY_BALLOON" id="Code Epiphany" isLogByDefault="true"/>
-        <postStartupActivity implementation="com.wenjunhuang.codeepiphany.activities.CodeEpiphanyStartupActivity"/>
-        <toolWindow factoryClass="com.wenjunhuang.codeepiphany.presentation.sidebar.SidebarWindowFactory"
-                    id="leetcode-editor"
+        <notificationGroup displayType="STICKY_BALLOON" id="AlgoStack" isLogByDefault="true"/>
+        <postStartupActivity implementation="com.wenjunhuang.algostack.activities.AlgoStackStartupActivity"/>
+        <toolWindow factoryClass="com.wenjunhuang.algostack.presentation.sidebar.SidebarWindowFactory"
+                    id="题栈"
                     secondary="false"
                     anchor="bottom"
-                    icon="CodeEpiphanyIcons.PLUGIN"/>
+                    icon="AlgoStackIcons.PLUGIN"/>
 
-        <registryKey defaultValue="false" description="Enable debug" key="codeepiphany.debug"/>
 
         <lang.foldingBuilder language="JAVA"
-                             implementationClass="com.wenjunhuang.codeepiphany.editor.extensions.SubmissionRegionFoldingBuilder"/>
+                             implementationClass="com.wenjunhuang.algostack.editor.extensions.SubmissionRegionFoldingBuilder"/>
         <lang.foldingBuilder language="Kotlin"
-                             implementationClass="com.wenjunhuang.codeepiphany.editor.extensions.SubmissionRegionFoldingBuilder"/>
+                             implementationClass="com.wenjunhuang.algostack.editor.extensions.SubmissionRegionFoldingBuilder"/>
         <lang.foldingBuilder language="Scala"
-                             implementationClass="com.wenjunhuang.codeepiphany.editor.extensions.SubmissionRegionFoldingBuilder"/>
+                             implementationClass="com.wenjunhuang.algostack.editor.extensions.SubmissionRegionFoldingBuilder"/>
         <lang.foldingBuilder language="Dart"
-                             implementationClass="com.wenjunhuang.codeepiphany.editor.extensions.SubmissionRegionFoldingBuilder"/>
+                             implementationClass="com.wenjunhuang.algostack.editor.extensions.SubmissionRegionFoldingBuilder"/>
         <lang.foldingBuilder language="Haskell"
-                             implementationClass="com.wenjunhuang.codeepiphany.editor.extensions.SubmissionRegionFoldingBuilder"/>
+                             implementationClass="com.wenjunhuang.algostack.editor.extensions.SubmissionRegionFoldingBuilder"/>
         <lang.foldingBuilder language="Python"
-                             implementationClass="com.wenjunhuang.codeepiphany.editor.extensions.SubmissionRegionFoldingBuilder"/>
+                             implementationClass="com.wenjunhuang.algostack.editor.extensions.SubmissionRegionFoldingBuilder"/>
         <lang.foldingBuilder language="JavaScript"
-                             implementationClass="com.wenjunhuang.codeepiphany.editor.extensions.SubmissionRegionFoldingBuilder"/>
+                             implementationClass="com.wenjunhuang.algostack.editor.extensions.SubmissionRegionFoldingBuilder"/>
         <lang.foldingBuilder language="TypeScript"
-                             implementationClass="com.wenjunhuang.codeepiphany.editor.extensions.SubmissionRegionFoldingBuilder"/>
+                             implementationClass="com.wenjunhuang.algostack.editor.extensions.SubmissionRegionFoldingBuilder"/>
         <lang.foldingBuilder language="ObjectiveC"
-                             implementationClass="com.wenjunhuang.codeepiphany.editor.extensions.SubmissionRegionFoldingBuilder"/>
+                             implementationClass="com.wenjunhuang.algostack.editor.extensions.SubmissionRegionFoldingBuilder"/>
         <lang.foldingBuilder language="C++"
-                             implementationClass="com.wenjunhuang.codeepiphany.editor.extensions.SubmissionRegionFoldingBuilder"/>
+                             implementationClass="com.wenjunhuang.algostack.editor.extensions.SubmissionRegionFoldingBuilder"/>
         <lang.foldingBuilder language="C"
-                             implementationClass="com.wenjunhuang.codeepiphany.editor.extensions.SubmissionRegionFoldingBuilder"/>
+                             implementationClass="com.wenjunhuang.algostack.editor.extensions.SubmissionRegionFoldingBuilder"/>
         <lang.foldingBuilder language="C#"
-                             implementationClass="com.wenjunhuang.codeepiphany.editor.extensions.SubmissionRegionFoldingBuilder"/>
+                             implementationClass="com.wenjunhuang.algostack.editor.extensions.SubmissionRegionFoldingBuilder"/>
         <lang.foldingBuilder language="Rust"
-                             implementationClass="com.wenjunhuang.codeepiphany.editor.extensions.SubmissionRegionFoldingBuilder"/>
+                             implementationClass="com.wenjunhuang.algostack.editor.extensions.SubmissionRegionFoldingBuilder"/>
         <lang.foldingBuilder language="go"
-                             implementationClass="com.wenjunhuang.codeepiphany.editor.extensions.SubmissionRegionFoldingBuilder"/>
+                             implementationClass="com.wenjunhuang.algostack.editor.extensions.SubmissionRegionFoldingBuilder"/>
         <lang.foldingBuilder language="Python"
-                             implementationClass="com.wenjunhuang.codeepiphany.editor.extensions.SubmissionRegionFoldingBuilder"/>
+                             implementationClass="com.wenjunhuang.algostack.editor.extensions.SubmissionRegionFoldingBuilder"/>
         <lang.foldingBuilder language="PHP"
-                             implementationClass="com.wenjunhuang.codeepiphany.editor.extensions.SubmissionRegionFoldingBuilder"/>
+                             implementationClass="com.wenjunhuang.algostack.editor.extensions.SubmissionRegionFoldingBuilder"/>
 
 
-        <fileIconPatcher implementation="com.wenjunhuang.codeepiphany.presentation.editor.ChallengeEditorIconProvider"
+        <fileIconPatcher implementation="com.wenjunhuang.algostack.presentation.editor.ChallengeEditorIconProvider"
                          order="last"/>
         <editorTabTitleProvider
-                implementation="com.wenjunhuang.codeepiphany.presentation.editor.ChallengeEditorTabTitleProvider"
+                implementation="com.wenjunhuang.algostack.presentation.editor.ChallengeEditorTabTitleProvider"
                 order="last"/>
         <fileEditorProvider
-                id="CodeEpiphany.EditorProvider"
-                implementation="com.wenjunhuang.codeepiphany.presentation.editor.ChallengeEditorProvider"/>
+                id="AlgoStack.EditorProvider"
+                implementation="com.wenjunhuang.algostack.presentation.editor.ChallengeEditorProvider"/>
         <fileEditorProvider
-                id="CodeEpiphany.WebPreviewEditorProvider"
-                implementation="com.wenjunhuang.codeepiphany.presentation.browser.PreviewEditorProvider"/>
+                id="AlgoStack.WebPreviewEditorProvider"
+                implementation="com.wenjunhuang.algostack.presentation.browser.PreviewEditorProvider"/>
 
-        <vfs.asyncListener implementation="com.wenjunhuang.codeepiphany.presentation.editor.ChallengeFileRenameListener"/>
+        <vfs.asyncListener implementation="com.wenjunhuang.algostack.presentation.editor.ChallengeFileRenameListener"/>
 
     </extensions>
 </idea-plugin>

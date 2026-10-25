@@ -7,7 +7,7 @@ plugins {
     id("org.jetbrains.intellij.platform") version "2.19.0"
 }
 
-group = "com.wenjunhuang.codeepiphany"
+group = "com.wenjunhuang.algostack"
 version = providers.gradleProperty("pluginVersion").get()
 
 repositories {
@@ -146,7 +146,7 @@ tasks.withType<org.gradle.jvm.tasks.Jar>().configureEach { includeEmptyDirs = fa
 tasks.test {
     // instrument 产物是表单绑定代码重复生成的检测对象，测试前必须先产出。
     dependsOn("instrumentCode", "composedJar")
-    systemProperty("codeepiphany.pluginArtifact", tasks.named<org.jetbrains.intellij.platform.gradle.tasks.ComposedJarTask>("composedJar").get().archiveFile.get().asFile.absolutePath)
+    systemProperty("algostack.pluginArtifact", tasks.named<org.jetbrains.intellij.platform.gradle.tasks.ComposedJarTask>("composedJar").get().archiveFile.get().asFile.absolutePath)
     useJUnit()
     systemProperty("java.awt.headless", "true")
     maxHeapSize = "2g"

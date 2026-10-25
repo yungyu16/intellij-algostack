@@ -1,5 +1,21 @@
 # 更新记录
 
+## 1.17.2
+
+- 查询控件在默认和中文资源中统一显示“全部题目／公司题单”“搜索”及“分类／题单／难度／状态／标签／公司／职位／时间范围”，补充 IDEA 标准图标。保留原生下拉渲染器的选择、焦点与无障碍行为，Console／Problems 和登录、执行菜单不作全局中文化。
+
+- 补齐筛选真实菜单动作、共享条件状态、请求快照、LatestQuery 与回环 HTTP mock 回归，覆盖分类／题单／标签的组合和取消，以及公司范围参数。离线排查尚未复现实际 IDE 的筛选失效，不改猜测的 API 值；视图新增限流结构化诊断事件，不记录关键词或凭据。真实弹窗、登录状态及远端筛选效果仍待客户端验收。
+
+## 1.17.1
+
+- 移除 `leetcode-editor:` language/version metadata 生成与解析及强制追加的重复 URL 头；默认 Java／Go 模板自己包含真实题目 URL，生成器只渲染并验证 URL 与唯一提交区域。身份由可信 URL 和扩展名唯一确定，版本固定 AnyVersion，不引入 XML 身份兜底；共用扩展名无法消歧时拒绝识别。
+
+- 修复点击 Edit Test Cases 时的 VerifyError：用例面板表单按实际 JComponent 类型绑定工具栏，移除不适用的按钮 text 属性；增加插桩类与最终插件 JAR 的 JVM 校验回归，保留输入、预期值及用例操作。
+
+- 插件更名「题栈」（AlgoStack）：显示名、通知文案、工具窗口与 Action/Group ID、通知组 ID、Kotlin 包名与类名统一替换；插件 ID `com.yungyu.leetcode-editor` 与磁盘契约（`.idea/CodeEpiphany/`、`CodeEpiphany_app.xml`、凭据服务名等）保持不变，用户自定义快捷键需重新绑定。
+- 清理无调用方的 contest 提交接口与 contestHistory、problemsetCategories GraphQL 资源，移除无引用的遗留图标（leetcode_dark、mobile-logo、trophy、download）。
+- webview 包名改为 algostack-editor，测试与文档环境变量同步改为 `ALGOSTACK_VERIFY_GO`。
+
 ## 1.17.0
 
 - 新题按固定约定生成 Java／Go AnyVersion：沿用现有默认目录、命名及内置模板，按所选语言初始化工程。移除 Settings 页面、模板编辑器及 JFlex／Grammar-Kit 构建环节；旧语言、路径、模板和 CSS 配置不再读取，不删除、改写或迁移旧文件，已有题目源码和用例关联保留。

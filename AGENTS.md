@@ -1,4 +1,4 @@
-# CodeEpiphany
+# 题栈（AlgoStack）
 
 - 本仓库是个人维护的 IDEA 插件，仅支持 LeetCodeCN。默认中文沟通。
 - 修改前检查工作区、分支及真实调用链，保留用户并行修改。默认在当前分支操作，不创建 worktree。
