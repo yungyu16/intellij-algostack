@@ -35,6 +35,9 @@ internal fun executionRequest(data: LeetCodeChallengeData, identity: ChallengeId
     return ExecutionRequest(data.questionId, identity.slug, data.exampleTestcaseList, identity.language, identity.version)
 }
 
+internal fun executionStartMessage(submit: Boolean, fileName: String, dojo: CodeDojo): String =
+    PluginBundle.message(if (submit) "submit.code.start" else "test.code.start", fileName, dojo.show)
+
 @Service(Service.Level.PROJECT)
 class ExecutionService(private val project: Project, private val scope: CoroutineScope) {
     private val running = ConcurrentHashMap<VirtualFile, Job>()
@@ -44,9 +47,10 @@ class ExecutionService(private val project: Project, private val scope: Coroutin
         val job = scope.launch(start = CoroutineStart.LAZY) {
             val console = onEdt { LogConsole.getInstance(project).also { it.show(project) } }
             try {
-                withBackgroundProgress(project, PluginBundle.message(if (submit) "submit.code.start" else "test.code.start", file.name), true) {
-                    val item = readAction { ChallengeFiles.resolve(file) }
-                        ?: throw IllegalStateException(PluginBundle.message("error.no.challenge", file.name))
+                val item = readAction { ChallengeFiles.resolve(file) }
+                    ?: throw IllegalStateException(PluginBundle.message("error.no.challenge", file.name))
+                val startMessage = executionStartMessage(submit, file.name, item.dojo)
+                withBackgroundProgress(project, startMessage, true) {
                     if (!ensureLoggedIn(project, item.dojo)) return@withBackgroundProgress
                     val code = saveAndRead(file)
                     check(ChallengeFiles.resolve(file.path, code) == item) {
@@ -56,7 +60,7 @@ class ExecutionService(private val project: Project, private val scope: Coroutin
                     require(processed.isNotBlank()) { "Submission region is empty" }
                     val data = HttpService.getInstance().api(item.dojo).getQuestionData(item.slug)
                     val request = executionRequest(data, item)
-                    console.info(item.dojo, PluginBundle.message(if (submit) "submit.code.start" else "test.code.start", file.name, item.dojo.show))
+                    console.info(item.dojo, startMessage)
                     if (submit) submit(item, request, processed, console)
                     else evaluate(item, request, processed, console)
                 }
@@ -114,11 +118,7 @@ class ExecutionService(private val project: Project, private val scope: Coroutin
                 is LeetCodeSubmitAnswerResult.Success -> response.submissionId
             }
             if (response is LeetCodeSubmitAnswerResult.Accepted) {
-                console.print(item.dojo, ConsoleViewContentType.LOG_INFO_OUTPUT,
-                    ConsoleSegment.Text("平台已受理提交；取消跟踪不会撤回提交。\n"),
-                    ConsoleSegment.Link(PluginBundle.message("submissionResult.viewDetails")) { owner ->
-                        openWebPreview(owner, item.dojo, "https://${item.dojo.domain}/problems/${request.slug}/submissions/$remoteId/", remoteId)
-                    })
+                console.submissionAccepted(item.dojo, request.slug, remoteId)
             }
             val message = if (response is LeetCodeSubmitAnswerResult.Success) submissionMessage(state, response) else ""
             if (response is LeetCodeSubmitAnswerResult.Success) {

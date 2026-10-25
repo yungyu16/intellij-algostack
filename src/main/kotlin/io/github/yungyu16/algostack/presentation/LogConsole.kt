@@ -14,6 +14,11 @@ import com.intellij.openapi.wm.ToolWindowManager
 import io.github.yungyu16.algostack.PluginBundle
 import io.github.yungyu16.algostack.domain.CodeDojo
 import io.github.yungyu16.algostack.runtime.onEdt
+import io.github.yungyu16.algostack.presentation.browser.openWebPreview
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -24,7 +29,8 @@ sealed interface ConsoleSegment {
 }
 
 @Service(Service.Level.PROJECT)
-class LogConsole(project: Project) : Disposable {
+class LogConsole(private val project: Project) : Disposable {
+    @Volatile private var disposed = false
     private val consoleDelegate = lazy {
         TextConsoleBuilderFactory.getInstance().createBuilder(project).console.also {
             Disposer.register(this, it)
@@ -42,6 +48,7 @@ class LogConsole(project: Project) : Disposable {
      * 前缀包含状态图标、站点与完整时间戳，便于跨天定位。
      */
     suspend fun print(dojo: CodeDojo?, type: ConsoleViewContentType, vararg segments: ConsoleSegment) = onEdt {
+        if (disposed || project.isDisposed) return@onEdt
         view.requestScrollingToEnd()
         view.print(prefix(dojo, type), type)
         segments.forEach { segment ->
@@ -51,6 +58,18 @@ class LogConsole(project: Project) : Disposable {
             }
         }
         view.print("\n", type)
+    }
+    suspend fun submissionAccepted(dojo: CodeDojo, slug: String, submissionId: String) {
+        // ID 已由平台返回；仅保护这段本地交付，避免取消打断 EDT 排队。释放检查在 print 的 EDT 内执行。
+        withContext(NonCancellable) {
+            print(dojo, ConsoleViewContentType.LOG_INFO_OUTPUT,
+                ConsoleSegment.Text("平台已受理提交（$submissionId）；取消跟踪不会撤回提交。\n"),
+                ConsoleSegment.Link(PluginBundle.message("submissionResult.viewDetails")) { owner ->
+                    openWebPreview(owner, dojo, "https://${dojo.domain}/problems/$slug/submissions/$submissionId/", submissionId)
+                })
+        }
+        // 不让短暂的取消保护延伸到后续轮询。
+        currentCoroutineContext().ensureActive()
     }
     suspend fun info(dojo: CodeDojo?, text: String) =
         print(dojo, ConsoleViewContentType.LOG_INFO_OUTPUT, ConsoleSegment.Text(text))
@@ -67,6 +86,6 @@ class LogConsole(project: Project) : Disposable {
     }
     private fun currentDateTime(): String =
         LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-    override fun dispose() = Unit
+    override fun dispose() { disposed = true }
     companion object { @JvmStatic fun getInstance(project: Project): LogConsole = project.getService(LogConsole::class.java) }
 }

@@ -10,13 +10,13 @@
 | `leetCodeSolutionArticle/index.html` + `app.ts` + `katex_extension.ts` | 题解渲染；内容以 base64 替换进 `{{articleContent}}`、站点进 `{{codeDojo}}`（防注入，见 `WebResources.articlePage`） |
 | `app.scss` | 按主题变量 `data-theme` 切换 highlight.js a11y 明暗主题 |
 | `plugin/runtime.ts` | 共享运行时：normalize/滚动条样式、OverlayScrollbars、缩放子系统、宿主通信；**每个页面入口显式 import 一次** |
-| `plugin/intellijStylePlugin.ts` | 构建期注入 `intellijStyle.css` link 与同步主题回调（见文件头注释，勿移入 module） |
+| `plugin/intellijStylePlugin.ts` | 构建期注入 `intellijStyle.css` link 与同步主题回调（保证回调先定义；改为模块监听时须兼顾 CSS 已加载的情况） |
 
 ## Kotlin ↔ JS 契约（改动需双侧同步）
 
 | 项 | Kotlin 侧 | JS 侧 |
 |---|---|---|
-| 缩放调用 | `WebDocumentView#zoom/actualZoom` → `executeJavaScript("window.setZoom(<n>)")` | `runtime.js` 全局 `window.setZoom/zoomIn/zoomOut/actualZoom` |
+| 缩放调用 | `WebDocumentView#zoom/actualZoom` → `executeJavaScript("window.setZoom(<n>)")` | `runtime.ts` 全局 `window.setZoom/zoomIn/zoomOut/actualZoom` |
 | 缩放范围 | `coerceIn(25.0, 500.0)` | `MIN_ZOOM/MAX_ZOOM = 25/500` |
 | 缩放状态 | Kotlin 持有缩放值并限制范围；`UiDataProvider` 只提供视图实例，Action 按实例是否存在启用 | `window.sendInfo(JSON)` 是可选回调，当前宿主未注入、不消费；不参与 Action 可用性判定 |
 | 主题注入 | `WebDocumentView#style()` 生成 `intellijStyle.css`（含 `--darkMode`、编辑器字体配色） | link onload → `onIntellijStyleLoaded()` → 设置 `data-theme` |
@@ -25,6 +25,8 @@
 `manualChunks` 用于显式命名共享运行时，方便核对两页的资源依赖，不代表默认分包会丢弃模块。核对压缩产物时应追踪页面入口到共享 chunk 的依赖，不能用库函数原名是否存在作判据。类型检查和替身环境测试不覆盖真实 JCEF 的布局、主题时序、公式及代码高亮效果。
 
 ## 命令
+
+以下命令从仓库的 `webview/` 目录执行；完整插件验证与人工检查见[开发指南](../docs/开发指南.md#webview-类型检查与运行时回归)。
 
 ```bash
 npm run build        # 产出 build/webviewResources/webview
