@@ -60,8 +60,10 @@ suspend fun openChallenge(project: Project, dojo: CodeDojo, slug: String, langua
         withContext(Dispatchers.IO) { safeInitializationPath(root, prepared.file.toPath()) }
     }
     ensureLanguageProject(root, dojo, language, setting)
-    val file = saveNewFile(project, prepared.file, prepared.code,
-        root.takeIf { language == Language.Java || language == Language.GO })
+    val file = saveNewFile(project, prepared.file,
+        root.takeIf { language == Language.Java || language == Language.GO },
+        isValidName = { isChallengeFileNameValid(it, language) },
+        contentForFile = prepared::codeForFile)
     openEditor(project, file)
 }
 

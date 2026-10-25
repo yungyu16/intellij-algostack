@@ -9,7 +9,7 @@
 | `challengeDescription/index.html` | 题面骨架；Kotlin 侧将题面 HTML 直接替换进 `<!--descriptionContent-->` 占位符（不转义，内容由 flexmark 渲染） |
 | `leetCodeSolutionArticle/index.html` + `app.ts` + `katex_extension.ts` | 题解渲染；内容以 base64 替换进 `{{articleContent}}`、站点进 `{{codeDojo}}`（防注入，见 `WebResources.articlePage`） |
 | `app.scss` | 按主题变量 `data-theme` 切换 highlight.js a11y 明暗主题 |
-| `plugin/runtime.js` | 共享运行时：normalize/滚动条样式、OverlayScrollbars、缩放子系统、宿主通信；**每个页面入口显式 import 一次** |
+| `plugin/runtime.ts` | 共享运行时：normalize/滚动条样式、OverlayScrollbars、缩放子系统、宿主通信；**每个页面入口显式 import 一次** |
 | `plugin/intellijStylePlugin.ts` | 构建期注入 `intellijStyle.css` link 与同步主题回调（见文件头注释，勿移入 module） |
 
 ## Kotlin ↔ JS 契约（改动需双侧同步）
@@ -22,10 +22,14 @@
 | 主题注入 | `WebDocumentView#style()` 生成 `intellijStyle.css`（含 `--darkMode`、编辑器字体配色） | link onload → `onIntellijStyleLoaded()` → 设置 `data-theme` |
 | 内容替换 | `WebResources.descriptionPage/articlePage` | 页面占位符（见上表） |
 
+`manualChunks` 用于显式命名共享运行时，方便核对两页的资源依赖，不代表默认分包会丢弃模块。核对压缩产物时应追踪页面入口到共享 chunk 的依赖，不能用库函数原名是否存在作判据。类型检查和替身环境测试不覆盖真实 JCEF 的布局、主题时序、公式及代码高亮效果。
+
 ## 命令
 
 ```bash
 npm run build        # 产出 build/webviewResources/webview
-npm run typecheck    # tsc --noEmit（已接入 Gradle check 任务）
+npm run typecheck    # tsc --noEmit，包含共享 runtime.ts 的 DOM 与宿主全局接口
+npm test             # 真实运行时源码的缩放与可选回调回归，DOM/滚动条库使用替身
+npm run check        # 类型检查与运行时回归，已接入 Gradle check 任务
 npm run dev          # 本地调试（一般不需要，调试走 IDEA 内 JCEF）
 ```

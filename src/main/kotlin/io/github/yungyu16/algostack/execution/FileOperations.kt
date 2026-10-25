@@ -20,19 +20,24 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 
-suspend fun saveNewFile(project: Project, requested: File, text: String, root: Path? = null): VirtualFile {
+suspend fun saveNewFile(
+    project: Project, requested: File, root: Path? = null,
+    isValidName: (String) -> Boolean = { it.isNotBlank() },
+    contentForFile: (File) -> String
+): VirtualFile {
     val target = if (withContext(Dispatchers.IO) { requested.exists() }) onEdt {
         val extension = FileUtilRt.getExtension(requested.name).let { if (it.isEmpty()) "" else ".$it" }
         val name = Messages.showInputDialog(project, PluginBundle.message("file.creation.exists"),
             PluginBundle.message("file.creation.exists.title"), Messages.getQuestionIcon(),
             FileUtilRt.getNameWithoutExtension(requested.name), object : InputValidator {
-                override fun checkInput(inputString: String): Boolean = inputString.isNotBlank() && !File(requested.parentFile, inputString + extension).exists()
+                override fun checkInput(inputString: String): Boolean = isValidName(inputString) && !File(requested.parentFile, inputString + extension).exists()
                 override fun canClose(inputString: String): Boolean = checkInput(inputString)
             }) ?: throw kotlinx.coroutines.CancellationException("File creation cancelled")
         File(requested.parentFile, name + extension)
     } else requested
     return withContext(Dispatchers.IO) {
         val destination = root?.let { safeInitializationPath(it, target.toPath()) } ?: target.toPath()
+        val text = contentForFile(destination.toFile())
         Files.createDirectories(destination.parent)
         root?.let { safeInitializationPath(it, destination) }
         Files.writeString(destination, text, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)

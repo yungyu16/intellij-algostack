@@ -1,5 +1,11 @@
 # 更新记录
 
+## 1.0.5
+
+- WebView 共享运行时改为 TypeScript 并声明宿主全局接口，类型检查覆盖 DOM 与缩放调用；新增 3 项运行时回归并接入 Gradle check，修正共享分包与主题加载时序的说明。测试使用 DOM 替身，不替代真实 JCEF 渲染验收。
+
+- Java 手动创建题目遇到重名并另存时，根据最终文件名同步外层 public 类声明，校验 Java 类名合法性；保留平台提交区域和已有源码，Go 内容不变。新增外层类改名与 Java 8 编译回归。
+
 ## 1.0.4
 
 - Java 新题骨架的空方法体填入 `throw new UnsupportedOperationException("Not implemented");`，避免有返回值的方法因缺少 return 而无法编译；保留方法签名、构造器、注释和已有实现，Go 代码与已有题目文件不变。使用 IDEA 内置 Java PSI 识别方法，新增 Java 8 编译及模板回归。

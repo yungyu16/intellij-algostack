@@ -9,6 +9,16 @@ import {OverlayScrollbars} from 'overlayscrollbars';
 const MAX_ZOOM = 500;
 const MIN_ZOOM = 25;
 
+declare global {
+    interface Window {
+        setZoom: (zoom?: number) => void;
+        zoomIn: () => void;
+        zoomOut: () => void;
+        actualZoom: () => void;
+        sendInfo?: (json: string) => void;
+    }
+}
+
 const gState = {
     zoom: 100,
 };
@@ -16,6 +26,7 @@ const gState = {
 function setZoom(zoom = 100) {
     zoom = normalizeZoom(zoom);
     const container = document.getElementById('container');
+    if (!container) throw new Error('WebView template is missing #container');
 
     if (zoom === 100) {
         container.style.zoom = '';
@@ -39,7 +50,7 @@ function actualZoom() {
     setZoom(100);
 }
 
-function normalizeZoom(zoom) {
+function normalizeZoom(zoom: number): number {
     return Math.min(Math.max(zoom, MIN_ZOOM), MAX_ZOOM);
 }
 

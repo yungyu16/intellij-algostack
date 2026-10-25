@@ -17,8 +17,9 @@ export const definedViteConfig = defineConfig({
                 leetCodeSolutionArticle: resolve(__dirname, 'leetCodeSolutionArticle/index.html'),
             },
             output: {
+                // 显式命名共享运行时，便于检查产物；不依赖压缩后的函数名判断模块是否存在。
                 manualChunks(id): string | undefined {
-                    if (id.endsWith('plugin/runtime.js')) return 'runtime';
+                    if (id.endsWith('plugin/runtime.ts')) return 'runtime';
                     return undefined;
                 },
             },

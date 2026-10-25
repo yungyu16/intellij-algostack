@@ -106,7 +106,7 @@ val buildWebview = tasks.register<Exec>("buildWebview") {
 val checkWebview = tasks.register<Exec>("checkWebview") {
     dependsOn(npmInstall)
     workingDir("webview")
-    commandLine("npm", "run", "typecheck")
+    commandLine("npm", "run", "check")
     inputs.files(fileTree("webview") { exclude("node_modules/**") })
 }
 

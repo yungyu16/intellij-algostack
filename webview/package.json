@@ -9,7 +9,9 @@
     "build:dev": "vite build --mode development --emptyOutDir",
     "build": "vite build --emptyOutDir",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --test plugin/runtime.test.mjs",
+    "check": "npm run typecheck && npm test"
   },
   "devDependencies": {
     "@codingame/esbuild-import-meta-url-plugin": "~1.0.2",

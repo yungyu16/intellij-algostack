@@ -1,7 +1,7 @@
 import {Marked} from 'marked'
 import {markedHighlight} from "marked-highlight";
 import hljs from 'highlight.js';
-import '/plugin/runtime.js';
+import '/plugin/runtime.ts';
 import './app.scss';
 import 'katex/dist/katex.css';
 import katex_extension from "./katex_extension";
