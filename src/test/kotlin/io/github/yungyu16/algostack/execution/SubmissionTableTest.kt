@@ -5,7 +5,8 @@ import org.junit.Test
 
 /** 提交指标表格与上游 Tabulator 的输出一致：带边框、列宽取最长单元格、单元格右对齐。 */
 class SubmissionTableTest {
-    @Test fun tableKeepsBordersAndRightAlignedColumns() {
+    @Test
+    fun tableKeepsBordersAndRightAlignedColumns() {
         val table = formatSubmissionTable(
             listOf("Metric", "Value"),
             listOf("Runtime", "6 ms (Beats 92.88%)"),
@@ -21,7 +22,8 @@ class SubmissionTableTest {
         assertEquals("+-------+----------------------+", lines[5])
     }
 
-    @Test fun columnWidthFollowsTheLongestCell() {
+    @Test
+    fun columnWidthFollowsTheLongestCell() {
         val lines = formatSubmissionTable(listOf("A", "B"), listOf("longer", "x")).lines().toList()
         assertEquals("+------+-+", lines[0])
         assertEquals("|     A|B|", lines[1])

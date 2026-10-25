@@ -28,8 +28,10 @@ internal fun PreparedChallenge.codeForFile(target: File): String {
     if (target.name == file.name) return code
     return ReadAction.compute<String, RuntimeException> {
         val project = ProjectManager.getInstance().defaultProject
-        val source = PsiFileFactory.getInstance(project).createFileFromText(file.name, JavaFileType.INSTANCE, code) as PsiJavaFile
-        val wrapper = source.classes.single { it.hasModifierProperty(PsiModifier.PUBLIC) && it.name == file.nameWithoutExtension }
+        val source = PsiFileFactory.getInstance(project)
+            .createFileFromText(file.name, JavaFileType.INSTANCE, code) as PsiJavaFile
+        val wrapper =
+            source.classes.single { it.hasModifierProperty(PsiModifier.PUBLIC) && it.name == file.nameWithoutExtension }
         val range = requireNotNull(wrapper.nameIdentifier).textRange
         val renamed = code.replaceRange(range.startOffset, range.endOffset, target.nameWithoutExtension)
         require(Language.Java.extractCodeFromRegion(renamed) == Language.Java.extractCodeFromRegion(code)) {

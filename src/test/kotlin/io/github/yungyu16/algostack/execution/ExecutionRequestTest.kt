@@ -1,17 +1,24 @@
 package io.github.yungyu16.algostack.execution
 
-import io.github.yungyu16.algostack.domain.*
-import io.github.yungyu16.algostack.leetcode.api.model.LeetCodeChallengeData
-import org.junit.Assert.*
+import io.github.yungyu16.algostack.domain.ChallengeIdentity
+import io.github.yungyu16.algostack.domain.CodeDojo
+import io.github.yungyu16.algostack.domain.Language
+import io.github.yungyu16.algostack.domain.LanguageVersion
+import io.github.yungyu16.algostack.leetcode.model.LeetCodeChallengeData
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class ExecutionRequestTest {
-    private fun data(inputs: List<String>) = LeetCodeChallengeData("9001", "1", "Two Sum", "two-sum", "",
-        isPaidOnly = false, difficulty = "Easy", likes = 0, dislikes = 0, similarQuestions = "[]",
-        exampleTestcaseList = inputs, topicTags = emptyList(), hints = emptyList(), testCase = "not-the-platform-examples",
-        metaData = "{}", codeSnippets = emptyList())
+    private fun data(inputs: List<String>) = LeetCodeChallengeData(
+        "9001", "1", "Two Sum", "two-sum", "",
+        difficulty = "Easy",
+        exampleTestcaseList = inputs,
+        codeSnippets = emptyList()
+    )
 
-    @Test fun everyRequestUsesFreshPlatformExamplesAndKeepsMultiArgumentCaseBoundaries() {
+    @Test
+    fun everyRequestUsesFreshPlatformExamplesAndKeepsMultiArgumentCaseBoundaries() {
         val examples = listOf("[2,7,11,15]\n9", "[3,2,4]\n6")
         for (language in listOf(Language.Java, Language.GO)) {
             val identity = ChallengeIdentity(CodeDojo.LeetCodeCN, "two-sum", language)
@@ -27,9 +34,13 @@ class ExecutionRequestTest {
         }
     }
 
-    @Test fun mismatchedPlatformResponseIsRejected() {
+    @Test
+    fun mismatchedPlatformResponseIsRejected() {
         assertThrows(IllegalArgumentException::class.java) {
-            executionRequest(data(listOf("fixture")), ChallengeIdentity(CodeDojo.LeetCodeCN, "three-sum", Language.Java))
+            executionRequest(
+                data(listOf("fixture")),
+                ChallengeIdentity(CodeDojo.LeetCodeCN, "three-sum", Language.Java)
+            )
         }
     }
 }

@@ -1,0 +1,5 @@
+query discussTopic($slug: String) {
+  solutionArticle(slug: $slug, orderBy: DEFAULT) {
+    content
+  }
+}

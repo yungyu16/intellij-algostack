@@ -1,7 +1,11 @@
 package io.github.yungyu16.algostack.execution
 
-import io.github.yungyu16.algostack.domain.*
-import io.github.yungyu16.algostack.leetcode.api.model.*
+import io.github.yungyu16.algostack.domain.ChallengeRecognition
+import io.github.yungyu16.algostack.domain.CodeDojo
+import io.github.yungyu16.algostack.domain.Language
+import io.github.yungyu16.algostack.domain.LanguageVersion
+import io.github.yungyu16.algostack.leetcode.model.LeetCodeChallengeData
+import io.github.yungyu16.algostack.leetcode.model.LeetCodeQuestionCodeSnippet
 import kotlinx.coroutines.*
 import org.junit.Assert.*
 import org.junit.Test
@@ -11,34 +15,57 @@ import javax.xml.parsers.DocumentBuilderFactory
 
 class LanguageProjectInitializationTest {
     companion object {
-        @org.junit.BeforeClass @JvmStatic fun initializeApplication() { com.intellij.testFramework.TestApplicationManager.getInstance() }
+        @org.junit.BeforeClass
+        @JvmStatic
+        fun initializeApplication() {
+            com.intellij.testFramework.TestApplicationManager.getInstance()
+        }
     }
 
     private fun fixture(block: suspend (Path) -> Unit) = runBlocking {
         val root = Files.createTempDirectory("language-project-").toRealPath()
-        try { block(root) } finally { root.toFile().deleteRecursively() }
-    }
-    private fun setting(root: Path, language: Language): GenerationSettings =
-        ChallengeConventions.generation(root, CodeDojo.LeetCodeCN, language)
-    private fun prepared(language: Language, setting: GenerationSettings): PreparedChallenge {
-        val snippet = if (language == Language.Java) "class Solution {}" else "func solve() {}"
-        val data = LeetCodeChallengeData("9001", "1", "Two Sum", "two-sum", "<p>Fixture</p>",
-            isPaidOnly = false, difficulty = "Easy", likes = 0, dislikes = 0, similarQuestions = "[]",
-            exampleTestcaseList = emptyList(), topicTags = emptyList(), hints = emptyList(), testCase = "", metaData = "{}",
-            codeSnippets = listOf(LeetCodeQuestionCodeSnippet("fixture", if (language == Language.Java) "java" else "golang", snippet)))
-        return renderChallenge(data, CodeDojo.LeetCodeCN, language, LanguageVersion.AnyVersion, setting)
-    }
-    private suspend fun initialize(root: Path, language: Language, setting: GenerationSettings = setting(root, language),
-        goVersion: () -> String = { "go version go1.20.14 linux/amd64" }): InitializationResult {
-        val prepared = prepared(language, setting)
-        val target = prepared.file.toPath()
-        return initializeChallengeFile(root, target, prepared.code,
-            { ChallengeRecognition.recognize(Files.readString(target), language.fileExt) == prepared.identity },
-            {}, {},
-            initializeProject = { ensureLanguageProject(root, CodeDojo.LeetCodeCN, language, setting, goVersion) })
+        try {
+            block(root)
+        } finally {
+            root.toFile().deleteRecursively()
+        }
     }
 
-    @Test fun javaFirstGenerationCreatesJava8MavenOnlyAndRepeatPreservesCodeAndPom() = fixture { root ->
+    private fun setting(root: Path, language: Language): GenerationSettings =
+        ChallengeConventions.generation(root, CodeDojo.LeetCodeCN, language)
+
+    private fun prepared(language: Language, setting: GenerationSettings): PreparedChallenge {
+        val snippet = if (language == Language.Java) "class Solution {}" else "func solve() {}"
+        val data = LeetCodeChallengeData(
+            "9001", "1", "Two Sum", "two-sum", "<p>Fixture</p>",
+            difficulty = "Easy",
+            exampleTestcaseList = emptyList(),
+            codeSnippets = listOf(
+                LeetCodeQuestionCodeSnippet(
+                    "fixture",
+                    if (language == Language.Java) "java" else "golang",
+                    snippet
+                )
+            )
+        )
+        return renderChallenge(data, CodeDojo.LeetCodeCN, language, LanguageVersion.AnyVersion, setting)
+    }
+
+    private suspend fun initialize(
+        root: Path, language: Language,
+        goVersion: () -> String = { "go version go1.20.14 linux/amd64" }
+    ): InitializationResult {
+        val prepared = prepared(language, setting(root, language))
+        val target = prepared.file.toPath()
+        return initializeChallengeFile(
+            root, target, prepared.code,
+            { ChallengeRecognition.recognize(Files.readString(target), language.fileExt) == prepared.identity },
+            {}, {},
+            initializeProject = { ensureLanguageProject(root, CodeDojo.LeetCodeCN, language, goVersion) })
+    }
+
+    @Test
+    fun javaFirstGenerationCreatesJava8MavenOnlyAndRepeatPreservesCodeAndPom() = fixture { root ->
         assertEquals("created", initialize(root, Language.Java).status)
         val pom = root.resolve("code/java/pom.xml")
         val xml = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(pom.toFile())
@@ -55,18 +82,23 @@ class LanguageProjectInitializationTest {
         assertEquals(customPom, Files.readString(pom)); assertEquals(code, Files.readString(source))
     }
 
-    @Test fun goFirstGenerationUsesAvailableVersionAndIndependentPackagesAndIsIdempotent() = fixture { root ->
+    @Test
+    fun goFirstGenerationUsesAvailableVersionAndIndependentPackagesAndIsIdempotent() = fixture { root ->
         assertEquals("created", initialize(root, Language.GO).status)
         val module = root.resolve("code/go/go.mod")
         assertEquals("module leetcode-practice\n\ngo 1.20\n", Files.readString(module))
         assertTrue(Files.readString(root.resolve("code/go/leetcodecn/P0001_TwoSum/main.go")).contains("package main"))
         assertFalse(Files.exists(root.resolve("code/java")))
         Files.writeString(module, "module custom.example/practice\n\ngo 1.19\n")
-        assertEquals("already_exists", initialize(root, Language.GO, goVersion = { error("must not query Go for existing module") }).status)
+        assertEquals(
+            "already_exists",
+            initialize(root, Language.GO, goVersion = { error("must not query Go for existing module") }).status
+        )
         assertEquals("module custom.example/practice\n\ngo 1.19\n", Files.readString(module))
     }
 
-    @Test fun existingSkeletonStillInitializesMissingProject() = fixture { root ->
+    @Test
+    fun existingSkeletonStillInitializesMissingProject() = fixture { root ->
         for (language in listOf(Language.Java, Language.GO)) {
             val prepared = prepared(language, setting(root, language))
             Files.createDirectories(prepared.file.toPath().parent)
@@ -77,35 +109,43 @@ class LanguageProjectInitializationTest {
         }
     }
 
-    @Test fun customPathsReuseNearestExistingProjectButNeverGuessAModuleRoot() = fixture { root ->
+    @Test
+    fun nearestAncestorProjectIsPreservedWithoutCreatingNestedModule() = fixture { root ->
         for ((language, descriptor) in listOf(Language.Java to "pom.xml", Language.GO to "go.mod")) {
-            val custom = root.resolve("custom/${language.value}")
-            val setting = setting(root, language).copy(folder = custom.resolve("sources").toString())
-            Files.createDirectories(custom)
-            Files.writeString(custom.resolve(descriptor), "user configuration")
-            assertEquals("created", initialize(root, language, setting).status)
-            assertEquals("user configuration", Files.readString(custom.resolve(descriptor)))
-            assertFalse(Files.exists(root.resolve("code")))
-            val missing = setting.copy(folder = root.resolve("unknown/${language.value}").toString())
-            val result = initialize(root, language, missing)
-            assertEquals("partial", result.status)
-            assertTrue(result.reason!!.contains("Custom source folder"))
-            assertTrue(prepared(language, missing).file.exists())
-            assertFalse(Files.exists(Path.of(missing.folder).resolve(descriptor)))
+            val layout = ChallengeConventions.layout(root, CodeDojo.LeetCodeCN, language)
+            val ancestor = Files.createDirectories(root.resolve("code")).resolve(descriptor)
+            Files.writeString(ancestor, "user configuration")
+            // 更远的非普通描述文件不能盖过最近的有效工程。
+            Files.createDirectory(root.resolve(descriptor))
+            assertEquals("created", initialize(root, language, goVersion = { error("no query") }).status)
+            assertEquals("user configuration", Files.readString(ancestor))
+            assertFalse(Files.exists(layout.moduleRoot.resolve(descriptor)))
         }
     }
 
-    @Test fun existingAncestorModuleIsPreservedWithoutCreatingNestedModule() = fixture { root ->
-        Files.writeString(root.resolve("go.mod"), "module parent\n\ngo 1.20\n")
-        assertEquals("created", initialize(root, Language.GO, goVersion = { error("no query") }).status)
-        assertFalse(Files.exists(root.resolve("code/go/go.mod")))
-        assertEquals("module parent\n\ngo 1.20\n", Files.readString(root.resolve("go.mod")))
+    @Test
+    fun projectRootDescriptorsAreReusedWithoutQueryingGo() = fixture { root ->
+        for ((language, descriptor) in listOf(Language.Java to "pom.xml", Language.GO to "go.mod")) {
+            Files.writeString(root.resolve(descriptor), "root project")
+            assertEquals("created", initialize(root, language, goVersion = { error("no query") }).status)
+            assertEquals("root project", Files.readString(root.resolve(descriptor)))
+            val layout = ChallengeConventions.layout(root, CodeDojo.LeetCodeCN, language)
+            assertFalse(Files.exists(layout.moduleRoot.resolve(descriptor)))
+        }
     }
 
-    @Test fun parallelGenerationsAreIdempotentAndProjectFailureRetainsSkeleton() = fixture { root ->
+    @Test
+    fun parallelGenerationsAreIdempotentAndProjectFailureRetainsSkeleton() = fixture { root ->
         coroutineScope {
-            val settings = setting(root, Language.Java)
-            (1..12).map { async(Dispatchers.Default) { ensureLanguageProject(root, CodeDojo.LeetCodeCN, Language.Java, settings) } }.awaitAll()
+            (1..12).map {
+                async(Dispatchers.Default) {
+                    ensureLanguageProject(
+                        root,
+                        CodeDojo.LeetCodeCN,
+                        Language.Java
+                    )
+                }
+            }.awaitAll()
         }
         assertTrue(Files.readString(root.resolve("code/java/pom.xml")).endsWith("</project>\n"))
         val failed = initialize(root, Language.GO, goVersion = { error("local Go unavailable") })
@@ -115,7 +155,21 @@ class LanguageProjectInitializationTest {
         assertEquals("already_exists", initialize(root, Language.GO).status)
     }
 
-    @Test fun symlinksNonRegularDescriptorsAndOtherBuildsAreNotTouched() = fixture { root ->
+    @Test
+    fun descriptorCreatedAfterLookupIsReusedWithoutOverwriting() = fixture { root ->
+        val descriptor = root.resolve("code/go/go.mod")
+        val existing = "module concurrent.example/practice\n\ngo 1.19\n"
+        val result = initialize(root, Language.GO, goVersion = {
+            // 工具链查询位于祖先查找之后、CREATE_NEW 之前，确定性模拟外部进程抢先创建。
+            Files.writeString(descriptor, existing)
+            "go version go1.20.14 linux/amd64"
+        })
+        assertEquals("created", result.status)
+        assertEquals(existing, Files.readString(descriptor))
+    }
+
+    @Test
+    fun symlinksNonRegularDescriptorsAndOtherBuildsAreNotTouched() = fixture { root ->
         val javaRoot = Files.createDirectories(root.resolve("code/java"))
         val original = Files.writeString(root.resolve("original.xml"), "keep")
         Files.createSymbolicLink(javaRoot.resolve("pom.xml"), original)
@@ -126,35 +180,78 @@ class LanguageProjectInitializationTest {
         Files.delete(javaRoot.resolve("pom.xml")); Files.writeString(javaRoot.resolve("build.gradle.kts"), "keep")
         assertEquals("partial", initialize(root, Language.Java).status)
         assertFalse(Files.exists(javaRoot.resolve("pom.xml")))
-        val linked = Files.createSymbolicLink(root.resolve("linked"), javaRoot)
-        try {
-            ensureLanguageProject(root, CodeDojo.LeetCodeCN, Language.Java, setting(root, Language.Java).copy(folder = linked.resolve("source").toString()))
-            fail("Symlink parent must be rejected")
-        } catch (_: IllegalArgumentException) { }
-        try {
-            ensureLanguageProject(root, CodeDojo.LeetCodeCN, Language.Java, setting(root, Language.Java).copy(folder = root.parent.toString()))
-            fail("Outside project must be rejected")
-        } catch (_: IllegalArgumentException) { }
     }
 
-    @Test fun conflictingExistingCodeDoesNotInitializeAProject() = fixture { root ->
+    @Test
+    fun conventionalSourceParentsCannotBeSymlinksOrRegularFiles() = fixture { root ->
+        val outside = Files.createTempDirectory("language-project-outside-")
+        try {
+            val code = root.resolve("code")
+            Files.createSymbolicLink(code, outside)
+            for (language in listOf(Language.Java, Language.GO)) {
+                try {
+                    ensureLanguageProject(root, CodeDojo.LeetCodeCN, language)
+                    fail("Symlink parent must be rejected")
+                } catch (_: IllegalArgumentException) {
+                }
+            }
+            Files.list(outside).use { assertEquals(0L, it.count()) }
+            Files.delete(code)
+            Files.writeString(code, "keep")
+            for (language in listOf(Language.Java, Language.GO)) {
+                try {
+                    ensureLanguageProject(root, CodeDojo.LeetCodeCN, language)
+                    fail("Non-directory parent must be rejected")
+                } catch (_: IllegalArgumentException) {
+                }
+            }
+            assertEquals("keep", Files.readString(code))
+        } finally {
+            outside.toFile().deleteRecursively()
+        }
+    }
+
+    @Test
+    fun otherBuildConfigurationsInAncestorsAreRejectedWithoutCreatingDescriptors() = fixture { root ->
+        for ((language, builds) in listOf(
+            Language.Java to listOf("build.gradle", "build.gradle.kts", "settings.gradle", "settings.gradle.kts"),
+            Language.GO to listOf("go.work")
+        )) {
+            val layout = ChallengeConventions.layout(root, CodeDojo.LeetCodeCN, language)
+            val descriptor = if (language == Language.Java) "pom.xml" else "go.mod"
+            for (build in builds) {
+                val existing = Files.writeString(root.resolve(build), "keep")
+                val result = initialize(root, language, goVersion = { error("no query") })
+                assertEquals("partial", result.status)
+                assertTrue(result.reason!!.contains("Existing build/workspace configuration"))
+                assertFalse(Files.exists(layout.moduleRoot.resolve(descriptor)))
+                assertEquals("keep", Files.readString(existing))
+                Files.delete(existing)
+            }
+        }
+    }
+
+    @Test
+    fun conflictingExistingCodeDoesNotInitializeAProject() = fixture { root ->
         val target = prepared(Language.GO, setting(root, Language.GO)).file.toPath()
         Files.createDirectories(target.parent); Files.writeString(target, "keep")
         assertEquals("conflict", initialize(root, Language.GO).status)
         assertEquals("keep", Files.readString(target)); assertFalse(Files.exists(root.resolve("code/go/go.mod")))
     }
 
-    @Test fun goDirectiveAcceptsStableAndPrereleaseButRejectsUnknownOutput() {
+    @Test
+    fun goDirectiveAcceptsStableAndPrereleaseButRejectsUnknownOutput() {
         assertEquals("1.26", goDirective("go version go1.26.4 darwin/arm64\n"))
         assertEquals("1.27", goDirective("go version go1.27rc1 linux/amd64"))
         assertThrows(IllegalStateException::class.java) { goDirective("unknown") }
     }
 
-    @Test fun optionalLocalGoValidationDoesNotDownloadDependencies() = fixture { root ->
+    @Test
+    fun optionalLocalGoValidationDoesNotDownloadDependencies() = fixture { root ->
         // CI 默认只做离线纯逻辑验证；显式启用时使用本机 Go 验证真实生成文件。
         if (System.getenv("ALGOSTACK_VERIFY_GO") != "true") return@fixture
         val settings = setting(root, Language.GO)
-        ensureLanguageProject(root, CodeDojo.LeetCodeCN, Language.GO, settings)
+        ensureLanguageProject(root, CodeDojo.LeetCodeCN, Language.GO)
         val source = prepared(Language.GO, settings)
         Files.createDirectories(source.file.toPath().parent); Files.writeString(source.file.toPath(), source.code)
         Files.createDirectories(root.resolve("code/go/leetcodecn/P0002_Another"))
@@ -162,7 +259,14 @@ class LanguageProjectInitializationTest {
         for (arguments in listOf(listOf("mod", "edit", "-json"), listOf("test", "./..."))) {
             val process = ProcessBuilder(listOf("go") + arguments).directory(root.resolve("code/go").toFile())
                 .redirectErrorStream(true).apply {
-                    environment().putAll(mapOf("GOPROXY" to "off", "GOSUMDB" to "off", "GOTOOLCHAIN" to "local", "GOWORK" to "off"))
+                    environment().putAll(
+                        mapOf(
+                            "GOPROXY" to "off",
+                            "GOSUMDB" to "off",
+                            "GOTOOLCHAIN" to "local",
+                            "GOWORK" to "off"
+                        )
+                    )
                 }.start()
             val output = process.inputStream.bufferedReader().use { it.readText() }
             assertEquals(output, 0, process.waitFor())

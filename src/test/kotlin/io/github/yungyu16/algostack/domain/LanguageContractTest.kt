@@ -1,11 +1,13 @@
 package io.github.yungyu16.algostack.domain
 
-import io.github.yungyu16.algostack.leetcode.api.LeetCodeJson
-import org.junit.Assert.*
+import io.github.yungyu16.algostack.leetcode.LeetCodeJson
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LanguageContractTest {
-    @Test fun storedIdentifiersDoNotDependOnEnumOrdinals() {
+    @Test
+    fun storedIdentifiersDoNotDependOnEnumOrdinals() {
         val json = LeetCodeJson.format
         assertEquals("\"leetcodecn\"", json.encodeToString(CodeDojo.LeetCodeCN))
         assertEquals(CodeDojo.LeetCodeCN, json.decodeFromString<CodeDojo>("\"LEETCODECN\""))
@@ -14,7 +16,8 @@ class LanguageContractTest {
         for (result in SubmissionResult.entries) assertEquals(result, SubmissionResult.fromString(result.value))
     }
 
-    @Test fun submissionRegionsKeepTheSourceLanguageSyntaxAndLineEndings() {
+    @Test
+    fun submissionRegionsKeepTheSourceLanguageSyntaxAndLineEndings() {
         val code = "first\r\nsecond\r\n"
         for (language in listOf(Language.Java, Language.Python, Language.OCaml, Language.MySQL)) {
             val source = language.encloseCodeInRegion(code)
@@ -23,7 +26,8 @@ class LanguageContractTest {
         assertEquals("", Language.Java.extractCodeFromRegion("// no markers\nclass Solution {}"))
     }
 
-    @Test fun leetCodeLanguageMappingsKeepVersionAndPandasRules() {
+    @Test
+    fun leetCodeLanguageMappingsKeepVersionAndPandasRules() {
         assertEquals("java8", Language.Java.toLeetCode(LanguageVersion.SpecificVersion("8")))
         assertEquals("golang", Language.GO.toLeetCode(LanguageVersion.AnyVersion))
         assertEquals(Language.Pandas to LanguageVersion.AnyVersion, languageFromLeetCode("pythondata"))

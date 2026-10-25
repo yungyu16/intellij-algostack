@@ -1,6 +1,9 @@
 package io.github.yungyu16.algostack.presentation.editor
 
-import com.intellij.openapi.fileEditor.*
+import com.intellij.openapi.fileEditor.FileEditor
+import com.intellij.openapi.fileEditor.FileEditorState
+import com.intellij.openapi.fileEditor.FileEditorStateLevel
+import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.testFramework.LightVirtualFile
@@ -8,25 +11,27 @@ import io.github.yungyu16.algostack.presentation.browser.PreviewEditor
 import org.jdom.Element
 import org.junit.Assert.*
 import org.junit.Test
-import java.lang.reflect.Proxy
 import java.beans.PropertyChangeEvent
 import java.beans.PropertyChangeListener
 import java.beans.PropertyChangeSupport
+import java.lang.reflect.Proxy
 
 class DelegatingTextEditorTest {
-    @Test fun fileEditorDefaultMethodsHaveExplicitForwarding() {
+    @Test
+    fun fileEditorDefaultMethodsHaveExplicitForwarding() {
         val source = LightVirtualFile("solution.java")
         val calls = arrayListOf<String>()
-        val delegate = Proxy.newProxyInstance(javaClass.classLoader, arrayOf(TextEditor::class.java)) { _, method, args ->
-            calls += "${method.name}/${args?.size ?: 0}"
-            when (method.name) {
-                "getState" -> FileEditorState.INSTANCE
-                "getFilesToRefresh" -> listOf(source)
-                "isValid" -> true
-                "isModified" -> false
-                else -> null
-            }
-        } as TextEditor
+        val delegate =
+            Proxy.newProxyInstance(javaClass.classLoader, arrayOf(TextEditor::class.java)) { _, method, args ->
+                calls += "${method.name}/${args?.size ?: 0}"
+                when (method.name) {
+                    "getState" -> FileEditorState.INSTANCE
+                    "getFilesToRefresh" -> listOf(source)
+                    "isValid" -> true
+                    "isModified" -> false
+                    else -> null
+                }
+            } as TextEditor
         val editor: FileEditor = DelegatingTextEditor(delegate, source)
         assertSame(source, editor.file)
         assertFalse(calls.any { it.startsWith("getFile/") })
@@ -39,12 +44,15 @@ class DelegatingTextEditorTest {
         assertEquals(listOf(source), editor.filesToRefresh)
         assertNull(editor.tabActions)
         assertTrue(editor.isValid)
-        for (expected in listOf("getState/1", "setState/2", "selectNotify/0", "deselectNotify/0", "getBackgroundHighlighter/0",
-            "getCurrentLocation/0", "getStructureViewBuilder/0", "getFilesToRefresh/0", "getTabActions/0", "isValid/0"))
+        for (expected in listOf(
+            "getState/1", "setState/2", "selectNotify/0", "deselectNotify/0", "getBackgroundHighlighter/0",
+            "getCurrentLocation/0", "getStructureViewBuilder/0", "getFilesToRefresh/0", "getTabActions/0", "isValid/0"
+        ))
             assertTrue("Missing forwarding: $expected", expected in calls)
     }
 
-    @Test fun loadedStateFollowsTheDelegateInsteadOfTheInterfaceDefault() {
+    @Test
+    fun loadedStateFollowsTheDelegateInsteadOfTheInterfaceDefault() {
         var loaded = false
         val delegate = Proxy.newProxyInstance(javaClass.classLoader, arrayOf(TextEditor::class.java)) { _, method, _ ->
             check(method.name == "isEditorLoaded")
@@ -58,18 +66,26 @@ class DelegatingTextEditorTest {
         assertFalse(editor.isEditorLoaded)
     }
 
-    @Test fun propertyEventsUseWrapperIdentityAndListenersCanBeRemovedIndividually() {
+    @Test
+    fun propertyEventsUseWrapperIdentityAndListenersCanBeRemovedIndividually() {
         lateinit var support: PropertyChangeSupport
-        val delegate = Proxy.newProxyInstance(javaClass.classLoader, arrayOf(TextEditor::class.java)) { proxy, method, args ->
-            when (method.name) {
-                "addPropertyChangeListener" -> { support.addPropertyChangeListener(args!![0] as PropertyChangeListener); null }
-                "removePropertyChangeListener" -> { support.removePropertyChangeListener(args!![0] as PropertyChangeListener); null }
-                "toString" -> "DelegateTextEditor"
-                "hashCode" -> System.identityHashCode(proxy)
-                "equals" -> proxy === args!![0]
-                else -> error("Unexpected call: ${method.name}")
-            }
-        } as TextEditor
+        val delegate =
+            Proxy.newProxyInstance(javaClass.classLoader, arrayOf(TextEditor::class.java)) { proxy, method, args ->
+                when (method.name) {
+                    "addPropertyChangeListener" -> {
+                        support.addPropertyChangeListener(args!![0] as PropertyChangeListener); null
+                    }
+
+                    "removePropertyChangeListener" -> {
+                        support.removePropertyChangeListener(args!![0] as PropertyChangeListener); null
+                    }
+
+                    "toString" -> "DelegateTextEditor"
+                    "hashCode" -> System.identityHashCode(proxy)
+                    "equals" -> proxy === args!![0]
+                    else -> error("Unexpected call: ${method.name}")
+                }
+            } as TextEditor
         support = PropertyChangeSupport(delegate)
         val editor = DelegatingTextEditor(delegate, LightVirtualFile("solution.java"))
         val events = mutableListOf<PropertyChangeEvent>()
@@ -111,15 +127,32 @@ class DelegatingTextEditorTest {
         assertEquals(0, support.propertyChangeListeners.size)
     }
 
-    @Test fun customEditorsAndTextProvidersDoNotFallBackToDeprecatedOrEmptyDefaults() {
+    @Test
+    fun customEditorsAndTextProvidersDoNotFallBackToDeprecatedOrEmptyDefaults() {
         for (type in listOf(ChallengeEditor::class.java, PreviewEditor::class.java)) {
             val method = type.getMethod("getFile")
             assertFalse(method.declaringClass.isInterface)
             assertEquals(VirtualFile::class.java, method.returnType)
         }
         for (type in listOf(ChallengeEditorProvider::class.java)) {
-            assertEquals(type, type.getMethod("readState", Element::class.java, Project::class.java, VirtualFile::class.java).declaringClass)
-            assertEquals(type, type.getMethod("writeState", FileEditorState::class.java, Project::class.java, Element::class.java).declaringClass)
+            assertEquals(
+                type,
+                type.getMethod(
+                    "readState",
+                    Element::class.java,
+                    Project::class.java,
+                    VirtualFile::class.java
+                ).declaringClass
+            )
+            assertEquals(
+                type,
+                type.getMethod(
+                    "writeState",
+                    FileEditorState::class.java,
+                    Project::class.java,
+                    Element::class.java
+                ).declaringClass
+            )
         }
     }
 }

@@ -16,14 +16,20 @@ import javax.swing.SwingUtilities
 /** 在测试应用中阻塞真实 EDT，核验 Console 交付；不访问平台或打开链接。 */
 class SubmissionConsoleTest {
     companion object {
-        @BeforeClass @JvmStatic fun initializeApplication() { TestApplicationManager.getInstance() }
+        @BeforeClass
+        @JvmStatic
+        fun initializeApplication() {
+            TestApplicationManager.getInstance()
+        }
     }
 
-    @Test fun cancellationWhileWaitingForEdtStillPrintsAcceptedIdAndLink() = runBlocking {
+    @Test
+    fun cancellationWhileWaitingForEdtStillPrintsAcceptedIdAndLink() = runBlocking {
         checkDelivery(disposeBeforeOutput = false)
     }
 
-    @Test fun disposalWhileWaitingForEdtSkipsAcceptedOutput() = runBlocking {
+    @Test
+    fun disposalWhileWaitingForEdtSkipsAcceptedOutput() = runBlocking {
         checkDelivery(disposeBeforeOutput = true)
     }
 
@@ -62,8 +68,14 @@ class SubmissionConsoleTest {
             SwingUtilities.invokeAndWait {
                 view.flushDeferredText()
                 val accepted = "平台已受理提交（42）"
-                assertEquals(if (disposeBeforeOutput) 0 else 1, Regex(Regex.escape(accepted)).findAll(view.text).count())
-                assertEquals(if (disposeBeforeOutput) 0 else 1, requireNotNull(view.getHyperlinks()).getAllHyperlinks(0, view.text.length).size)
+                assertEquals(
+                    if (disposeBeforeOutput) 0 else 1,
+                    Regex(Regex.escape(accepted)).findAll(view.text).count()
+                )
+                assertEquals(
+                    if (disposeBeforeOutput) 0 else 1,
+                    requireNotNull(view.getHyperlinks()).getAllHyperlinks(0, view.text.length).size
+                )
             }
         } finally {
             release.countDown()

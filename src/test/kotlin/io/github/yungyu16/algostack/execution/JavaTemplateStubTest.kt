@@ -2,7 +2,8 @@ package io.github.yungyu16.algostack.execution
 
 import com.intellij.testFramework.TestApplicationManager
 import io.github.yungyu16.algostack.domain.*
-import io.github.yungyu16.algostack.leetcode.api.model.*
+import io.github.yungyu16.algostack.leetcode.model.LeetCodeChallengeData
+import io.github.yungyu16.algostack.leetcode.model.LeetCodeQuestionCodeSnippet
 import org.junit.Assert.*
 import org.junit.BeforeClass
 import org.junit.Test
@@ -11,10 +12,15 @@ import java.nio.file.Path
 
 class JavaTemplateStubTest {
     companion object {
-        @BeforeClass @JvmStatic fun initializeApplication() { TestApplicationManager.getInstance() }
+        @BeforeClass
+        @JvmStatic
+        fun initializeApplication() {
+            TestApplicationManager.getInstance()
+        }
     }
 
-    @Test fun emptyMethodsThrowButConstructorsImplementationsAndCommentsRemain() {
+    @Test
+    fun emptyMethodsThrowButConstructorsImplementationsAndCommentsRemain() {
         val code = """
             class Solution {
                 Solution() {}
@@ -43,7 +49,8 @@ class JavaTemplateStubTest {
         assertFalse(javaTemplateStub(code.replace("\n", "\r\n")).replace("\r\n", "").contains('\n'))
     }
 
-    @Test fun generatedJavaTemplateCompilesWithEmptyPlatformMethodsAndGoIsUnchanged() {
+    @Test
+    fun generatedJavaTemplateCompilesWithEmptyPlatformMethodsAndGoIsUnchanged() {
         val root = Files.createTempDirectory("java-stub-")
         try {
             for ((language, snippet) in listOf(
@@ -51,12 +58,16 @@ class JavaTemplateStubTest {
                 Language.GO to "func solve() int { panic(\"not implemented\") }"
             )) {
                 val slug = language.toLeetCode(LanguageVersion.AnyVersion)
-                val data = LeetCodeChallengeData("9001", "1", "Two Sum", "two-sum", "<p>Fixture</p>",
-                    isPaidOnly = false, difficulty = "Easy", likes = 0, dislikes = 0, similarQuestions = "[]",
-                    exampleTestcaseList = emptyList(), topicTags = emptyList(), hints = emptyList(), testCase = "", metaData = "{}",
-                    codeSnippets = listOf(LeetCodeQuestionCodeSnippet(slug, slug, snippet)))
-                val prepared = renderChallenge(data, CodeDojo.LeetCodeCN, language, LanguageVersion.AnyVersion,
-                    ChallengeConventions.generation(root, CodeDojo.LeetCodeCN, language))
+                val data = LeetCodeChallengeData(
+                    "9001", "1", "Two Sum", "two-sum", "<p>Fixture</p>",
+                    difficulty = "Easy",
+                    exampleTestcaseList = emptyList(),
+                    codeSnippets = listOf(LeetCodeQuestionCodeSnippet(slug, slug, snippet))
+                )
+                val prepared = renderChallenge(
+                    data, CodeDojo.LeetCodeCN, language, LanguageVersion.AnyVersion,
+                    ChallengeConventions.generation(root, CodeDojo.LeetCodeCN, language)
+                )
                 assertEquals(prepared.identity, ChallengeRecognition.recognize(prepared.code, language.fileExt))
                 if (language == Language.GO) {
                     assertEquals(snippet, language.extractCodeFromRegion(prepared.code).trim())
@@ -66,11 +77,15 @@ class JavaTemplateStubTest {
                 assertTrue(prepared.code.contains("throw new UnsupportedOperationException(\"Not implemented\");"))
                 val source = root.resolve("P0001_TwoSum.java")
                 Files.writeString(source, prepared.code)
-                val compiler = ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "javac").toString(),
-                    "--release", "8", "-Xlint:-options", "-d", root.toString(), source.toString()).redirectErrorStream(true).start()
+                val compiler = ProcessBuilder(
+                    Path.of(System.getProperty("java.home"), "bin", "javac").toString(),
+                    "--release", "8", "-Xlint:-options", "-d", root.toString(), source.toString()
+                ).redirectErrorStream(true).start()
                 val output = compiler.inputStream.bufferedReader().use { it.readText() }
                 assertEquals(output, 0, compiler.waitFor())
             }
-        } finally { root.toFile().deleteRecursively() }
+        } finally {
+            root.toFile().deleteRecursively()
+        }
     }
 }

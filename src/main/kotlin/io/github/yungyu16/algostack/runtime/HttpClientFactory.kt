@@ -14,10 +14,12 @@ object HttpClientFactory {
         .writeTimeout(10, TimeUnit.SECONDS)
         // 保留 OkHttp 默认的证书链与主机名校验。
         .addInterceptor { chain ->
-            chain.proceed(chain.request().newBuilder().header(
-                "User-Agent",
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
-                    "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0"
-            ).build())
+            chain.proceed(
+                chain.request().newBuilder().header(
+                    "User-Agent",
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+                        "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0"
+                ).build()
+            )
         }
 }

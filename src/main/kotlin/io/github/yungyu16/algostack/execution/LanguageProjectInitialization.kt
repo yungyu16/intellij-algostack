@@ -17,48 +17,60 @@ import java.nio.file.StandardOpenOption.WRITE
 
 private val languageProjectLock = Mutex()
 
-/** 仅默认布局可推断工程根；自定义路径必须已有明确的工程描述文件，不能替用户选择 module。 */
+/** 在固定源码目录的祖先中复用工程；没有描述文件时才创建内置布局的语言工程。 */
 internal suspend fun ensureLanguageProject(
-    root: Path, dojo: CodeDojo, language: Language, setting: GenerationSettings,
+    root: Path, dojo: CodeDojo, language: Language,
     goVersion: () -> String = ::installedGoVersion
 ) {
     if (language != Language.Java && language != Language.GO) return
     languageProjectLock.withLock {
         withContext(Dispatchers.IO) {
             val base = root.toRealPath()
-            val folder = Path.of(setting.folder).toAbsolutePath().normalize()
+            val layout = ChallengeConventions.layout(base, dojo, language)
+            val folder = layout.sourceFolder
             safeInitializationPath(base, folder.resolve(".project-path-check"))
             val descriptor = if (language == Language.Java) "pom.xml" else "go.mod"
             var cursor = folder
             while (true) {
                 val existing = safeInitializationPath(base, cursor.resolve(descriptor))
                 if (Files.exists(existing, NOFOLLOW_LINKS)) {
-                    require(Files.isRegularFile(existing, NOFOLLOW_LINKS)) { "$descriptor must be a regular file, not a symlink" }
+                    require(
+                        Files.isRegularFile(
+                            existing,
+                            NOFOLLOW_LINKS
+                        )
+                    ) { "$descriptor must be a regular file, not a symlink" }
                     return@withContext
                 }
                 // 不在已有其他构建配置上叠加 Maven/module，也不猜多模块工作区的归属。
                 val otherBuilds = if (language == Language.Java)
-                    listOf("build.gradle", "build.gradle.kts", "settings.gradle", "settings.gradle.kts") else listOf("go.work")
+                    listOf(
+                        "build.gradle",
+                        "build.gradle.kts",
+                        "settings.gradle",
+                        "settings.gradle.kts"
+                    ) else listOf("go.work")
                 require(otherBuilds.none { Files.exists(cursor.resolve(it), NOFOLLOW_LINKS) }) {
-                    "Existing build/workspace configuration: create $descriptor explicitly for the configured source folder"
+                    "Existing build/workspace configuration: create $descriptor explicitly for the conventional source folder"
                 }
                 if (cursor == base) break
                 cursor = cursor.parent
             }
-            val moduleRoot = base.resolve(if (language == Language.Java) "code/java" else "code/go")
-            val defaultFolder = moduleRoot.resolve(if (language == Language.Java) "src/main/java/${dojo.value}" else dojo.value)
-            require(folder == defaultFolder) {
-                "Custom source folder has no $descriptor inside the project: create the language project explicitly or restore the default source folder"
-            }
-            val destination = safeInitializationPath(base, moduleRoot.resolve(descriptor))
-            val content = if (language == Language.Java) minimalPom else "module leetcode-practice\n\ngo ${goDirective(goVersion())}\n"
+            val destination = safeInitializationPath(base, layout.moduleRoot.resolve(descriptor))
+            val content =
+                if (language == Language.Java) minimalPom else "module leetcode-practice\n\ngo ${goDirective(goVersion())}\n"
             Files.createDirectories(destination.parent)
             safeInitializationPath(base, destination)
             try {
                 Files.writeString(destination, content, CREATE_NEW, WRITE)
             } catch (exists: FileAlreadyExistsException) {
                 // 其他调用者/进程先创建时只复用，不截断，也不尝试修复其内容。
-                require(Files.isRegularFile(destination, NOFOLLOW_LINKS)) { "$descriptor must be a regular file, not a symlink" }
+                require(
+                    Files.isRegularFile(
+                        destination,
+                        NOFOLLOW_LINKS
+                    )
+                ) { "$descriptor must be a regular file, not a symlink" }
             }
         }
     }
@@ -66,13 +78,14 @@ internal suspend fun ensureLanguageProject(
 
 internal fun goDirective(version: String): String {
     val match = Regex("^go version go(\\d+)\\.(\\d+)(?:[.\\s]|rc|beta)").find(version.trim())
-        ?: error("Cannot determine installed Go version; create go.mod explicitly for the configured source folder")
+        ?: error("Cannot determine installed Go version; create go.mod explicitly for the conventional source folder")
     return "${match.groupValues[1]}.${match.groupValues[2]}"
 }
 
 private fun installedGoVersion(): String {
     // 只查询本机工具链，不允许 Go 自动下载 toolchain 或加载用户 go.work。
-    val command = GeneralCommandLine("go", "version").withEnvironment("GOTOOLCHAIN", "local").withEnvironment("GOWORK", "off")
+    val command =
+        GeneralCommandLine("go", "version").withEnvironment("GOTOOLCHAIN", "local").withEnvironment("GOWORK", "off")
     val result = CapturingProcessHandler(command).runProcess(5_000)
     check(!result.isTimeout && result.exitCode == 0) { "Cannot query local Go; install Go or create go.mod explicitly" }
     return result.stdout

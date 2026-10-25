@@ -1,28 +1,24 @@
 package io.github.yungyu16.algostack.presentation.editor
 
-import com.intellij.ide.DataManager
 import com.intellij.ide.FileIconPatcher
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.*
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.fileEditor.*
-import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.fileEditor.impl.EditorTabTitleProvider
 import com.intellij.openapi.fileEditor.impl.text.PsiAwareTextEditorProvider
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
-import com.intellij.openapi.vfs.*
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.components.JBLayeredPane
 import com.intellij.util.Alarm
 import com.intellij.util.ui.StartupUiUtil
+import io.github.yungyu16.algostack.model.Actions
 import io.github.yungyu16.algostack.presentation.icon
 import io.github.yungyu16.algostack.presentation.sidebar.SidebarPolicy
 import io.github.yungyu16.algostack.utils.ChallengeFiles
-import io.github.yungyu16.algostack.model.Actions
 import org.jdom.Element
 import java.awt.AWTEvent
 import java.awt.event.KeyAdapter
@@ -30,17 +26,18 @@ import java.awt.event.KeyEvent
 import javax.swing.Icon
 import javax.swing.JComponent
 import javax.swing.JLayeredPane
-import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.atomic.AtomicLong
 
 class EditorState(val project: Project, val file: VirtualFile) : Disposable {
     val identity get() = ChallengeFiles.resolve(file)
-    val title: String? get() = identity?.slug
     override fun dispose() = Unit
-    companion object { val KEY = Key.create<EditorState>("AlgoStack.EditorState") }
+
+    companion object {
+        val KEY = Key.create<EditorState>("AlgoStack.EditorState")
+    }
 }
 
-class ChallengeEditor(delegate: TextEditor, project: Project, file: VirtualFile) : DelegatingTextEditor(delegate, file) {
+class ChallengeEditor(delegate: TextEditor, project: Project, file: VirtualFile) :
+    DelegatingTextEditor(delegate, file) {
     private val logger = Logger.getInstance(ChallengeEditor::class.java)
     val state = EditorState(project, file)
     private val ui by lazy {
@@ -53,10 +50,16 @@ class ChallengeEditor(delegate: TextEditor, project: Project, file: VirtualFile)
                 sink[CommonDataKeys.EDITOR] = delegate.editor
                 sink[PlatformCoreDataKeys.FILE_EDITOR] = this@ChallengeEditor
             }
+
             override fun doLayout() {
                 components.forEach { component ->
                     if (component === editorComponent) component.setBounds(0, 0, width, height)
-                    else component.setBounds(width - component.preferredSize.width - 25, 20, component.preferredSize.width, component.preferredSize.height)
+                    else component.setBounds(
+                        width - component.preferredSize.width - 25,
+                        20,
+                        component.preferredSize.width,
+                        component.preferredSize.height
+                    )
                 }
             }
         }
@@ -68,44 +71,31 @@ class ChallengeEditor(delegate: TextEditor, project: Project, file: VirtualFile)
         layered.add(toolbar, JLayeredPane.POPUP_LAYER as Any)
         logger.info("challenge editor ui built: file=${state.file.name}, group=${Actions.CHALLENGE_EDITOR_TOOLBAR_GROUP}, toolbar=${toolbar.javaClass.simpleName}")
         val alarm = Alarm(Alarm.ThreadToUse.POOLED_THREAD, this)
-        // 悬浮工具栏问题需要悬停现场才能定位；按时间间隔记录悬停/隐藏状态与数据上下文。
-        val hoverLogs = AtomicInteger(); val hideLogs = AtomicInteger()
-        val lastHoverLog = AtomicLong(0); val lastHideLog = AtomicLong(0)
-        StartupUiUtil.addAwtListener(AWTEvent.MOUSE_MOTION_EVENT_MASK, this) { event ->
-            logger.debug("mouse motion event: $event")
-            val now = System.currentTimeMillis()
+        StartupUiUtil.addAwtListener(AWTEvent.MOUSE_MOTION_EVENT_MASK, this) {
             if (layered.mousePosition != null) {
                 alarm.cancelAllRequests()
-                if (now - lastHoverLog.get() >= 1500 && hoverLogs.getAndIncrement() < 10) {
-                    lastHoverLog.set(now)
-                    val context = DataManager.getInstance().getDataContext(toolbar)
-                    logger.info("challenge toolbar hover: file=${state.file.name}, toolbarVisible=${toolbar.isVisible}, visibleActions=${toolbar.hasVisibleActions()}, bounds=${toolbar.bounds}, preferred=${toolbar.preferredSize}, layer=${JLayeredPane.getLayer(toolbar)}, virtualFile=${CommonDataKeys.VIRTUAL_FILE.getData(context)?.name}, fileEditor=${PlatformCoreDataKeys.FILE_EDITOR.getData(context)?.javaClass?.simpleName}, project=${PlatformCoreDataKeys.PROJECT.getData(context)?.name}")
-                    alarm.addRequest({
-                        ApplicationManager.getApplication().invokeLater {
-                            logger.info("challenge toolbar after show: file=${state.file.name}, toolbarVisible=${toolbar.isVisible}, visibleActions=${toolbar.hasVisibleActions()}, bounds=${toolbar.bounds}, preferred=${toolbar.preferredSize}, layer=${JLayeredPane.getLayer(toolbar)}")
-                        }
-                    }, 900)
-                }
                 toolbar.scheduleShow()
                 if (toolbar.mousePosition == null) alarm.addRequest({ toolbar.scheduleHide() }, 1400)
             } else if (toolbar.mousePosition == null) {
-                if (now - lastHideLog.get() >= 5000 && hideLogs.getAndIncrement() < 5) {
-                    lastHideLog.set(now)
-                    logger.info("challenge toolbar leave: file=${state.file.name}, toolbarVisible=${toolbar.isVisible}")
-                }
                 toolbar.scheduleHide()
             }
         }
-        val listener = object : KeyAdapter() { override fun keyTyped(event: KeyEvent) { toolbar.scheduleHide() } }
+        val listener = object : KeyAdapter() {
+            override fun keyTyped(event: KeyEvent) {
+                toolbar.scheduleHide()
+            }
+        }
         delegate.editor.contentComponent.addKeyListener(listener)
         Disposer.register(this, Disposable { delegate.editor.contentComponent.removeKeyListener(listener) })
         layered
     }
+
     init {
         logger.info("challenge editor created: file=${file.name}")
         delegate.putUserData(EditorState.KEY, state)
         Disposer.register(this, state); Disposer.register(this, delegate)
     }
+
     override fun getComponent(): JComponent = ui
     override fun getName(): String = "ChallengeEditor"
     override fun dispose() {
@@ -116,20 +106,30 @@ class ChallengeEditor(delegate: TextEditor, project: Project, file: VirtualFile)
 class ChallengeEditorProvider : FileEditorProvider, DumbAware {
     private val delegate = PsiAwareTextEditorProvider()
     override fun accept(project: Project, file: VirtualFile): Boolean =
-        SidebarPolicy.enabled(project.basePath) && delegate.accept(project, file) && ChallengeFiles.resolve(file) != null
+        SidebarPolicy.enabled(project.basePath) && delegate.accept(
+            project,
+            file
+        ) && ChallengeFiles.resolve(file) != null
+
     override fun createEditor(project: Project, file: VirtualFile): FileEditor =
         ChallengeEditor(delegate.createEditor(project, file) as TextEditor, project, file)
+
     override fun getPolicy() = FileEditorPolicy.HIDE_DEFAULT_EDITOR
     override fun getEditorTypeId() = "AlgoStack.${delegate.editorTypeId}"
-    override fun readState(element: Element, project: Project, file: VirtualFile): FileEditorState = delegate.readState(element, project, file)
-    override fun writeState(state: FileEditorState, project: Project, element: Element) = delegate.writeState(state, project, element)
+    override fun readState(element: Element, project: Project, file: VirtualFile): FileEditorState =
+        delegate.readState(element, project, file)
+
+    override fun writeState(state: FileEditorState, project: Project, element: Element) =
+        delegate.writeState(state, project, element)
 }
 
 class ChallengeEditorIconProvider : FileIconPatcher {
     override fun patchIcon(icon: Icon, file: VirtualFile, flags: Int, project: Project?): Icon =
         project?.takeIf { SidebarPolicy.enabled(it.basePath) }?.let { ChallengeFiles.resolve(file)?.dojo?.icon } ?: icon
 }
+
 class ChallengeEditorTabTitleProvider : EditorTabTitleProvider {
     override fun getEditorTabTitle(project: Project, file: VirtualFile): String? =
-        FileEditorManager.getInstance(project).getEditors(file).filterIsInstance<ChallengeEditor>().firstOrNull()?.state?.title
+        if (project.isDisposed || !SidebarPolicy.enabled(project.basePath)) null
+        else project.getService(ChallengeEditorTitles::class.java).title(file)
 }

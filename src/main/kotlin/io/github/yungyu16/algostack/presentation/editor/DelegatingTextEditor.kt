@@ -3,14 +3,18 @@ package io.github.yungyu16.algostack.presentation.editor
 import com.intellij.codeHighlighting.BackgroundEditorHighlighter
 import com.intellij.ide.structureView.StructureViewBuilder
 import com.intellij.openapi.actionSystem.ActionGroup
-import com.intellij.openapi.fileEditor.*
+import com.intellij.openapi.fileEditor.FileEditorLocation
+import com.intellij.openapi.fileEditor.FileEditorState
+import com.intellij.openapi.fileEditor.FileEditorStateLevel
+import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.vfs.VirtualFile
 import java.beans.PropertyChangeEvent
 import java.beans.PropertyChangeListener
-import java.util.IdentityHashMap
+import java.util.*
 
 /** Kotlin 的 by 不转发 Java 接口默认方法，文本编辑器包装必须显式保留这些契约。 */
-open class DelegatingTextEditor(protected val delegate: TextEditor, private val sourceFile: VirtualFile) : TextEditor by delegate {
+open class DelegatingTextEditor(protected val delegate: TextEditor, private val sourceFile: VirtualFile) :
+    TextEditor by delegate {
     private val listenerBridges = IdentityHashMap<PropertyChangeListener, MutableList<PropertyChangeListener>>()
 
     // 平台登记的是包装器；底层事件不能以 delegate 身份交付，否则平台找不到所属 composite。

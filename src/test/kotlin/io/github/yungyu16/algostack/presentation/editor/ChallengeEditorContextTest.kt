@@ -19,10 +19,15 @@ import javax.swing.SwingUtilities
 
 class ChallengeEditorContextTest {
     companion object {
-        @BeforeClass @JvmStatic fun initializeApplication() { TestApplicationManager.getInstance() }
+        @BeforeClass
+        @JvmStatic
+        fun initializeApplication() {
+            TestApplicationManager.getInstance()
+        }
     }
 
-    @Test fun floatingToolbarReceivesItsOwnEditorAndEnablesSurroundForSelection() {
+    @Test
+    fun floatingToolbarReceivesItsOwnEditorAndEnablesSurroundForSelection() {
         SwingUtilities.invokeAndWait {
             val project = ProjectManager.getInstance().defaultProject
             val file = LightVirtualFile("solution.java")
@@ -30,22 +35,31 @@ class ChallengeEditorContextTest {
             val selection = proxy<SelectionModel> { name, _ -> if (name == "hasSelection") selected else null }
             lateinit var editor: Editor
             val content = object : JPanel(), UiDataProvider {
-                override fun uiDataSnapshot(sink: DataSink) { sink[CommonDataKeys.EDITOR] = editor }
+                override fun uiDataSnapshot(sink: DataSink) {
+                    sink[CommonDataKeys.EDITOR] = editor
+                }
             }
-            editor = proxy { name, _ -> when (name) {
-                "getSelectionModel" -> selection
-                "getContentComponent", "getComponent" -> content
-                "getProject" -> project
-                else -> null
-            } }
+            editor = proxy { name, _ ->
+                when (name) {
+                    "getSelectionModel" -> selection
+                    "getContentComponent", "getComponent" -> content
+                    "getProject" -> project
+                    else -> null
+                }
+            }
             val data = UserDataHolderBase()
-            val delegate = proxy<TextEditor> { name, args -> when (name) {
-                "getEditor" -> editor
-                "getComponent" -> content
-                "getUserData" -> data.getUserData(args!![0] as com.intellij.openapi.util.Key<Any>)
-                "putUserData" -> { data.putUserData(args!![0] as com.intellij.openapi.util.Key<Any>, args[1]); null }
-                else -> null
-            } }
+            val delegate = proxy<TextEditor> { name, args ->
+                when (name) {
+                    "getEditor" -> editor
+                    "getComponent" -> content
+                    "getUserData" -> data.getUserData(args!![0] as com.intellij.openapi.util.Key<Any>)
+                    "putUserData" -> {
+                        data.putUserData(args!![0] as com.intellij.openapi.util.Key<Any>, args[1]); null
+                    }
+
+                    else -> null
+                }
+            }
             val manager = ActionManager.getInstance()
             val registered = manager.getAction(Actions.CHALLENGE_EDITOR_TOOLBAR_GROUP) == null
             if (registered) manager.registerAction(Actions.CHALLENGE_EDITOR_TOOLBAR_GROUP, DefaultActionGroup())

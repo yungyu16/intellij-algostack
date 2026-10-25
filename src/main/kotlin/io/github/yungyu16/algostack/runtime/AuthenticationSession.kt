@@ -15,11 +15,13 @@ internal class AuthenticationSession<T>(
 ) {
     private val mutex = Mutex()
     private val entry = Mutex()
+
     // entry 锁内读写：启动和多个视图共享一次静默尝试，失效/缺失凭据不反复验证。
     private var silentRestoreAttempted = false
     private var generation = 0L
     private var validations = 0
-    @Volatile var revision = 0L
+    @Volatile
+    var revision = 0L
         private set
 
     suspend fun restore(): Boolean {
@@ -71,9 +73,13 @@ internal class AuthenticationSession<T>(
     suspend fun ensureAuthenticated(interactive: (suspend () -> Boolean)?): Boolean = entry.withLock {
         if (authenticated()) return@withLock true
         val restored = if (!silentRestoreAttempted || interactive != null) {
-            try { restore().also { silentRestoreAttempted = true } }
-            catch (cancelled: CancellationException) { throw cancelled }
-            catch (failure: Exception) { silentRestoreAttempted = true; restoreFailed(failure); false }
+            try {
+                restore().also { silentRestoreAttempted = true }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                silentRestoreAttempted = true; restoreFailed(failure); false
+            }
         } else false
         if (restored || authenticated()) true else interactive?.invoke() ?: false
     }

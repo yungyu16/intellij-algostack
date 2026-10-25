@@ -51,15 +51,19 @@ enum class Language(val value: String, val fileExt: String, val show: String) {
     private fun commentPrefix(): String = when (this) {
         C, Cpp, CSharp, D, GO, Java, Kotlin, ObjectiveC, PHP, Rust, Scala, Swift, Dart, Javascript,
         Typescript, Cangjie, Delphi, Pascal, FSharp, ReasonML -> "//"
+
         Clojure, Racket, Asm, LLVM, Lisp -> ";"
         Pypy, Python, Ruby, Julia, Perl, R, Elixir, Pandas -> "#"
         Haskell, Lua, MySQL, PostgreSQL, OracleSQL, MSSQL -> "--"
         Erlang, Octave -> "%"
         OCaml -> "(*"
     }
+
     private fun commentPostfix(): String = if (this == OCaml) "*)" else ""
     fun createComment(comment: String): String = commentPrefix() + comment + commentPostfix()
-    fun encloseCodeInRegion(code: String): String = "\n${createComment(Constants.SUBMIT_CODE_REGION_BEGIN)}\n$code\n${createComment(Constants.SUBMIT_CODE_REGION_END)}"
+    fun encloseCodeInRegion(code: String): String =
+        "\n${createComment(Constants.SUBMIT_CODE_REGION_BEGIN)}\n$code\n${createComment(Constants.SUBMIT_CODE_REGION_END)}"
+
     fun matchRegion(comment: String, region: String): Boolean = Regex(
         "^${Regex.escape(commentPrefix())}\\s*${Regex.escape(region)}\\s*${Regex.escape(commentPostfix())}$"
     ).matches(comment)
@@ -70,8 +74,10 @@ enum class Language(val value: String, val fileExt: String, val show: String) {
     }
 
     companion object {
-        @JvmStatic fun fromString(value: String?): Language? = entries.find { it.value.equals(value, true) }
-        @JvmStatic fun prettyPrint(language: Language, version: LanguageVersion): String {
+        @JvmStatic
+        fun fromString(value: String?): Language? = entries.find { it.value.equals(value, true) }
+        @JvmStatic
+        fun prettyPrint(language: Language, version: LanguageVersion): String {
             val text = version.version
             Regex("^([\\d.]+)\\((.*)\\)$").matchEntire(text)?.let {
                 return "${language.show}${it.groupValues[1]} ${it.groupValues[2]}"
@@ -88,16 +94,21 @@ object LanguageSerializer : StableValueSerializer<Language>("Language", Language
 sealed class LanguageVersion(val version: String) : Comparable<LanguageVersion> {
     data object AnyVersion : LanguageVersion("")
     data class SpecificVersion(val value: String) : LanguageVersion(value)
+
     override fun compareTo(other: LanguageVersion): Int = when {
         this == AnyVersion && other == AnyVersion -> 0
         this == AnyVersion -> -1
         other == AnyVersion -> 1
         else -> {
-            val left = version.toIntOrNull(); val right = other.version.toIntOrNull()
+            val left = version.toIntOrNull();
+            val right = other.version.toIntOrNull()
             if (left != null && right != null) left.compareTo(right) else version.compareTo(other.version)
         }
     }
+
     companion object {
-        @JvmStatic fun fromString(value: String?): LanguageVersion = if (value.isNullOrEmpty()) AnyVersion else SpecificVersion(value)
+        @JvmStatic
+        fun fromString(value: String?): LanguageVersion =
+            if (value.isNullOrEmpty()) AnyVersion else SpecificVersion(value)
     }
 }

@@ -12,11 +12,13 @@ class AuthenticationSessionTest {
         var validate: suspend (String) -> String? = { it }
         var persist: suspend (String?) -> Unit = { saved = it }
         val failures = mutableListOf<Exception>()
-        val session = AuthenticationSession({ read() }, { validate(it) }, { persist(it) },
+        val session = AuthenticationSession(
+            { read() }, { validate(it) }, { persist(it) },
             { current = it }, { current != null }, { failures += it })
     }
 
-    @Test fun restoreFailureAllowsInteractiveLoginButCancellationDoesNot() = runBlocking {
+    @Test
+    fun restoreFailureAllowsInteractiveLoginButCancellationDoesNot() = runBlocking {
         val f = Fixture()
         f.read = { error("storage unavailable") }
         assertTrue(f.session.ensureAuthenticated { f.session.accept("manual") })
@@ -28,14 +30,21 @@ class AuthenticationSessionTest {
         try {
             cancelled.session.ensureAuthenticated { prompted = true; true }
             fail("Cancellation must propagate")
-        } catch (_: CancellationException) { }
+        } catch (_: CancellationException) {
+        }
         assertFalse(prompted)
     }
 
-    @Test fun lateRestoreCannotOverwriteManualSession() = runBlocking {
+    @Test
+    fun lateRestoreCannotOverwriteManualSession() = runBlocking {
         val f = Fixture()
-        val entered = CompletableDeferred<Unit>(); val release = CompletableDeferred<Unit>()
-        f.validate = { if (it == "saved") { entered.complete(Unit); release.await() }; it }
+        val entered = CompletableDeferred<Unit>();
+        val release = CompletableDeferred<Unit>()
+        f.validate = {
+            if (it == "saved") {
+                entered.complete(Unit); release.await()
+            }; it
+        }
         val old = async { f.session.restore() }
         entered.await()
         assertNull(f.current)
@@ -45,9 +54,11 @@ class AuthenticationSessionTest {
         assertEquals("new", f.saved); assertEquals("new", f.current)
     }
 
-    @Test fun restoreDoesNotPreemptPendingManualValidation() = runBlocking {
+    @Test
+    fun restoreDoesNotPreemptPendingManualValidation() = runBlocking {
         val f = Fixture()
-        val entered = CompletableDeferred<Unit>(); val release = CompletableDeferred<Unit>()
+        val entered = CompletableDeferred<Unit>();
+        val release = CompletableDeferred<Unit>()
         f.validate = { entered.complete(Unit); release.await(); it }
         val manual = async { f.session.accept("manual") }
         entered.await()
@@ -56,9 +67,11 @@ class AuthenticationSessionTest {
         assertTrue(manual.await()); assertEquals("manual", f.current)
     }
 
-    @Test fun logoutInvalidatesPendingValidation() = runBlocking {
+    @Test
+    fun logoutInvalidatesPendingValidation() = runBlocking {
         val f = Fixture()
-        val entered = CompletableDeferred<Unit>(); val release = CompletableDeferred<Unit>()
+        val entered = CompletableDeferred<Unit>();
+        val release = CompletableDeferred<Unit>()
         f.validate = { entered.complete(Unit); release.await(); it }
         val old = async { f.session.accept("old") }
         entered.await(); f.session.logout(); release.complete(Unit)
@@ -66,10 +79,17 @@ class AuthenticationSessionTest {
         assertNull(f.saved); assertNull(f.current)
     }
 
-    @Test fun newerValidationWinsAndSitesAreIndependent() = runBlocking {
-        val f = Fixture(); val other = Fixture()
-        val entered = CompletableDeferred<Unit>(); val release = CompletableDeferred<Unit>()
-        f.validate = { if (it == "old") { entered.complete(Unit); release.await() }; it }
+    @Test
+    fun newerValidationWinsAndSitesAreIndependent() = runBlocking {
+        val f = Fixture();
+        val other = Fixture()
+        val entered = CompletableDeferred<Unit>();
+        val release = CompletableDeferred<Unit>()
+        f.validate = {
+            if (it == "old") {
+                entered.complete(Unit); release.await()
+            }; it
+        }
         val old = async { f.session.accept("old") }
         entered.await()
         assertTrue(other.session.accept("other"))
@@ -78,17 +98,21 @@ class AuthenticationSessionTest {
         assertEquals("other", other.current); assertEquals("new", f.current)
     }
 
-    @Test fun cancellingValidationNeverWritesCredentials() = runBlocking {
-        val f = Fixture(); val entered = CompletableDeferred<Unit>()
+    @Test
+    fun cancellingValidationNeverWritesCredentials() = runBlocking {
+        val f = Fixture();
+        val entered = CompletableDeferred<Unit>()
         f.validate = { entered.complete(Unit); awaitCancellation() }
         val pending = launch { f.session.accept("new") }
         entered.await(); pending.cancelAndJoin()
         assertEquals("saved", f.saved); assertNull(f.current)
     }
 
-    @Test fun cancellationDuringCommitCompletesPublicationAndStillPropagates() = runBlocking {
+    @Test
+    fun cancellationDuringCommitCompletesPublicationAndStillPropagates() = runBlocking {
         val f = Fixture()
-        val entered = CompletableDeferred<Unit>(); val release = CompletableDeferred<Unit>()
+        val entered = CompletableDeferred<Unit>();
+        val release = CompletableDeferred<Unit>()
         f.persist = { f.saved = it; entered.complete(Unit); release.await() }
         var returned = false
         val pending = launch { f.session.accept("new"); returned = true }
@@ -97,32 +121,44 @@ class AuthenticationSessionTest {
         assertEquals("new", f.saved); assertEquals("new", f.current)
     }
 
-    @Test fun persistenceFailureDoesNotPublishAndInvalidCandidatePreservesSession() = runBlocking {
+    @Test
+    fun persistenceFailureDoesNotPublishAndInvalidCandidatePreservesSession() = runBlocking {
         val f = Fixture()
         f.session.accept("existing")
         f.validate = { null }
         assertFalse(f.session.accept("invalid"))
         assertEquals("existing", f.current)
         f.validate = { it }; f.persist = { error("write failed") }
-        try { f.session.accept("new"); fail("Expected storage failure") } catch (_: IllegalStateException) { }
+        try {
+            f.session.accept("new"); fail("Expected storage failure")
+        } catch (_: IllegalStateException) {
+        }
         assertEquals("existing", f.current)
     }
 
-    @Test fun concurrentEnsureOnlyPromptsOnce() = runBlocking {
+    @Test
+    fun concurrentEnsureOnlyPromptsOnce() = runBlocking {
         val f = Fixture(); f.saved = null
-        val entered = CompletableDeferred<Unit>(); val release = CompletableDeferred<Unit>()
+        val entered = CompletableDeferred<Unit>();
+        val release = CompletableDeferred<Unit>()
         var prompts = 0
-        val first = async { f.session.ensureAuthenticated { prompts++; entered.complete(Unit); release.await(); f.session.accept("new") } }
+        val first = async {
+            f.session.ensureAuthenticated {
+                prompts++; entered.complete(Unit); release.await(); f.session.accept("new")
+            }
+        }
         entered.await()
         val second = async { f.session.ensureAuthenticated { prompts++; false } }
         yield(); release.complete(Unit)
         assertTrue(first.await()); assertTrue(second.await()); assertEquals(1, prompts)
     }
 
-    @Test fun concurrentSilentEnsureRestoresOnceAndNeverPromptsForMissingOrInvalidCredentials() = runBlocking {
+    @Test
+    fun concurrentSilentEnsureRestoresOnceAndNeverPromptsForMissingOrInvalidCredentials() = runBlocking {
         for (saved in listOf(null, "invalid", "valid")) {
             val f = Fixture(); f.saved = saved
-            var reads = 0; var validations = 0
+            var reads = 0;
+            var validations = 0
             f.read = { reads++; f.saved }
             f.validate = { validations++; if (it == "valid") it else null }
             val results = (1..12).map { async { f.session.ensureAuthenticated(null) } }.awaitAll()
@@ -132,8 +168,10 @@ class AuthenticationSessionTest {
         }
     }
 
-    @Test fun silentStorageFailureDoesNotLoopButExplicitLoginCanRetry() = runBlocking {
-        val f = Fixture(); var reads = 0
+    @Test
+    fun silentStorageFailureDoesNotLoopButExplicitLoginCanRetry() = runBlocking {
+        val f = Fixture();
+        var reads = 0
         f.read = { reads++; error("storage unavailable") }
         repeat(3) { assertFalse(f.session.ensureAuthenticated(null)) }
         assertEquals(1, reads); assertEquals(1, f.failures.size)
@@ -143,7 +181,8 @@ class AuthenticationSessionTest {
         assertFalse(prompted); assertEquals(2, reads); assertEquals("recovered", f.current)
     }
 
-    @Test fun browserErrorsHaveBoundedBackoffAndInvalidCookiesDoNotLoop() {
+    @Test
+    fun browserErrorsHaveBoundedBackoffAndInvalidCookiesDoNotLoop() {
         var now = 0L
         val retry = AuthenticationRetry { now }
         assertTrue(retry.begin("a")); retry.failed()

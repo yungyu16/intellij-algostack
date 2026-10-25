@@ -72,7 +72,6 @@ dependencies {
     implementation("org.jsoup:jsoup:1.22.1")
     implementation("com.vladsch.flexmark:flexmark:0.64.8")
     implementation("com.vladsch.flexmark:flexmark-ext-attributes:0.64.8")
-    implementation("org.apache.commons:commons-text:1.15.0")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.hamcrest:hamcrest:3.0")
     testImplementation("org.opentest4j:opentest4j:1.3.0")

@@ -7,8 +7,7 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.util.net.*
 import io.github.yungyu16.algostack.domain.CodeDojo
-import io.github.yungyu16.algostack.leetcode.api.LeetCodeClient
-import io.github.yungyu16.algostack.runtime.HttpClientFactory
+import io.github.yungyu16.algostack.leetcode.LeetCodeClient
 import okhttp3.Cache
 import okhttp3.Credentials
 import okhttp3.OkHttpClient
@@ -17,20 +16,30 @@ import okhttp3.OkHttpClient
 class HttpService : Disposable {
     private val logger = Logger.getInstance(HttpService::class.java)
     val cookies = CookieStore { dojo, values ->
-        try { CredentialsStore.write(dojo, values.takeIf { it.isNotEmpty() }?.let(CookieStore::encode)) }
-        catch (e: Exception) { logger.warn("Failed to persist ${dojo.value} cookies", e) }
+        try {
+            CredentialsStore.write(dojo, values.takeIf { it.isNotEmpty() }?.let(CookieStore::encode))
+        } catch (e: Exception) {
+            logger.warn("Failed to persist ${dojo.value} cookies", e)
+        }
     }
     private val cacheFolder = FileUtil.createTempDirectory("algostack-", "http", true)
     private val cache = Cache(cacheFolder, 10L * 1024 * 1024)
     private val clientDelegate = lazy {
         HttpClientFactory.newBuilder().cookieJar(cookies).cache(cache)
-            .proxySelector(IdeProxySelector(ProxyConfigurationProvider { ProxySettings.getInstance().getProxyConfiguration() }))
+            .proxySelector(IdeProxySelector(ProxyConfigurationProvider {
+                ProxySettings.getInstance().getProxyConfiguration()
+            }))
             .proxyAuthenticator { _, response ->
                 val credentials = ProxySettings.getInstance().getStaticProxyCredentials(
-                    ProxyCredentialStore.getInstance().asProxyCredentialProvider())
-                if (credentials == null || response.challenges().none { it.scheme.equals("OkHttp-Preemptive", true) }) null
-                else response.request.newBuilder().header("Proxy-Authorization",
-                    Credentials.basic(credentials.userName.orEmpty(), credentials.getPasswordAsString().orEmpty())).build()
+                    ProxyCredentialStore.getInstance().asProxyCredentialProvider()
+                )
+                if (credentials == null || response.challenges()
+                        .none { it.scheme.equals("OkHttp-Preemptive", true) }
+                ) null
+                else response.request.newBuilder().header(
+                    "Proxy-Authorization",
+                    Credentials.basic(credentials.userName.orEmpty(), credentials.getPasswordAsString().orEmpty())
+                ).build()
             }
             .build()
     }
@@ -45,7 +54,9 @@ class HttpService : Disposable {
         cache.close()
         FileUtil.delete(cacheFolder)
     }
+
     companion object {
-        @JvmStatic fun getInstance(): HttpService = ApplicationManager.getApplication().getService(HttpService::class.java)
+        @JvmStatic
+        fun getInstance(): HttpService = ApplicationManager.getApplication().getService(HttpService::class.java)
     }
 }

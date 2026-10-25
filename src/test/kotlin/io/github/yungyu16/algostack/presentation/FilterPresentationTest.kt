@@ -1,19 +1,23 @@
 package io.github.yungyu16.algostack.presentation
 
 import io.github.yungyu16.algostack.domain.ChallengeDifficulty
-import io.github.yungyu16.algostack.domain.CodeDojo
 import io.github.yungyu16.algostack.domain.OrderDirection
+import io.github.yungyu16.algostack.presentation.problems.CompanyCriteria
+import io.github.yungyu16.algostack.presentation.problems.ProblemCriteria
+import io.github.yungyu16.algostack.presentation.problems.QueryMode
+import io.github.yungyu16.algostack.presentation.problems.QueryOrder
 import org.junit.Assert.*
 import org.junit.Test
+import java.awt.Point
 import javax.swing.JButton
 import javax.swing.JLabel
-import javax.swing.SwingUtilities
 import javax.swing.JTable
+import javax.swing.SwingUtilities
 import javax.swing.table.DefaultTableModel
-import java.awt.Point
 
 class FilterPresentationTest {
-    @Test fun reorderedColumnsKeepTheirOwnHeaderAndSortField() {
+    @Test
+    fun reorderedColumnsKeepTheirOwnHeaderAndSortField() {
         SwingUtilities.invokeAndWait {
             val model = object : DefaultTableModel(arrayOf("Title", "Difficulty"), 1) {
                 override fun getColumnName(column: Int) = if (column == 0) "Title ↑" else "Difficulty"
@@ -29,7 +33,8 @@ class FilterPresentationTest {
         }
     }
 
-    @Test fun togglingOneSelectionPreservesOtherStaleSelections() {
+    @Test
+    fun togglingOneSelectionPreservesOtherStaleSelections() {
         val selected = listOf("old-a", "old-b", "current")
         val available = listOf("current", "new")
         assertEquals(listOf("old-b", "current"), toggleMultiple(selected, available, "old-a") { it })
@@ -40,7 +45,8 @@ class FilterPresentationTest {
         assertEquals("old-a", toggleSingle("old-a", available, "unknown") { it })
     }
 
-    @Test fun menusRetainMissingSelectedOptionsSoTheyCanBeRemoved() {
+    @Test
+    fun menusRetainMissingSelectedOptionsSoTheyCanBeRemoved() {
         val choices = filterChoices(listOf(FilterItem("java", "Java")), linkedSetOf("java", "old-language"))
         assertEquals(listOf("java", "old-language"), choices.map { it.id })
         assertEquals("Java", choices.first().text)
@@ -49,7 +55,8 @@ class FilterPresentationTest {
         assertTrue(FilterKind.Dojo.clearable)
     }
 
-    @Test fun changingSearchRestoresRelevanceButRepaintingDoesNotResetChosenSort() {
+    @Test
+    fun changingSearchRestoresRelevanceButRepaintingDoesNotResetChosenSort() {
         val order = QueryOrder("FRONTEND_ID", OrderDirection.Ascending)
         val original = ProblemCriteria(keyword = "62", orderBy = order)
         assertSame(original, original.withKeyword("62"))
@@ -61,22 +68,27 @@ class FilterPresentationTest {
         assertEquals("Title", sortedHeader("Title", "FRONTEND_ID", null))
     }
 
-    @Test fun keywordAndFiltersTravelInOneRequest() {
+    @Test
+    fun keywordAndFiltersTravelInOneRequest() {
         val criteria = ProblemCriteria(selectedDifficulty = ChallengeDifficulty.Medium, keyword = "two sum")
         val filters = criteria.api()
         assertEquals("two sum", filters.keyword)
         assertEquals("MEDIUM", filters.difficulty)
     }
 
-    @Test fun ordinaryQuestionsNeverShowCompanyOnlyFilters() {
-        assertEquals(setOf(FilterKind.Category, FilterKind.Favorite, FilterKind.Difficulty, FilterKind.Status, FilterKind.Tags),
-            QueryMode.QueryParameters.filterKinds)
+    @Test
+    fun ordinaryQuestionsNeverShowCompanyOnlyFilters() {
+        assertEquals(
+            setOf(FilterKind.Category, FilterKind.Favorite, FilterKind.Difficulty, FilterKind.Status, FilterKind.Tags),
+            QueryMode.QueryParameters.filterKinds
+        )
         assertFalse(FilterKind.InterviewPeriod in QueryMode.QueryParameters.filterKinds)
         assertFalse(FilterKind.Company in QueryMode.QueryParameters.filterKinds)
         assertFalse(FilterKind.Position in QueryMode.QueryParameters.filterKinds)
     }
 
-    @Test fun companyModeKeepsItsOwnFilters() {
+    @Test
+    fun companyModeKeepsItsOwnFilters() {
         // 隐藏不等于重置，切回公司模式仍可以恢复原来的范围。
         val criteria = CompanyCriteria()
         assertEquals("thirty-days", criteria.selectedInterviewPeriod.slug)
@@ -85,7 +97,8 @@ class FilterPresentationTest {
         assertFalse(FilterKind.Favorite in QueryMode.CompanyQuery.filterKinds)
     }
 
-    @Test fun mandatoryPeriodHasNoFakeRemoveButtonWhileOptionalFiltersRemainRemovable() {
+    @Test
+    fun mandatoryPeriodHasNoFakeRemoveButtonWhileOptionalFiltersRemainRemovable() {
         SwingUtilities.invokeAndWait {
             var removed = 0
             val period = filterChip(FilterKind.InterviewPeriod, FilterItem("thirty-days", "30 days")) { removed++ }

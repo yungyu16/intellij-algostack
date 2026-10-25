@@ -1,4 +1,4 @@
-// WebView 页面共享运行时：滚动条、缩放与宿主（Kotlin/JCEF）双向通信。
+// WebView 页面共享运行时：滚动条与宿主（Kotlin/JCEF）控制的缩放。
 // 两个页面入口显式 import 本模块；vite 通过 manualChunks 将其拆为共享 chunk（两页各引用一份）。
 // 与 Kotlin 侧的调用契约见 webview/README.md。
 import 'normalize-css/normalize.css';
@@ -12,16 +12,8 @@ const MIN_ZOOM = 25;
 declare global {
     interface Window {
         setZoom: (zoom?: number) => void;
-        zoomIn: () => void;
-        zoomOut: () => void;
-        actualZoom: () => void;
-        sendInfo?: (json: string) => void;
     }
 }
-
-const gState = {
-    zoom: 100,
-};
 
 function setZoom(zoom = 100) {
     zoom = normalizeZoom(zoom);
@@ -34,20 +26,8 @@ function setZoom(zoom = 100) {
         container.style.zoom = `${zoom}%`;
     }
 
-    gState.zoom = zoom;
-    updateInfo();
-}
-
-function zoomIn() {
-    setZoom(gState.zoom * 1.2);
-}
-
-function zoomOut() {
-    setZoom(gState.zoom / 1.2);
-}
-
-function actualZoom() {
-    setZoom(100);
+    // 宿主可能在 load 前设置缩放，此时不再用默认比例覆盖它。
+    window.removeEventListener('load', init);
 }
 
 function normalizeZoom(zoom: number): number {
@@ -55,25 +35,11 @@ function normalizeZoom(zoom: number): number {
 }
 
 function init() {
-    setZoom(gState.zoom);
-    window.removeEventListener('load', init);
+    setZoom();
 }
 
 window.addEventListener('load', init);
 
-// 保留可选状态回调；当前 Kotlin 宿主未注入 sendInfo，缩放值及边界由宿主自己维护。
-function updateInfo() {
-    const info = {
-        zoom: gState.zoom,
-        canZoomIn: gState.zoom < MAX_ZOOM,
-        canZoomOut: gState.zoom > MIN_ZOOM,
-    };
-    window.sendInfo && window.sendInfo(JSON.stringify(info));
-}
-
 window.setZoom = setZoom;
-window.zoomIn = zoomIn;
-window.zoomOut = zoomOut;
-window.actualZoom = actualZoom;
 
 OverlayScrollbars(document.body, {});

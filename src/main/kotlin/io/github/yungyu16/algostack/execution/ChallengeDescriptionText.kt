@@ -24,6 +24,7 @@ internal object ChallengeDescriptionText {
                     // attr 已解码，重新转义 &，确保下方统一解码仅执行一层。
                     if (source.isEmpty()) "" else "[图片: ${source.replace("&", "&amp;")}]"
                 }
+
                 else -> ""
             }
         }

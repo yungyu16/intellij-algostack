@@ -1,18 +1,33 @@
 package io.github.yungyu16.algostack.presentation
 
-import io.github.yungyu16.algostack.domain.CodeDojo
 import io.github.yungyu16.algostack.domain.OrderDirection
+import io.github.yungyu16.algostack.presentation.problems.QueryMode
+import io.github.yungyu16.algostack.presentation.problems.QueryOrder
+import java.awt.Point
 import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JLabel
 import javax.swing.JTable
-import java.awt.Point
 
 /** 各模式只展示自身真正参与请求的筛选，保留其他模式的选择供切回时恢复。 */
 internal val QueryMode.filterKinds: Set<FilterKind>
     get() = when (this) {
-        QueryMode.QueryParameters -> setOf(FilterKind.Category, FilterKind.Favorite, FilterKind.Difficulty, FilterKind.Status, FilterKind.Tags)
-        QueryMode.CompanyQuery -> setOf(FilterKind.Company, FilterKind.Position, FilterKind.InterviewPeriod, FilterKind.Difficulty, FilterKind.Status, FilterKind.Tags)
+        QueryMode.QueryParameters -> setOf(
+            FilterKind.Category,
+            FilterKind.Favorite,
+            FilterKind.Difficulty,
+            FilterKind.Status,
+            FilterKind.Tags
+        )
+
+        QueryMode.CompanyQuery -> setOf(
+            FilterKind.Company,
+            FilterKind.Position,
+            FilterKind.InterviewPeriod,
+            FilterKind.Difficulty,
+            FilterKind.Status,
+            FilterKind.Tags
+        )
     }
 
 internal val FilterKind.clearable: Boolean get() = this != FilterKind.InterviewPeriod
@@ -32,7 +47,8 @@ internal fun sortedHeader(title: String, field: String?, order: QueryOrder?): St
     if (field == null || order?.field != field) title
     else "$title ${if (order.direction == OrderDirection.Ascending) "↑" else "↓"}"
 
-internal fun modelColumnAt(table: JTable, point: Point): Int = table.convertColumnIndexToModel(table.columnAtPoint(point))
+internal fun modelColumnAt(table: JTable, point: Point): Int =
+    table.convertColumnIndexToModel(table.columnAtPoint(point))
 
 internal fun refreshHeaders(table: JTable) {
     for (index in 0 until table.columnModel.columnCount) {

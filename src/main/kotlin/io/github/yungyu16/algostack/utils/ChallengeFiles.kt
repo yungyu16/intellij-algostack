@@ -15,7 +15,11 @@ object ChallengeFiles {
     fun resolve(file: VirtualFile): ChallengeIdentity? {
         if (file.isDirectory || !file.isValid || file.fileType.isBinary) return null
         val text = FileDocumentManager.getInstance().getCachedDocument(file)?.immutableCharSequence?.toString()
-            ?: try { VfsUtilCore.loadText(file) } catch (_: IOException) { return null }
+            ?: try {
+                VfsUtilCore.loadText(file)
+            } catch (_: IOException) {
+                return null
+            }
         return resolve(file.path, text)
     }
 }

@@ -11,17 +11,24 @@ import java.nio.file.Path
 class ProjectActivationTest {
     private fun fixture(block: suspend (Path) -> Unit) = runBlocking {
         val root = Files.createTempDirectory("project-activation-")
-        try { block(root) } finally { root.toFile().deleteRecursively() }
+        try {
+            block(root)
+        } finally {
+            root.toFile().deleteRecursively()
+        }
     }
 
-    @Test fun unmarkedProjectsDoNotStartBusinessOrReadCredentials() = fixture { root ->
-        var starts = 0; var reads = 0
+    @Test
+    fun unmarkedProjectsDoNotStartBusinessOrReadCredentials() = fixture { root ->
+        var starts = 0;
+        var reads = 0
         for (path in listOf(null, root.toString())) activateMarkedProject(path, { starts++ }, { reads++; false })
         assertEquals(0, starts); assertEquals(0, reads)
         assertEquals(0, root.toFile().listFiles()!!.size)
     }
 
-    @Test fun fileAndDirectoryMarkersRestoreBothExistingSiteContractsWithoutAView() = fixture { root ->
+    @Test
+    fun fileAndDirectoryMarkersRestoreBothExistingSiteContractsWithoutAView() = fixture { root ->
         val marker = root.resolve(".leetcode")
         for (directory in listOf(false, true)) {
             if (directory) Files.createDirectory(marker) else Files.createFile(marker)
@@ -36,14 +43,19 @@ class ProjectActivationTest {
         }
     }
 
-    @Test fun concurrentStartupAndViewsShareAppSessionAndDoNotRepeatInvalidRestore() = fixture { root ->
+    @Test
+    fun concurrentStartupAndViewsShareAppSessionAndDoNotRepeatInvalidRestore() = fixture { root ->
         Files.createFile(root.resolve(".leetcode"))
-        var reads = 0; var validations = 0; var current: String? = null
-        val entered = CompletableDeferred<Unit>(); val release = CompletableDeferred<Unit>()
+        var reads = 0;
+        var validations = 0;
+        var current: String? = null
+        val entered = CompletableDeferred<Unit>();
+        val release = CompletableDeferred<Unit>()
         val session = AuthenticationSession<String>(
             { reads++; "saved" }, { validations++; entered.complete(Unit); release.await(); null }, {},
             { current = it }, { current != null }, { throw it })
-        val restore: suspend (CodeDojo) -> Boolean = { if (it == CodeDojo.LeetCodeCN) session.ensureAuthenticated(null) else false }
+        val restore: suspend (CodeDojo) -> Boolean =
+            { if (it == CodeDojo.LeetCodeCN) session.ensureAuthenticated(null) else false }
         coroutineScope {
             val firstStartup = async { activateMarkedProject(root.toString(), {}, restore) }
             entered.await()
@@ -58,15 +70,20 @@ class ProjectActivationTest {
         assertEquals(1, prompts)
     }
 
-    @Test fun projectCloseCancelsRestoreAndNextProjectCanRetry() = fixture { root ->
+    @Test
+    fun projectCloseCancelsRestoreAndNextProjectCanRetry() = fixture { root ->
         Files.createFile(root.resolve(".leetcode"))
-        var reads = 0; var current: String? = null
+        var reads = 0;
+        var current: String? = null
         val entered = CompletableDeferred<Unit>()
         var cancelValidation = true
         val session = AuthenticationSession({ reads++; "saved" }, {
-            if (cancelValidation) { entered.complete(Unit); awaitCancellation() }; it
+            if (cancelValidation) {
+                entered.complete(Unit); awaitCancellation()
+            }; it
         }, {}, { current = it }, { current != null }, { throw it })
-        val restore: suspend (CodeDojo) -> Boolean = { if (it == CodeDojo.LeetCodeCN) session.ensureAuthenticated(null) else false }
+        val restore: suspend (CodeDojo) -> Boolean =
+            { if (it == CodeDojo.LeetCodeCN) session.ensureAuthenticated(null) else false }
         coroutineScope {
             val task = launch { activateMarkedProject(root.toString(), {}, restore) }
             entered.await(); task.cancelAndJoin()

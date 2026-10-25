@@ -10,5 +10,6 @@ object SidebarPolicy {
     const val PROBLEMS = "Problems"
     fun visibleTabs(challenge: ChallengeIdentity?): List<String> =
         listOf(CONSOLE, PROBLEMS) + if (challenge == null) emptyList() else listOf("Description", "Solutions")
+
     fun visibleTab(name: String, challenge: ChallengeIdentity?): Boolean = name in visibleTabs(challenge)
 }

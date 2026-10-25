@@ -27,10 +27,13 @@ suspend fun saveNewFile(
 ): VirtualFile {
     val target = if (withContext(Dispatchers.IO) { requested.exists() }) onEdt {
         val extension = FileUtilRt.getExtension(requested.name).let { if (it.isEmpty()) "" else ".$it" }
-        val name = Messages.showInputDialog(project, PluginBundle.message("file.creation.exists"),
+        val name = Messages.showInputDialog(
+            project, PluginBundle.message("file.creation.exists"),
             PluginBundle.message("file.creation.exists.title"), Messages.getQuestionIcon(),
             FileUtilRt.getNameWithoutExtension(requested.name), object : InputValidator {
-                override fun checkInput(inputString: String): Boolean = isValidName(inputString) && !File(requested.parentFile, inputString + extension).exists()
+                override fun checkInput(inputString: String): Boolean =
+                    isValidName(inputString) && !File(requested.parentFile, inputString + extension).exists()
+
                 override fun canClose(inputString: String): Boolean = checkInput(inputString)
             }) ?: throw kotlinx.coroutines.CancellationException("File creation cancelled")
         File(requested.parentFile, name + extension)
@@ -40,8 +43,15 @@ suspend fun saveNewFile(
         val text = contentForFile(destination.toFile())
         Files.createDirectories(destination.parent)
         root?.let { safeInitializationPath(it, destination) }
-        Files.writeString(destination, text, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)
-        LocalFileSystem.getInstance().refreshAndFindFileByIoFile(target) ?: throw IOException("Cannot refresh created file: $target")
+        Files.writeString(
+            destination,
+            text,
+            StandardCharsets.UTF_8,
+            StandardOpenOption.CREATE_NEW,
+            StandardOpenOption.WRITE
+        )
+        LocalFileSystem.getInstance().refreshAndFindFileByIoFile(target)
+            ?: throw IOException("Cannot refresh created file: $target")
     }
 }
 

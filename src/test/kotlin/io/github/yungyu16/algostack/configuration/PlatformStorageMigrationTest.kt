@@ -6,7 +6,8 @@ import org.junit.Test
 import java.nio.file.Files
 
 class PlatformStorageMigrationTest {
-    @Test fun rootMarkerAcceptsFileOrDirectoryWithoutWritingAnything() {
+    @Test
+    fun rootMarkerAcceptsFileOrDirectoryWithoutWritingAnything() {
         val root = Files.createTempDirectory("leetcode-marker")
         try {
             assertFalse(SidebarPolicy.enabled(root.toString()))
@@ -16,6 +17,8 @@ class PlatformStorageMigrationTest {
             assertTrue(SidebarPolicy.enabled(root.toString()))
             assertEquals(1, root.toFile().listFiles()!!.size)
             assertFalse(SidebarPolicy.enabled(null))
-        } finally { root.toFile().deleteRecursively() }
+        } finally {
+            root.toFile().deleteRecursively()
+        }
     }
 }

@@ -2,16 +2,18 @@ package io.github.yungyu16.algostack.presentation
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.collect
 import org.junit.Assert.*
 import org.junit.Test
 
 class LatestQueryTest {
-    @Test fun aSupersededSlowRequestCannotReplaceTheNewResult() = runBlocking {
+    @Test
+    fun aSupersededSlowRequestCannotReplaceTheNewResult() = runBlocking {
         val entered = CompletableDeferred<Unit>()
         val release = CompletableDeferred<Unit>()
         val runner = LatestQuery<Int, String>(this, 0) { value ->
-            if (value == 1) { entered.complete(Unit); withContext(NonCancellable) { release.await() }; "old" } else "new"
+            if (value == 1) {
+                entered.complete(Unit); withContext(NonCancellable) { release.await() }; "old"
+            } else "new"
         }
         try {
             val old = runner.submit(1)!!; entered.await()
@@ -19,9 +21,13 @@ class LatestQueryTest {
             withTimeout(2_000) { runner.states.first { it is QueryState.Success } }
             release.complete(Unit); old.join()
             assertEquals("new", (runner.states.value as QueryState.Success).value)
-        } finally { release.complete(Unit); runner.close() }
+        } finally {
+            release.complete(Unit); runner.close()
+        }
     }
-    @Test fun queuedResultsAreRejectedAfterReplacementCancellationOrClose() = runBlocking {
+
+    @Test
+    fun queuedResultsAreRejectedAfterReplacementCancellationOrClose() = runBlocking {
         withTimeout(2_000) {
             val runner = LatestQuery<Int, String>(this, 0) { if (it < 0) error("failed") else "same" }
             try {
@@ -45,15 +51,19 @@ class LatestQueryTest {
                 val last = runner.states.value
                 runner.close()
                 assertFalse(runner.isCurrent(last))
-            } finally { runner.close() }
+            } finally {
+                runner.close()
+            }
         }
     }
 
-    @Test fun equalSuccessIsDeliveredAfterTheQueuedPreviousResultIsRejected() = runBlocking {
+    @Test
+    fun equalSuccessIsDeliveredAfterTheQueuedPreviousResultIsRejected() = runBlocking {
         assertLatestEqualResultDelivered(failure = false)
     }
 
-    @Test fun repeatedFailureIsDeliveredAfterTheQueuedPreviousFailureIsRejected() = runBlocking {
+    @Test
+    fun repeatedFailureIsDeliveredAfterTheQueuedPreviousFailureIsRejected() = runBlocking {
         assertLatestEqualResultDelivered(failure = true)
     }
 
@@ -90,7 +100,8 @@ class LatestQueryTest {
         }
     }
 
-    @Test fun closingTheViewStopsPendingQueriesWithoutCancellingTheProject() = runBlocking {
+    @Test
+    fun closingTheViewStopsPendingQueriesWithoutCancellingTheProject() = runBlocking {
         val entered = CompletableDeferred<Unit>()
         val runner = LatestQuery<Int, Int>(this, 0) { entered.complete(Unit); awaitCancellation() }
         val job = runner.submit(1)!!; entered.await()

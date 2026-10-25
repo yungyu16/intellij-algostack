@@ -23,11 +23,16 @@ internal object SourceRegions {
                 offset = end + 2
             } else if (text[offset] == '"' || text[offset] == '\'' || language == Language.GO && text[offset] == '`') {
                 val quote = text[offset]
-                val delimiter = if (language == Language.Java && text.startsWith("\"\"\"", offset)) "\"\"\"" else quote.toString()
+                val delimiter =
+                    if (language == Language.Java && text.startsWith("\"\"\"", offset)) "\"\"\"" else quote.toString()
                 offset += delimiter.length
                 while (offset < text.length) {
-                    if (text[offset] == '\\' && quote != '`') { offset = (offset + 2).coerceAtMost(text.length); continue }
-                    if (text.startsWith(delimiter, offset)) { offset += delimiter.length; break }
+                    if (text[offset] == '\\' && quote != '`') {
+                        offset = (offset + 2).coerceAtMost(text.length); continue
+                    }
+                    if (text.startsWith(delimiter, offset)) {
+                        offset += delimiter.length; break
+                    }
                     offset++
                 }
             } else offset++

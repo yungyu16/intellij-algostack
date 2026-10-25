@@ -1,10 +1,6 @@
 package io.github.yungyu16.algostack.execution
 
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
 import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
@@ -63,8 +59,10 @@ internal suspend fun initializeChallengeFile(
         throw cancelled
     } catch (failure: Exception) {
         reportFailure(failure)
-        return InitializationResult(if (created || associated) "partial" else "conflict", location, associated,
-            reason = if (created || associated) "initialization_incomplete: ${failure.message}" else "create_failed")
+        return InitializationResult(
+            if (created || associated) "partial" else "conflict", location, associated,
+            reason = if (created || associated) "initialization_incomplete: ${failure.message}" else "create_failed"
+        )
     }
 }
 
@@ -76,7 +74,12 @@ internal fun safeInitializationPath(root: Path, target: Path): Path {
     for (part in base.relativize(destination.parent)) {
         cursor = cursor.resolve(part)
         require(!Files.isSymbolicLink(cursor)) { "Symlink parents are not supported" }
-        require(!Files.exists(cursor, NOFOLLOW_LINKS) || Files.isDirectory(cursor, NOFOLLOW_LINKS)) { "Parent is not a directory" }
+        require(
+            !Files.exists(cursor, NOFOLLOW_LINKS) || Files.isDirectory(
+                cursor,
+                NOFOLLOW_LINKS
+            )
+        ) { "Parent is not a directory" }
     }
     return destination
 }

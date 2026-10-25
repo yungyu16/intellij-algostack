@@ -22,9 +22,14 @@ internal fun javaTemplateStub(code: String): String = ReadAction.compute<String,
         val indent = code.substring(lineStart, method.textRange.startOffset).takeWhile { it == ' ' || it == '\t' }
         val newline = if (code.contains("\r\n")) "\r\n" else "\n"
         val comments = code.substring(start, end).trimEnd()
-        Triple(start, end, "$comments$newline$indent    throw new UnsupportedOperationException(\"Not implemented\");$newline$indent")
+        Triple(
+            start,
+            end,
+            "$comments$newline$indent    throw new UnsupportedOperationException(\"Not implemented\");$newline$indent"
+        )
     }
     StringBuilder(code).apply {
-        replacements.sortedByDescending { it.first }.forEach { (start, end, replacement) -> replace(start, end, replacement) }
+        replacements.sortedByDescending { it.first }
+            .forEach { (start, end, replacement) -> replace(start, end, replacement) }
     }.toString()
 }

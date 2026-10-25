@@ -1,14 +1,10 @@
 package io.github.yungyu16.algostack.presentation.auth
 
-import io.github.yungyu16.algostack.runtime.*
-
-import io.github.yungyu16.algostack.presentation.*
-
 import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.EDT
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComponentValidator
@@ -21,10 +17,15 @@ import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.jcef.JBCefApp
 import com.intellij.ui.jcef.JBCefBrowser
 import com.intellij.ui.jcef.JBCefBrowserBuilder
-import com.intellij.ui.tabs.*
+import com.intellij.ui.tabs.JBTabsEx
+import com.intellij.ui.tabs.JBTabsFactory
+import com.intellij.ui.tabs.TabInfo
+import com.intellij.ui.tabs.TabsListener
 import com.intellij.util.ui.JBUI
 import io.github.yungyu16.algostack.PluginBundle
 import io.github.yungyu16.algostack.domain.CodeDojo
+import io.github.yungyu16.algostack.presentation.show
+import io.github.yungyu16.algostack.runtime.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import org.cef.browser.CefBrowser
@@ -104,10 +105,13 @@ class LoginDialog private constructor(
                 if (!browserRetry.begin(encoded)) continue
                 try {
                     if (AuthService.getInstance(ownerProject).validateCookies(dojo, values)) onEdt {
-                        if (!finished.get()) { finish(true); close(OK_EXIT_CODE) }
+                        if (!finished.get()) {
+                            finish(true); close(OK_EXIT_CODE)
+                        }
                     }
-                } catch (cancelled: CancellationException) { throw cancelled }
-                catch (e: Exception) {
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (e: Exception) {
                     browserRetry.failed()
                     if (!finished.get()) logger.warn("Browser login validation failed for ${dojo.value}", e)
                 }
@@ -121,9 +125,11 @@ class LoginDialog private constructor(
 
     override fun createCenterPanel(): JComponent = root
     override fun getPreferredFocusedComponent(): JComponent = cookieText
-    override fun createActions(): Array<Action> = arrayOf(object : AbstractAction(PluginBundle.message("loginDialog.help")) {
-        override fun actionPerformed(event: ActionEvent) = BrowserUtil.browse("https://github.com/WenjunHuang/CodeEpiphany/wiki/Log-in#${dojo.value}")
-    }, okAction, cancelAction)
+    override fun createActions(): Array<Action> =
+        arrayOf(object : AbstractAction(PluginBundle.message("loginDialog.help")) {
+            override fun actionPerformed(event: ActionEvent) =
+                BrowserUtil.browse("https://github.com/WenjunHuang/CodeEpiphany/wiki/Log-in#${dojo.value}")
+        }, okAction, cancelAction)
 
     override fun doOKAction() {
         if (validating) return
@@ -135,34 +141,54 @@ class LoginDialog private constructor(
                 val valid = AuthService.getInstance(ownerProject).validateCookies(dojo, text)
                 onEdt {
                     if (finished.get()) return@onEdt
-                    if (valid) { finish(true); close(OK_EXIT_CODE) }
-                    else showCookieError(PluginBundle.message("loginDialog.cookie.error"))
+                    if (valid) {
+                        finish(true); close(OK_EXIT_CODE)
+                    } else showCookieError(PluginBundle.message("loginDialog.cookie.error"))
                 }
-            } catch (cancelled: CancellationException) { throw cancelled }
-            catch (e: Exception) { onEdt { if (!finished.get()) showCookieError(e.message.orEmpty()) } }
-            finally { onEdt {
-                if (!finished.get()) {
-                    validating = false; cookieText.isEnabled = true
-                    setOKButtonText(PluginBundle.message("loginDialog.ok")); setOKActionEnabled(cookieText.text.isNotEmpty())
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (e: Exception) {
+                onEdt { if (!finished.get()) showCookieError(e.message.orEmpty()) }
+            } finally {
+                onEdt {
+                    if (!finished.get()) {
+                        validating = false; cookieText.isEnabled = true
+                        setOKButtonText(PluginBundle.message("loginDialog.ok")); setOKActionEnabled(cookieText.text.isNotEmpty())
+                    }
                 }
-            } }
+            }
         }
     }
+
     private fun showCookieError(message: String) = ComponentValidator.getInstance(cookieText).ifPresent {
         it.updateInfo(ValidationInfo(message, cookieText)); cookieText.requestFocusInWindow()
     }
-    override fun doCancelAction() { finish(false); super.doCancelAction() }
-    private fun finish(success: Boolean) { if (finished.compareAndSet(false, true)) completed(success) }
+
+    override fun doCancelAction() {
+        finish(false); super.doCancelAction()
+    }
+
+    private fun finish(success: Boolean) {
+        if (finished.compareAndSet(false, true)) completed(success)
+    }
 
     private fun ensureBrowser() {
         if (browser != null) return
-        if (!JBCefApp.isSupported()) { browserHost.add(JLabel("JCEF is unavailable. Please use cookie login.")); return }
+        if (!JBCefApp.isSupported()) {
+            browserHost.add(JLabel("JCEF is unavailable. Please use cookie login.")); return
+        }
         val current = JBCefBrowserBuilder().setOffScreenRendering(true).setUrl(dojo.loginUrl).build()
         browser = current
         val handler = object : CefLoadHandlerAdapter() {
-            override fun onLoadingStateChange(browser: CefBrowser, isLoading: Boolean, canGoBack: Boolean, canGoForward: Boolean) {
+            override fun onLoadingStateChange(
+                browser: CefBrowser,
+                isLoading: Boolean,
+                canGoBack: Boolean,
+                canGoForward: Boolean
+            ) {
                 if (!isLoading) inspectCookies(current)
             }
+
             override fun onLoadEnd(browser: CefBrowser, frame: CefFrame, status: Int) {
                 if (frame.isMain) inspectCookies(current)
             }
@@ -171,20 +197,28 @@ class LoginDialog private constructor(
         current.getJBCefClient().addLoadHandler(handler, current.getCefBrowser())
         browserHost.add(current.component, BorderLayout.CENTER); browserHost.revalidate(); browserHost.repaint()
         scope.launch {
-            while (isActive) { delay(1_000); inspectCookies(current) }
+            while (isActive) {
+                delay(1_000); inspectCookies(current)
+            }
         }
     }
+
     private fun inspectCookies(current: JBCefBrowser) {
         if (finished.get()) return
         val values = arrayListOf<HttpCookie>()
-        current.getJBCefCookieManager().getCefCookieManager().visitAllCookies(CefCookieVisitor { cookie, count, total, _ ->
-            if (CodeDojo.fromHostname(cookie.domain) == dojo) values += HttpCookie(cookie.name, cookie.value).apply {
-                domain = cookie.domain; path = cookie.path; secure = cookie.secure; isHttpOnly = cookie.httponly
-            }
-            if (count == total - 1) candidates.trySend(values.toList())
-            true
-        })
+        current.getJBCefCookieManager().getCefCookieManager()
+            .visitAllCookies(CefCookieVisitor { cookie, count, total, _ ->
+                if (CodeDojo.fromHostname(cookie.domain) == dojo) values += HttpCookie(
+                    cookie.name,
+                    cookie.value
+                ).apply {
+                    domain = cookie.domain; path = cookie.path; secure = cookie.secure; isHttpOnly = cookie.httponly
+                }
+                if (count == total - 1) candidates.trySend(values.toList())
+                true
+            })
     }
+
     companion object {
         suspend fun login(project: Project, dojo: CodeDojo): Boolean = withContext(Dispatchers.EDT) {
             suspendCancellableCoroutine { continuation ->

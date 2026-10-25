@@ -12,8 +12,8 @@ import io.github.yungyu16.algostack.execution.initializeChallenge
 import io.github.yungyu16.algostack.presentation.sidebar.SidebarPolicy
 import io.github.yungyu16.algostack.runtime.ProjectTasks
 import io.github.yungyu16.algostack.runtime.onEdt
-import kotlinx.coroutines.async
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.withContext
 import java.nio.file.Path
@@ -22,23 +22,34 @@ import java.nio.file.Path
 @Service
 class ChallengeAutomation : Disposable {
     private var server: ChallengeBridgeServer? = null
-    @Synchronized fun start() {
+    @Synchronized
+    fun start() {
         if (server != null) return
         val candidate = ChallengeBridgeServer(object : ChallengeBridgeBackend {
             override fun projects(): List<String> = ProjectManager.getInstance().openProjects
                 .filter { !it.isDisposed && !it.isDefault && SidebarPolicy.enabled(it.basePath) }.mapNotNull { p ->
                     p.basePath?.let { runCatching { Path.of(it).toRealPath().toString() }.getOrNull() }
                 }
+
             override suspend fun initialize(request: InitializationRequest): InitializationResult {
                 val project = onEdt {
-                    ProjectManager.getInstance().openProjects.filter { !it.isDisposed && !it.isDefault && SidebarPolicy.enabled(it.basePath) }
-                        .filter { p -> p.basePath?.let { Path.of(it).toRealPath().toString() } == request.project }.singleOrNull()
+                    ProjectManager.getInstance().openProjects.filter {
+                        !it.isDisposed && !it.isDefault && SidebarPolicy.enabled(
+                            it.basePath
+                        )
+                    }
+                        .filter { p -> p.basePath?.let { Path.of(it).toRealPath().toString() } == request.project }
+                        .singleOrNull()
                 } ?: return InitializationResult("conflict", reason = "project_missing_or_ambiguous")
                 val deferred = ProjectTasks.getInstance(project).scope.async {
-                    initializeChallenge(project, requireNotNull(CodeDojo.fromString(request.dojo)), request.slug,
-                        requireNotNull(Language.fromString(request.language)))
+                    initializeChallenge(
+                        project, requireNotNull(CodeDojo.fromString(request.dojo)), request.slug,
+                        requireNotNull(Language.fromString(request.language))
+                    )
                 }
-                try { return deferred.await() } finally {
+                try {
+                    return deferred.await()
+                } finally {
                     // 等项目任务结束再释放 HTTP 层串行锁，避免取消后的阻塞写入与下一次请求交叠。
                     if (!deferred.isCompleted) withContext(NonCancellable) { deferred.cancelAndJoin() }
                 }
@@ -47,11 +58,20 @@ class ChallengeAutomation : Disposable {
         try {
             candidate.publish(Path.of(System.getProperty("user.home"), ".local/state/algostack/bridge"))
             server = candidate
-            Logger.getInstance(ChallengeAutomation::class.java).info("Challenge initialization bridge ready on loopback port ${candidate.port}")
-        } catch (failure: Exception) { candidate.close(); throw failure }
+            Logger.getInstance(ChallengeAutomation::class.java)
+                .info("Challenge initialization bridge ready on loopback port ${candidate.port}")
+        } catch (failure: Exception) {
+            candidate.close(); throw failure
+        }
     }
-    @Synchronized override fun dispose() { server?.close(); server = null }
+
+    @Synchronized
+    override fun dispose() {
+        server?.close(); server = null
+    }
+
     companion object {
-        fun getInstance(): ChallengeAutomation = ApplicationManager.getApplication().getService(ChallengeAutomation::class.java)
+        fun getInstance(): ChallengeAutomation =
+            ApplicationManager.getApplication().getService(ChallengeAutomation::class.java)
     }
 }

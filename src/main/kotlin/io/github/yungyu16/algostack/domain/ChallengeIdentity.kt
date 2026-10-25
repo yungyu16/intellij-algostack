@@ -3,8 +3,10 @@ package io.github.yungyu16.algostack.domain
 import java.net.URI
 
 /** 平台题号只用于 API 请求，不作为本地身份，也不使用展示题号或哈希替代。 */
-data class ChallengeIdentity(val dojo: CodeDojo, val slug: String, val language: Language,
-    val version: LanguageVersion = LanguageVersion.AnyVersion)
+data class ChallengeIdentity(
+    val dojo: CodeDojo, val slug: String, val language: Language,
+    val version: LanguageVersion = LanguageVersion.AnyVersion
+)
 
 object ChallengeRecognition {
     private val url = Regex("(?<![\\p{L}\\p{N}_:/@.-])https://[^\\s<>\\\"'()\\[\\]]+")
@@ -23,10 +25,29 @@ object ChallengeRecognition {
             ?: headerComments(text.removePrefix("\uFEFF"), candidates)
         // 显式国际站链接不转换为中国站身份。
         if (url.findAll(header).any { match ->
-            runCatching { URI(match.value.trimEnd('.', ',', ';', '*', '，', '。', '；', '！', '!', '）')).host in setOf("leetcode.com", "www.leetcode.com") }.getOrDefault(false)
-        }) return null
+                runCatching {
+                    URI(
+                        match.value.trimEnd(
+                            '.',
+                            ',',
+                            ';',
+                            '*',
+                            '，',
+                            '。',
+                            '；',
+                            '！',
+                            '!',
+                            '）'
+                        )
+                    ).host in setOf("leetcode.com", "www.leetcode.com")
+                }.getOrDefault(false)
+            }) return null
         val links = url.findAll(header).mapNotNull { match ->
-            val uri = try { URI(match.value.trimEnd('.', ',', ';', '*', '，', '。', '；', '！', '!', '）')) } catch (_: Exception) { return@mapNotNull null }
+            val uri = try {
+                URI(match.value.trimEnd('.', ',', ';', '*', '，', '。', '；', '！', '!', '）'))
+            } catch (_: Exception) {
+                return@mapNotNull null
+            }
             if (uri.scheme != "https" || uri.userInfo != null || uri.port != -1) return@mapNotNull null
             val dojo = when (uri.host) {
                 "leetcode.cn", "www.leetcode.cn" -> CodeDojo.LeetCodeCN
@@ -46,7 +67,9 @@ object ChallengeRecognition {
         val header = StringBuilder()
         var offset = 0
         while (offset < text.length) {
-            if (text[offset].isWhitespace()) { offset++; continue }
+            if (text[offset].isWhitespace()) {
+                offset++; continue
+            }
             if (text.startsWith("/*", offset)) {
                 val end = text.indexOf("*/", offset + 2)
                 if (end < 0) break
