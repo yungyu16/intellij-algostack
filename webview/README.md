@@ -18,7 +18,7 @@
 |---|---|---|
 | 缩放调用 | `WebDocumentView#zoom/actualZoom` → `executeJavaScript("window.setZoom(<n>)")` | `runtime.js` 全局 `window.setZoom/zoomIn/zoomOut/actualZoom` |
 | 缩放范围 | `coerceIn(25.0, 500.0)` | `MIN_ZOOM/MAX_ZOOM = 25/500` |
-| 状态回传 | `UiDataProvider` 读取 | `window.sendInfo(JSON)`（`{zoom, canZoomIn, canZoomOut}`） |
+| 缩放状态 | Kotlin 持有缩放值并限制范围；`UiDataProvider` 只提供视图实例，Action 按实例是否存在启用 | `window.sendInfo(JSON)` 是可选回调，当前宿主未注入、不消费；不参与 Action 可用性判定 |
 | 主题注入 | `WebDocumentView#style()` 生成 `intellijStyle.css`（含 `--darkMode`、编辑器字体配色） | link onload → `onIntellijStyleLoaded()` → 设置 `data-theme` |
 | 内容替换 | `WebResources.descriptionPage/articlePage` | 页面占位符（见上表） |
 

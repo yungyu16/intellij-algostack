@@ -66,6 +66,60 @@ class PluginDescriptorTest {
         assertTrue(xml.contains("AlgoStack.Actions.SubmitCode"))
     }
 
+    @Test fun packagedResourcesKeepSupportedTemplatesAndExcludeRetiredAssets() {
+        val artifact = requireNotNull(System.getProperty("algostack.pluginArtifact"))
+        java.util.jar.JarFile(artifact).use { jar ->
+            val entries = jar.entries().asSequence().filterNot { it.isDirectory }.map { it.name }.toSet()
+            val templates = setOf("code/java.ft", "code/go.ft", "filename/java.ft", "filename/go.ft")
+                .map { "templates/leetcodecn/$it" }.toSet()
+            assertEquals(templates, entries.filter { it.startsWith("templates/") }.toSet())
+            for (name in listOf("building", "console", "filter", "search", "vialVirus")) {
+                for (suffix in listOf("", "_dark")) {
+                    val path = "icons/$name$suffix.svg"
+                    assertFalse(path, path in entries)
+                }
+            }
+            assertFalse("META-INF/pluginIcon.png" in entries)
+            assertFalse("leetcode/graphql/problemsetCompanyTags_cn.graphql" in entries)
+            // 暗色变体由平台隐式加载，不能因缺少字面量引用而删除。
+            for (name in listOf("app-brackets", "book", "login", "logout", "run", "solution", "submit", "dojos/leetcodecn")) {
+                for (suffix in listOf("", "_dark")) {
+                    val path = "icons/$name$suffix.svg"
+                    assertTrue(path, path in entries)
+                }
+            }
+            for (path in listOf("META-INF/pluginIcon.svg", "icons/pluginIcon.svg", "icons/languages/java.svg", "icons/languages/go.svg",
+                "leetcode/graphql/questionCompanyTagsV2_cn.graphql"))
+                assertTrue(path, path in entries)
+        }
+    }
+
+    @Test fun packagedBundlesExcludeRetiredKeysAndKeepMatchingKeySets() {
+        val retired = setOf(
+            "background.runningTest", "background.submittingCode", "console.loggedIn", "console.loggingIn",
+            "console.loginCancelled", "needFetchQuestions.tips", "query.cancelled", "query.challenge.title",
+            "query.progress.title", "query.solution.title", "leetcode.submissionResult.code.text",
+            "leetcode.submissionResult.memory.text", "leetcode.submissionResult.runtime.text",
+            "leetcode.submissionResult.submitDateTime.text", "leetcode.submissionResult.testcases.text",
+            "group.AlgoStack.Editor.Menu.login"
+        )
+        val artifact = requireNotNull(System.getProperty("algostack.pluginArtifact"))
+        java.util.jar.JarFile(artifact).use { jar ->
+            val keySets = listOf("", "_zh").map { suffix ->
+                val path = "messages/PluginBundle$suffix.properties"
+                val properties = java.util.Properties()
+                jar.getInputStream(requireNotNull(jar.getJarEntry(path))).reader(Charsets.UTF_8).use { properties.load(it) }
+                properties.stringPropertyNames().also { keys ->
+                    for (key in retired) assertFalse("$path: $key", key in keys)
+                    for (key in listOf("group.AlgoStack.Editor.Menu.text", "group.AlgoStack.Editor.Menu.description",
+                        "action.AlgoStack.Actions.RunTest.text", "challenge.status.solved", "submissionResult.success"))
+                        assertTrue("$path: $key", key in keys)
+                }
+            }
+            assertEquals(keySets[0], keySets[1])
+        }
+    }
+
     @Test fun keepsJcefDependencyForTheLoginBrowser() {
         val dependencies = descriptor().getElementsByTagName("depends")
         assertTrue((0 until dependencies.length).any { dependencies.item(it).textContent.trim() == "com.intellij.modules.jcef" })

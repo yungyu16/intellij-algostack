@@ -50,7 +50,7 @@ function init() {
 
 window.addEventListener('load', init);
 
-// 宿主通过 window.sendInfo 读取缩放状态（ZoomIn/ZoomOut/ActualZoom Action 的可用性判定）。
+// 保留可选状态回调；当前 Kotlin 宿主未注入 sendInfo，缩放值及边界由宿主自己维护。
 function updateInfo() {
     const info = {
         zoom: gState.zoom,

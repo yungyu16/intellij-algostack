@@ -104,7 +104,9 @@ class ArticlesPanel(project: Project) : SidebarPanel(project), UiDataProvider, F
             model.rows = emptyList(); model.fireTableDataChanged(); refresh()
         } } }
         scope.launch { AuthService.getInstance(project).states.collect { onEdt { refresh() } } }
-        scope.launch { query.states.collect { state -> onEdt { when (state) {
+        scope.launch { query.states.collect { state -> onEdt {
+            if (!query.isCurrent(state)) return@onEdt
+            when (state) {
             is QueryState.Success -> {
                 val value = state.value
                 if (challenge == value.request.challenge) {
@@ -115,7 +117,9 @@ class ArticlesPanel(project: Project) : SidebarPanel(project), UiDataProvider, F
             is QueryState.Failure -> status.text = state.error.message.orEmpty()
             else -> Unit
         } } } }
-        scope.launch { detailQuery.states.collect { state -> onEdt { when (state) {
+        scope.launch { detailQuery.states.collect { state -> onEdt {
+            if (!detailQuery.isCurrent(state)) return@onEdt
+            when (state) {
             is QueryState.Success -> {
                 val (dojo, article) = state.value
                 document.setContent(article.content, dojo)

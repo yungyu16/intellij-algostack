@@ -46,6 +46,9 @@ class LatestQuery<P, R>(
             }
         }.also { job = it }
     }
+    /** 消费者切到 EDT 后再检查；submit/cancel 与 UI 应用须在同一线程，避免检查后上下文再变。 */
+    fun isCurrent(state: QueryState<R>): Boolean = states.value === state
+
     @Synchronized fun cancel() {
         generation++; job?.cancel(); job = null; status.value = QueryState.Idle
     }

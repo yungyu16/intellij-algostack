@@ -2,6 +2,7 @@ package io.github.yungyu16.algostack.execution
 
 import io.github.yungyu16.algostack.presentation.*
 
+import com.intellij.openapi.application.readAction
 import com.intellij.openapi.components.Service
 import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.openapi.project.Project
@@ -44,7 +45,7 @@ class ExecutionService(private val project: Project, private val scope: Coroutin
             val console = onEdt { LogConsole.getInstance(project).also { it.show(project) } }
             try {
                 withBackgroundProgress(project, PluginBundle.message(if (submit) "submit.code.start" else "test.code.start", file.name), true) {
-                    val item = ChallengeFiles.resolve(file)
+                    val item = readAction { ChallengeFiles.resolve(file) }
                         ?: throw IllegalStateException(PluginBundle.message("error.no.challenge", file.name))
                     if (!ensureLoggedIn(project, item.dojo)) return@withBackgroundProgress
                     val code = saveAndRead(file)
@@ -107,11 +108,12 @@ class ExecutionService(private val project: Project, private val scope: Coroutin
             request.language.toLeetCode(request.version), code).collect { response ->
             val state = if (response is LeetCodeSubmitAnswerResult.Success) SubmissionResult.fromApi(response.statusMsg) else SubmissionResult.Processing
             val remoteId = when (response) {
+                is LeetCodeSubmitAnswerResult.Accepted -> response.submissionId
                 is LeetCodeSubmitAnswerResult.Started -> response.leetCodeSubmissionId
                 is LeetCodeSubmitAnswerResult.Pending -> response.leetCodeSubmissionId
                 is LeetCodeSubmitAnswerResult.Success -> response.submissionId
             }
-            if (response is LeetCodeSubmitAnswerResult.Started) {
+            if (response is LeetCodeSubmitAnswerResult.Accepted) {
                 console.print(item.dojo, ConsoleViewContentType.LOG_INFO_OUTPUT,
                     ConsoleSegment.Text("平台已受理提交；取消跟踪不会撤回提交。\n"),
                     ConsoleSegment.Link(PluginBundle.message("submissionResult.viewDetails")) { owner ->

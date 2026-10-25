@@ -185,12 +185,15 @@ class LeetCodeClient(
     private fun submit(path: String, id: String, language: String, code: String): Flow<LeetCodeSubmitAnswerResult> = flow {
         val response = decode<LeetCodeSubmitAnswerResponse>(request(path,
             json.encodeToJsonElement(LeetCodeSubmitAnswerRequest(language, id, code))))
+        // 在任何轮询等待之前交付 ID；后续取消或失败不丢失平台核对入口。
+        emit(LeetCodeSubmitAnswerResult.Accepted(response.submissionId.toString()))
         while (true) {
             delay(pollIntervalMillis)
             val result = when (val result = decode<LeetCodeSubmitAnswerResult>(request("submissions/detail/${response.submissionId}/check/"))) {
                 is LeetCodeSubmitAnswerResult.Started -> result.copy(leetCodeSubmissionId = response.submissionId.toString())
                 is LeetCodeSubmitAnswerResult.Pending -> result.copy(leetCodeSubmissionId = response.submissionId.toString())
                 is LeetCodeSubmitAnswerResult.Success -> result
+                is LeetCodeSubmitAnswerResult.Accepted -> error("Accepted is a local event, not a polling response")
             }
             emit(result)
             if (result is LeetCodeSubmitAnswerResult.Success) break

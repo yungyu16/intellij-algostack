@@ -22,6 +22,9 @@ data class LeetCodeSubmitAnswerResponse(
 
 @Serializable(with = LeetCodeSubmitAnswerResultSerializer::class)
 sealed interface LeetCodeSubmitAnswerResult {
+    /** 本地受理事件：来自提交 POST 响应，不表示平台判题已开始。 */
+    data class Accepted(val submissionId: String) : LeetCodeSubmitAnswerResult
+
     @Serializable
     data class Started(
         @Transient val leetCodeSubmissionId: String = "",

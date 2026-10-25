@@ -3,6 +3,9 @@ package io.github.yungyu16.algostack.leetcode.api
 import io.github.yungyu16.algostack.leetcode.api.model.LeetCodeSubmitAnswerResult
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.collect
+import java.io.IOException
 import kotlinx.serialization.json.*
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
@@ -108,10 +111,51 @@ class LeetCodeClientTest {
             }
         }.use { f ->
             val results = f.api("leetcode.cn").submitAnswer("1", "two-sum", "java", "class Solution {}").toList()
-            assertEquals(2, results.size)
-            assertEquals("42", (results.first() as LeetCodeSubmitAnswerResult.Pending).leetCodeSubmissionId)
+            assertEquals(3, results.size)
+            assertEquals("42", (results.first() as LeetCodeSubmitAnswerResult.Accepted).submissionId)
+            assertEquals("42", (results[1] as LeetCodeSubmitAnswerResult.Pending).leetCodeSubmissionId)
             assertTrue(results.last() is LeetCodeSubmitAnswerResult.Success)
             assertEquals(2, polls)
+        }
+    }
+
+    @Test fun acceptanceIsDeliveredBeforePollingEvenWhenTrackingStopsImmediately() = runBlocking {
+        withTimeout(2_000) {
+            Fixture { chain ->
+                check(chain.request().url.encodedPath == "/problems/two-sum/submit/")
+                response(chain.request(), """{"submission_id":42}""")
+            }.use { f ->
+                val first = f.api("leetcode.cn").submitAnswer("1", "two-sum", "java", "class Solution {}").first()
+                assertEquals(LeetCodeSubmitAnswerResult.Accepted("42"), first)
+                assertFalse(f.requests.any { it.url.encodedPath.endsWith("/check/") })
+            }
+        }
+    }
+
+    @Test fun acceptanceSurvivesFirstPollFailureAndPendingThenFailure() = runBlocking {
+        withTimeout(2_000) {
+            for (pendingFirst in listOf(false, true)) {
+                var polls = 0
+                Fixture { chain ->
+                    if (chain.request().url.encodedPath.endsWith("/submit/")) {
+                        response(chain.request(), """{"submission_id":42}""")
+                    } else {
+                        polls++
+                        if (pendingFirst && polls == 1) response(chain.request(), """{"state":"PENDING"}""")
+                        else throw IOException("poll failed")
+                    }
+                }.use { f ->
+                    val received = mutableListOf<LeetCodeSubmitAnswerResult>()
+                    try {
+                        f.api("leetcode.cn").submitAnswer("1", "two-sum", "java", "class Solution {}").collect { received += it }
+                        fail("Polling must fail")
+                    } catch (expected: IOException) {
+                        assertEquals("poll failed", expected.message)
+                    }
+                    assertEquals(listOf(LeetCodeSubmitAnswerResult.Accepted("42")), received.filterIsInstance<LeetCodeSubmitAnswerResult.Accepted>())
+                    assertEquals(if (pendingFirst) 2 else 1, received.size)
+                }
+            }
         }
     }
 
