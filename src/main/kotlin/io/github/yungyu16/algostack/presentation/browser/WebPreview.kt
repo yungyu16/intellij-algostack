@@ -3,6 +3,7 @@ package io.github.yungyu16.algostack.presentation.browser
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.*
 import com.intellij.openapi.fileTypes.ex.FakeFileType
+import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.UserDataHolderBase
@@ -64,7 +65,8 @@ class PreviewEditor(private val project: Project, private val preview: PreviewFi
     override fun removePropertyChangeListener(listener: PropertyChangeListener) = Unit
     override fun dispose() { closed = true; loading?.cancel(); cookieWrites.forEach { it.cancel(true) }; Disposer.dispose(panel) }
 }
-class PreviewEditorProvider : FileEditorProvider {
+// HIDE_DEFAULT_EDITOR 要求 Provider 在索引期间也可用；此入口不访问索引。
+class PreviewEditorProvider : FileEditorProvider, DumbAware {
     override fun accept(project: Project, file: VirtualFile): Boolean = file is PreviewFile
     override fun createEditor(project: Project, file: VirtualFile): FileEditor = PreviewEditor(project, file as PreviewFile)
     override fun getEditorTypeId(): String = "AlgoStack.WebPreviewEditorProvider"

@@ -125,6 +125,19 @@ class PluginDescriptorTest {
         assertTrue((0 until dependencies.length).any { dependencies.item(it).textContent.trim() == "com.intellij.java" })
     }
 
+    @Test fun providersHidingDefaultEditorSupportDumbMode() {
+        val registrations = descriptor().getElementsByTagName("fileEditorProvider")
+        assertTrue("No editor providers checked", registrations.length > 0)
+        for (index in 0 until registrations.length) {
+            val name = registrations.item(index).attributes.getNamedItem("implementation").nodeValue
+            // 只构造 Provider，不创建编辑器或启动 JCEF；核对 XML 实际注册项而非手写类清单。
+            val provider = Class.forName(name).getDeclaredConstructor().newInstance() as com.intellij.openapi.fileEditor.FileEditorProvider
+            if (provider.policy == com.intellij.openapi.fileEditor.FileEditorPolicy.HIDE_DEFAULT_EDITOR) {
+                assertTrue("$name hides the default editor but is not DumbAware", provider is com.intellij.openapi.project.DumbAware)
+            }
+        }
+    }
+
     @Test fun keepsJcefDependencyForTheLoginBrowser() {
         val dependencies = descriptor().getElementsByTagName("depends")
         assertTrue((0 until dependencies.length).any { dependencies.item(it).textContent.trim() == "com.intellij.modules.jcef" })

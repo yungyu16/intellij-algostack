@@ -1,5 +1,9 @@
 # 更新记录
 
+## 1.0.7
+
+- Web 预览编辑器 Provider 显式实现 `DumbAware`，满足 `HIDE_DEFAULT_EDITOR` 的平台约束，修复打开预览时的 PluginException。该入口不依赖索引；新增遍历 plugin.xml 实际注册 Provider 的策略回归，不启动 JCEF。
+
 ## 1.0.6
 
 - 查询终态按实例身份区分，即使消费者错过 Loading，相同内容的新结果也会重新交付；补充真实 StateFlow 慢消费者的成功与失败回归。
