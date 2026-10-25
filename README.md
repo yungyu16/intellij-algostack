@@ -8,7 +8,7 @@
 
 目标为 IntelliJ IDEA 2026.2。源码版本与目标平台以 [gradle.properties](gradle.properties) 为准，安装包名为 `AlgoStack-<pluginVersion>.zip`；构建包版本不代表本机正在运行的版本。
 
-1. 从本仓库 CI 下载 ZIP，或按[开发指南](docs/开发指南.md)构建。通过 **Settings → Plugins → 齿轮 → Install Plugin from Disk** 安装，按提示重启。
+1. 按[开发指南](docs/开发指南.md)构建 ZIP。通过 **Settings → Plugins → 齿轮 → Install Plugin from Disk** 安装，按提示重启。
 2. 在刷题项目根目录放置 `.leetcode` 标记（文件或目录均可），重新打开项目。无标记时不显示插件工具窗口、不恢复登录或启动桥接。
 3. 插件在后台静默恢复已保存的中国站会话；无凭据或恢复失败时不会自动弹窗。需要时点击题库面板的 **Login**，然后搜索题目、选择 Java 或 Go、编码、测试和提交。
 
