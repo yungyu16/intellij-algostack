@@ -16,12 +16,6 @@ object Actions {
   const val CHALLENGES_TABLE_POPUP_GROUP = "CodeEpiphany.Dojos.ChallengesTable.Popupmenu"
   const val CHALLENGES_TABLE_POPUP_PLACE = "CodeEpiphany.Dojos.ChallengesTable.Place"
 
-  // submission log toolbar and popup menu
-  const val SUBMISSIONS_TOOLBAR_GROUP     = "CodeEpiphany.Sidebar.SubmissionLog.Toolbar.Group"
-  const val SUBMISSIONS_TOOLBAR_PLACE     = "CodeEpiphany.Sidebar.SubmissionLog.Toolbar.Place"
-  const val SUBMISSIONS_TABLE_POPUP_GROUP = "CodeEpiphany.Sidebar.SubmissionsTable.Popupmenu"
-  const val SUBMISSIONS_TABLE_POPUP_PLACE = "CodeEpiphany.Sidebar.SubmissionsTable.Place"
-
   // leetcode articles toolbar and popup menu
   const val LEETCODE_ARTICLES_TOOLBAR_GROUP     = "CodeEpiphany.Sidebar.LeetCodeArticles.Toolbar.Group"
   const val LEETCODE_ARTICLES_TOOLBAR_PLACE     = "CodeEpiphany.Sidebar.LeetCodeArticles.Toolbar.Place"

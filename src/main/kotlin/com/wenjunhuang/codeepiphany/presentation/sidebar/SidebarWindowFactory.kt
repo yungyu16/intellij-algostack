@@ -15,17 +15,16 @@ import com.wenjunhuang.codeepiphany.domain.CodeDojo
 import com.wenjunhuang.codeepiphany.presentation.LogConsole
 import com.wenjunhuang.codeepiphany.presentation.dojo.ChallengesView
 import com.wenjunhuang.codeepiphany.presentation.show
-import com.wenjunhuang.codeepiphany.toolwindows.sidebar.notes.NotesListPresenter
+import com.intellij.openapi.util.Disposer
+import com.wenjunhuang.codeepiphany.runtime.ProjectTasks
+import com.wenjunhuang.codeepiphany.runtime.onEdt
+import kotlinx.coroutines.launch
 import com.wenjunhuang.codeepiphany.toolwindows.dojo.SetupRequiredPromptView
 
 class SidebarWindowFactory : ToolWindowFactory, DumbAware {
-    /** 项目 root 有 .leetcode 目录才注册整个工具窗口；普通项目零感知。 */
-    override fun isApplicable(project: Project): Boolean =
-        project.basePath?.let { java.nio.file.Path.of(it, ".leetcode").toFile().isDirectory } == true
+    override fun isApplicable(project: Project): Boolean = SidebarPolicy.enabled(project.basePath)
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        // 项目 root 有 .leetcode 标记才激活题目面板；非刷题项目只保留 Console。
-        PlatformSettings.migrateLegacyStorage(project)
         val manager = toolWindow.contentManager
         val console = LogConsole.getInstance(project).view
         val consolePanel = SimpleToolWindowPanel(false, true).apply {
@@ -34,11 +33,22 @@ class SidebarWindowFactory : ToolWindowFactory, DumbAware {
             toolbar.targetComponent = console.component; setToolbar(toolbar.component)
         }
         manager.addContent(manager.factory.createContent(consolePanel, "Console", false))
-        for ((name, panel) in listOf("Description" to DescriptionPanel(project), "Submissions" to SubmissionsPanel(project), "Solutions" to ArticlesPanel(project))) {
-            manager.addContent(manager.factory.createContent(panel, name, false).apply { setDisposer(panel) })
+        val contextual = listOf("Description" to DescriptionPanel(project), "Solutions" to ArticlesPanel(project)).map { (name, panel) ->
+            manager.factory.createContent(panel, name, false).apply {
+                setDisposer(panel)
+                Disposer.register(toolWindow.disposable, this)
+            }
         }
-        val notes = NotesListPresenter(project)
-        manager.addContent(manager.factory.createContent(notes.getView(), "Notes", false).apply { setDisposer(notes) })
+        val tabs = ProjectTasks.getInstance(project).scope.launch {
+            SidebarContext.getInstance(project).challenge.collect { challenge -> onEdt {
+                for (content in contextual) {
+                    val visible = SidebarPolicy.visibleTab(content.displayName, challenge)
+                    if (visible && content !in manager.contents) manager.addContent(content)
+                    else if (!visible && content in manager.contents) manager.removeContent(content, false)
+                }
+            } }
+        }
+        Disposer.register(toolWindow.disposable, com.intellij.openapi.Disposable { tabs.cancel() })
         addChallengeTabs(project, manager)
         project.messageBus.connect(project).subscribe(CodeEpiphanySettings.TOPIC,
             CodeEpiphanySettings.CodeEpiphanySettingsChangedListener { addChallengeTabs(project, manager) })

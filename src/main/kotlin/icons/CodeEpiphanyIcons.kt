@@ -34,12 +34,6 @@ object CodeEpiphanyIcons {
   val SOLUTION: Icon = IconLoader.getIcon("/icons/solution.svg", CodeEpiphanyIcons::class.java.classLoader)
 
   @JvmField
-  val NOTE: Icon = IconLoader.getIcon("/icons/note.svg", CodeEpiphanyIcons::class.java.classLoader)
-
-  @JvmField
-  val SUBMISSIONS: Icon = IconLoader.getIcon("/icons/submissions.svg", CodeEpiphanyIcons::class.java.classLoader)
-
-  @JvmField
   val CONSOLE: Icon = IconLoader.getIcon("/icons/console.svg", CodeEpiphanyIcons::class.java.classLoader)
 
   @JvmField

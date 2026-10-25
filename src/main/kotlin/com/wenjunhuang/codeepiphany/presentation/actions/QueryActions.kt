@@ -47,8 +47,6 @@ class TagsAction : FilterAction(FilterKind.Tags)
 class CompanyAction : FilterAction(FilterKind.Company)
 class PositionAction : FilterAction(FilterKind.Position)
 class InterviewPeriodAction : FilterAction(FilterKind.InterviewPeriod)
-class LanguageAction : FilterAction(FilterKind.Language)
-class DojoAction : FilterAction(FilterKind.Dojo)
 class RefreshAction : com.intellij.openapi.project.DumbAwareAction() {
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
     override fun actionPerformed(event: AnActionEvent) { event.getData(ActionContext.QUERY)?.refresh() }

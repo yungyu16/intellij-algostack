@@ -60,11 +60,12 @@ class ChallengeDescriptionTextTest {
                 val rendered = renderTemplate("/*\n\${challenge.descriptionText}*/\n\${challenge.code}", language, challenge)
                 assertEquals("/*\n10^5 <= n; List<Node> * /\n*/\n${challenge.getCode()}", rendered)
                 assertEquals(originalHtml, challenge.description)
-                // 使用默认资源时仍只有原来的代码包装，不会隐式插入题面。
+                // 新默认资源包含纯文本题面，但不改变平台代码和提交区域。
                 val defaultTemplate = javaClass.getResource("/templates/${dojo.value}/code/${language.fileExt}.ft")!!.readText()
                 val defaultCode = renderTemplate(defaultTemplate, language, challenge)
                 assertTrue(defaultCode.contains(challenge.getCode()))
-                assertTrue(!defaultCode.contains("10^5"))
+                assertTrue(defaultCode.contains("10^5 <= n; List<Node> * /"))
+                assertEquals("fixture code", language.extractCodeFromRegion(defaultCode).trim())
             }
         }
     }

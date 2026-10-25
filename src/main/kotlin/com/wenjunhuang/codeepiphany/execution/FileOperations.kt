@@ -17,9 +17,10 @@ import java.io.File
 import java.io.IOException
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 
-suspend fun saveNewFile(project: Project, requested: File, text: String): VirtualFile {
+suspend fun saveNewFile(project: Project, requested: File, text: String, root: Path? = null): VirtualFile {
     val target = if (withContext(Dispatchers.IO) { requested.exists() }) onEdt {
         val extension = FileUtilRt.getExtension(requested.name).let { if (it.isEmpty()) "" else ".$it" }
         val name = Messages.showInputDialog(project, PluginBundle.message("file.creation.exists"),
@@ -31,8 +32,10 @@ suspend fun saveNewFile(project: Project, requested: File, text: String): Virtua
         File(requested.parentFile, name + extension)
     } else requested
     return withContext(Dispatchers.IO) {
-        target.parentFile.mkdirs()
-        Files.writeString(target.toPath(), text, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)
+        val destination = root?.let { safeInitializationPath(it, target.toPath()) } ?: target.toPath()
+        Files.createDirectories(destination.parent)
+        root?.let { safeInitializationPath(it, destination) }
+        Files.writeString(destination, text, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)
         LocalFileSystem.getInstance().refreshAndFindFileByIoFile(target) ?: throw IOException("Cannot refresh created file: $target")
     }
 }

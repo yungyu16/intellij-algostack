@@ -11,6 +11,14 @@ import com.wenjunhuang.codeepiphany.configuration.ChallengeSettings
 import com.wenjunhuang.codeepiphany.execution.ExecutionService
 import com.wenjunhuang.codeepiphany.model.Actions
 import com.wenjunhuang.codeepiphany.runtime.AuthService
+import com.wenjunhuang.codeepiphany.runtime.HttpService
+import com.wenjunhuang.codeepiphany.runtime.ProjectTasks
+import com.wenjunhuang.codeepiphany.runtime.onEdt
+import com.wenjunhuang.codeepiphany.execution.challengeTemplate
+import com.wenjunhuang.codeepiphany.presentation.LogConsole
+import com.wenjunhuang.codeepiphany.presentation.sidebar.SidebarPolicy
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 import javax.swing.JComponent
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -19,6 +27,7 @@ abstract class ExecuteAction(private val submit: Boolean) : DumbAwareAction() {
     override fun getActionUpdateThread() = ActionUpdateThread.EDT
     override fun actionPerformed(event: AnActionEvent) {
         val project = event.project ?: return
+        if (!SidebarPolicy.enabled(project.basePath)) return
         val file = event.getData(CommonDataKeys.VIRTUAL_FILE) ?: return
         logger.info("execute action: action=${javaClass.simpleName}, file=${file.name}")
         ExecutionService.getInstance(project).start(file, submit)
@@ -26,7 +35,7 @@ abstract class ExecuteAction(private val submit: Boolean) : DumbAwareAction() {
     override fun update(event: AnActionEvent) {
         val project = event.project
         val file = event.getData(CommonDataKeys.VIRTUAL_FILE)
-        val association = if (project != null && file != null) ChallengeSettings.getInstance(project).findChallengeId(file) else null
+        val association = if (project != null && file != null && SidebarPolicy.enabled(project.basePath)) ChallengeSettings.getInstance(project).resolve(file) else null
         if (event.place == Actions.CHALLENGE_EDITOR_TOOLBAR_PLACE && toolbarUpdateLogs.getAndIncrement() < 5)
             logger.info("toolbar action update: action=${javaClass.simpleName}, file=${file?.name}, association=${association?.dojo}, visible=${association != null}")
         event.presentation.isVisible = association != null
@@ -44,7 +53,7 @@ class EditorMenuActionGroup : DefaultActionGroup(), DumbAware {
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
     override fun update(event: AnActionEvent) {
         val project = event.project; val file = event.getData(CommonDataKeys.VIRTUAL_FILE)
-        event.presentation.isEnabledAndVisible = project != null && file != null && ChallengeSettings.getInstance(project).findChallengeId(file) != null
+        event.presentation.isEnabledAndVisible = project != null && file != null && SidebarPolicy.enabled(project.basePath) && ChallengeSettings.getInstance(project).resolve(file) != null
     }
 }
 class SurroundSubmissionRegionAction : DumbAwareAction() {
@@ -67,7 +76,21 @@ class TestCasesEditionAction : DumbAwareAction() {
     override fun actionPerformed(event: AnActionEvent) {
         val state = editorState(event.dataContext) ?: return
         val association = state.association ?: return
-        val dialog = TestCasesDialog(state.project, association.testCases, association.defaultTestCases)
-        if (dialog.showAndGet()) ChallengeSettings.getInstance(state.project).updateChallengeTestCases(state.file, dialog.cases())
+        ProjectTasks.getInstance(state.project).scope.launch {
+            try {
+                val defaults = association.defaultTestCases.ifEmpty {
+                    val data = HttpService.getInstance().api(association.dojo).getQuestionData(association.slug)
+                    require(data.titleSlug == association.slug) { "Question identity mismatch" }
+                    challengeTemplate(data, association.dojo, association.language, association.identity.version).cases
+                }
+                onEdt {
+                    if (state.association?.identity != association.identity) return@onEdt
+                    val dialog = TestCasesDialog(state.project, association.testCases.ifEmpty { defaults }, defaults)
+                    if (dialog.showAndGet() && state.association?.identity == association.identity)
+                        ChallengeSettings.getInstance(state.project).updateChallengeTestCases(state.file, dialog.cases())
+                }
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (failure: Exception) { LogConsole.getInstance(state.project).error(association.dojo, "Cannot load test cases: ${failure.message}") }
+        }
     }
 }

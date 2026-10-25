@@ -6,8 +6,6 @@ import com.intellij.openapi.actionSystem.ex.ComboBoxAction
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.DumbAwareAction
 import com.wenjunhuang.codeepiphany.presentation.browser.WebDocumentView
-import com.wenjunhuang.codeepiphany.presentation.files.CodeType
-import com.wenjunhuang.codeepiphany.presentation.files.openCode
 import javax.swing.JComponent
 
 abstract class ActivateSidebarAction(private val name: String) : DumbAwareAction() {
@@ -17,8 +15,6 @@ abstract class ActivateSidebarAction(private val name: String) : DumbAwareAction
 }
 class ActivateDescriptionAction : ActivateSidebarAction("Description")
 class ActivateSolutionsAction : ActivateSidebarAction("Solutions")
-class ActivateNotesAction : ActivateSidebarAction("Notes")
-class ActivateSubmissionsAction : ActivateSidebarAction("Submissions")
 abstract class ZoomAction(private val factor: Double?) : DumbAwareAction() {
     override fun getActionUpdateThread() = ActionUpdateThread.EDT
     override fun actionPerformed(event: AnActionEvent) { event.getData(WebDocumentView.KEY)?.let { if (factor == null) it.actualZoom() else it.zoom(factor) } }
@@ -41,13 +37,5 @@ class ArticleOrderAction : ComboBoxAction(), DumbAware {
             override fun isSelected(event: AnActionEvent) = panel.order == order
             override fun setSelected(event: AnActionEvent, selected: Boolean) { if (selected) panel.setOrder(order) }
         } })
-    }
-}
-class OpenSubmissionCodeAction : DumbAwareAction() {
-    override fun getActionUpdateThread() = ActionUpdateThread.EDT
-    override fun update(event: AnActionEvent) { event.presentation.isEnabled = event.getData(SubmissionsPanel.KEY)?.selected()?.isNotEmpty() == true }
-    override fun actionPerformed(event: AnActionEvent) {
-        val project = event.project ?: return
-        event.getData(SubmissionsPanel.KEY)?.selected()?.firstOrNull()?.let { openCode(project, it, CodeType.Submission) }
     }
 }

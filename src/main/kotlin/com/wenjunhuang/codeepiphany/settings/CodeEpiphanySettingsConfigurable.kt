@@ -1,13 +1,13 @@
 package com.wenjunhuang.codeepiphany.settings
 
-import com.intellij.openapi.options.ConfigurableBase
-import com.intellij.openapi.project.Project
-import com.wenjunhuang.codeepiphany.PluginBundle
-import com.wenjunhuang.codeepiphany.configuration.CodeEpiphanySettings
+import com.intellij.openapi.options.Configurable
+import javax.swing.JComponent
+import javax.swing.JPanel
 
-class CodeEpiphanySettingsConfigurable(private val project: Project) :
-    ConfigurableBase<CodeEpiphanySettingsPanel, CodeEpiphanySettings.CodeEpiphanySettingsState>(
-        "CodeEpiphany.Settings", PluginBundle.message("settings.displayName"), "CodeEpiphany.Settings.HelpTopic") {
-    override fun getSettings() = CodeEpiphanySettings.getInstance(project).state
-    override fun createUi() = CodeEpiphanySettingsPanel(project)
+/** 父节点只承载两个站点的配置入口。 */
+class CodeEpiphanySettingsConfigurable : Configurable {
+    override fun getDisplayName() = "leetcode-editor"
+    override fun createComponent(): JComponent = JPanel()
+    override fun isModified() = false
+    override fun apply() = Unit
 }

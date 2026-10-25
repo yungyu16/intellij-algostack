@@ -1,14 +1,17 @@
 package com.wenjunhuang.codeepiphany.configuration
 
 import com.intellij.openapi.components.*
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.util.xmlb.annotations.OptionTag
 import com.intellij.util.xmlb.annotations.XCollection
 import com.wenjunhuang.codeepiphany.domain.*
 import com.wenjunhuang.codeepiphany.model.Constants
+import java.io.IOException
 
-/** XML beans keep the existing field/tag names; callers receive independent snapshots. */
+/** 保留旧 XML 中的用例读取；不读取数据库、不执行迁移。 */
 @Service(Service.Level.PROJECT)
 @State(name = Constants.CHALLENGE_SETTING, storages = [Storage(Constants.CHALLENGE_SETTING_FILE)])
 class ChallengeSettings : PersistentStateComponent<ChallengeSettings.ChallengeSettingsState> {
@@ -19,26 +22,41 @@ class ChallengeSettings : PersistentStateComponent<ChallengeSettings.ChallengeSe
 
     @Synchronized fun addChallenge(path: String, item: Association) {
         settingsState.challenges[path] = ChallengeSettingsStateItem().also {
-            it.challengeId = item.challengeId; it.challengeLanguageId = item.challengeLanguageId
-            it.dojo = item.dojo; it.language = item.language
+            it.dojo = item.dojo; it.language = item.language; it.languageVersion = item.identity.version
+            it.slug = item.slug; it.title = item.title
             it.testCases = item.testCases.map { case -> case.copy() }.toMutableList()
             it.defaultTestCases = item.defaultTestCases.map { case -> case.copy() }.toMutableList()
         }
     }
     fun addChallenge(file: VirtualFile, item: Association) = addChallenge(path(file), item)
-    @Synchronized fun removeChallenge(path: String) { settingsState.challenges.remove(path) }
-    fun removeChallenge(file: VirtualFile) = removeChallenge(path(file))
-    @Synchronized fun findChallengeId(path: String): Association? {
+    @Synchronized fun hasMapping(path: String): Boolean = path in settingsState.challenges
+    @Synchronized fun findAssociation(path: String): Association? {
         val item = settingsState.challenges[path] ?: return null
-        return Association(item.challengeId, item.challengeLanguageId, item.dojo ?: return null,
-            item.language ?: return null,
-            item.testCases.map { it.copy() }, item.defaultTestCases.map { it.copy() })
+        if (item.slug.isBlank()) return null
+        return snapshot(item, ChallengeIdentity(item.dojo ?: return null, item.slug,
+            item.language ?: return null, item.languageVersion))
     }
-    fun findChallengeId(file: VirtualFile): Association? = findChallengeId(path(file))
-    @Synchronized fun updateChallengeTestCases(path: String, cases: List<TestCase>) {
-        settingsState.challenges[path]?.testCases = cases.map { it.copy() }.toMutableList()
+    @Synchronized fun resolve(path: String, text: String): Association? {
+        val stored = settingsState.challenges[path]
+        val identity = ChallengeRecognition.recognize(text, path.substringAfterLast('.'), findAssociation(path)?.identity) ?: return null
+        // 无 slug 的旧关联仅贡献同站点、同语言的用例，身份必须由源文件证明。
+        val compatible = stored?.takeIf { it.dojo == identity.dojo && it.language == identity.language &&
+            (it.slug.isBlank() || it.slug == identity.slug && it.languageVersion == identity.version) }
+        return if (compatible != null) snapshot(compatible, identity) else Association(identity)
     }
-    fun updateChallengeTestCases(file: VirtualFile, cases: List<TestCase>) = updateChallengeTestCases(path(file), cases)
+    fun resolve(file: VirtualFile): Association? {
+        if (file.isDirectory || !file.isValid || file.fileType.isBinary) return null
+        val text = FileDocumentManager.getInstance().getCachedDocument(file)?.immutableCharSequence?.toString()
+            ?: try { VfsUtilCore.loadText(file) } catch (_: IOException) { return null }
+        return resolve(path(file), text)
+    }
+    private fun snapshot(item: ChallengeSettingsStateItem, identity: ChallengeIdentity) = Association(identity,
+        item.testCases.map { it.copy() }, item.defaultTestCases.map { it.copy() }, item.title)
+
+    fun updateChallengeTestCases(file: VirtualFile, cases: List<TestCase>) {
+        val association = resolve(file) ?: return
+        addChallenge(file, association.copy(testCases = cases))
+    }
     @Synchronized fun modifyCodeFilePath(old: String, new: String) {
         settingsState.challenges.remove(old)?.let { settingsState.challenges[new] = it }
     }
@@ -50,19 +68,22 @@ class ChallengeSettings : PersistentStateComponent<ChallengeSettings.ChallengeSe
         }
     }
 
-    data class Association(
-        val challengeId: ChallengeId, val challengeLanguageId: ChallengeLanguageId,
-        val dojo: CodeDojo, val language: Language,
-        val testCases: List<TestCase>, val defaultTestCases: List<TestCase>
-    )
+    data class Association(val identity: ChallengeIdentity, val testCases: List<TestCase> = emptyList(),
+        val defaultTestCases: List<TestCase> = emptyList(), val title: String = "") {
+        val dojo get() = identity.dojo
+        val slug get() = identity.slug
+        val language get() = identity.language
+    }
     class ChallengeSettingsState { var challenges: MutableMap<String, ChallengeSettingsStateItem> = linkedMapOf() }
     class ChallengeSettingsStateItem {
-        var challengeId: Long = 0
-        var challengeLanguageId: Long = 0
+        var slug: String = ""
+        var title: String = ""
         @get:OptionTag(converter = ConfigConverters.CodeDojoConverter::class)
         var dojo: CodeDojo? = null
         @get:OptionTag(converter = ConfigConverters.LanguageConverter::class)
         var language: Language? = null
+        @get:OptionTag(converter = ConfigConverters.LanguageVersionConverter::class)
+        var languageVersion: LanguageVersion = LanguageVersion.AnyVersion
         @get:XCollection(elementTypes = [TestCase::class])
         var testCases: MutableList<TestCase> = arrayListOf()
         @get:XCollection(elementTypes = [TestCase::class])

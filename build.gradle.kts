@@ -85,8 +85,6 @@ dependencies {
     implementation("com.vladsch.flexmark:flexmark:0.64.8")
     implementation("com.vladsch.flexmark:flexmark-ext-attributes:0.64.8")
     implementation("org.apache.commons:commons-text:1.15.0")
-    implementation("org.xerial:sqlite-jdbc:3.51.1.0")
-    implementation("org.flywaydb:flyway-core:11.9.1")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.hamcrest:hamcrest:3.0")
     testImplementation("org.opentest4j:opentest4j:1.3.0")
@@ -126,10 +124,10 @@ val checkWebview = tasks.register<Exec>("checkWebview") {
 
 val verifyRuntimeLibraries = tasks.register("verifyRuntimeLibraries") {
     group = "verification"
-    description = "Check that the retired Scala and jOOQ runtime stacks are not reintroduced transitively."
+    description = "Check that retired database, Scala and jOOQ libraries are not packaged transitively."
     val runtime = configurations.named("runtimeClasspath")
     doLast {
-        val retired = setOf("org.scala-lang", "org.scala-lang.modules", "org.typelevel", "io.circe", "org.http4s", "co.fs2", "org.jooq", "com.zaxxer")
+        val retired = setOf("org.scala-lang", "org.scala-lang.modules", "org.typelevel", "io.circe", "org.http4s", "co.fs2", "org.jooq", "com.zaxxer", "org.xerial", "org.flywaydb")
         val found = runtime.get().resolvedConfiguration.resolvedArtifacts.map { it.moduleVersion.id }
             .filter { it.group in retired }.distinct()
         check(found.isEmpty()) { "Retired runtime libraries are still present: ${found.joinToString()}" }
@@ -153,9 +151,13 @@ tasks.named<InstrumentCodeTask>("instrumentCode") {
     sourceDirs.from("src/main/java", "src/main/kotlin")
 }
 
+// 增量编译删除旧包后可能留下空目录，不将退休功能的空包打入插件。
+tasks.withType<org.gradle.jvm.tasks.Jar>().configureEach { includeEmptyDirs = false }
+
 tasks.test {
     // instrument 产物是表单绑定代码重复生成的检测对象，测试前必须先产出。
-    dependsOn("instrumentCode")
+    dependsOn("instrumentCode", "composedJar")
+    systemProperty("codeepiphany.pluginArtifact", tasks.named<org.jetbrains.intellij.platform.gradle.tasks.ComposedJarTask>("composedJar").get().archiveFile.get().asFile.absolutePath)
     useJUnit()
     systemProperty("java.awt.headless", "true")
     maxHeapSize = "2g"

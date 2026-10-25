@@ -10,8 +10,6 @@ object Constants {
 
   const val SETTINGS_FOLDER = PROJECT_NAME
 
-  const val CHALLENGE_STORAGE_FILE = "challenges.db"
-
   const val SETTING = PROJECT_ID + ".settings"
 
   const val APP_SETTING = PROJECT_ID + ".app.settings"
@@ -24,10 +22,10 @@ object Constants {
   const val CHALLENGE_SETTING_FILE = SETTINGS_FOLDER + "/challenge.xml"
 
   const val LEETCODE_CN_SETTING = PROJECT_ID + ".leetcodecn.settings"
-  // 模板与语言配置是项目级的稳定资产，放 .leetcode 便于提交到 git。
-  const val LEETCODE_CN_SETTING_FILE = ".leetcode/leetcodecn.xml"
+  // 稳定模板保留 IDEA 项目存储位置，可由使用者按路径纳入 Git。
+  const val LEETCODE_CN_SETTING_FILE = SETTINGS_FOLDER + "/leetcodecn.xml"
   const val LEETCODE_SETTING = PROJECT_ID + ".leetcode.settings"
-  const val LEETCODE_SETTING_FILE = ".leetcode/leetcode.xml"
+  const val LEETCODE_SETTING_FILE = SETTINGS_FOLDER + "/leetcode.xml"
 
   const val SUBMIT_CODE_REGION_BEGIN = "IMPORTANT!! Submit Code Region Begin(Do not remove this line)"
   const val SUBMIT_CODE_REGION_END = "IMPORTANT!! Submit Code Region End(Do not remove this line)"

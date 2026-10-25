@@ -5,6 +5,22 @@ import org.junit.Test
 import javax.xml.parsers.DocumentBuilderFactory
 
 class PluginDescriptorTest {
+    @Test fun retiredDatabaseAndHistoryFeaturesAreAbsent() {
+        // IDEA 自身携带 org.sqlite.JDBC；这里只核对插件产物，依赖图另由 verifyRuntimeLibraries 检查。
+        val artifact = requireNotNull(System.getProperty("codeepiphany.pluginArtifact"))
+        java.util.jar.JarFile(artifact).use { jar ->
+            val entries = jar.entries().asSequence().map { it.name }.toList()
+            for (retired in listOf("org/sqlite/", "org/flywaydb/", "com/wenjunhuang/codeepiphany/storage/"))
+                assertFalse(retired, entries.any { it.startsWith(retired) })
+        }
+        assertNull(javaClass.getResource("/db/migration/V001__initial.sql"))
+        val xml = javaClass.getResourceAsStream("/META-INF/plugin.xml")!!.bufferedReader().use { it.readText() }
+        for (retired in listOf("ActivateNotes", "ActivateSubmissions", "SubmissionCodeEditor", "solution-remark", "submission-code"))
+            assertFalse(retired, xml.contains(retired))
+        assertTrue(xml.contains("ActivateSolutions"))
+        assertTrue(xml.contains("SidebarWindowFactory"))
+    }
+
     @Test fun keepsJcefDependencyForTheLoginBrowser() {
         val dependencies = descriptor().getElementsByTagName("depends")
         assertTrue((0 until dependencies.length).any { dependencies.item(it).textContent.trim() == "com.intellij.modules.jcef" })

@@ -15,7 +15,6 @@ import com.wenjunhuang.codeepiphany.presentation.*
 import com.wenjunhuang.codeepiphany.presentation.browser.WebDocumentView
 import com.wenjunhuang.codeepiphany.presentation.browser.openWebPreview
 import com.wenjunhuang.codeepiphany.runtime.*
-import com.wenjunhuang.codeepiphany.storage.ChallengeRecord
 import kotlinx.coroutines.*
 import org.apache.commons.text.translate.AggregateTranslator
 import org.apache.commons.text.translate.LookupTranslator
@@ -30,10 +29,10 @@ import javax.swing.table.AbstractTableModel
 import javax.swing.table.DefaultTableCellRenderer
 
 class ArticlesPanel(project: Project) : SidebarPanel(project), UiDataProvider, FilterHost, QueryHost {
-    private data class Request(val challenge: ChallengeRecord, val page: Pagination,
+    private data class Request(val challenge: ChallengeIdentity, val page: Pagination,
         val order: LeetCodeQuestionSolutionArticlesOrderBy, val keyword: String, val tags: List<String>)
     private data class Result(val request: Request, val list: LeetCodeQuestionSolutionArticles, val tags: LeetCodeSolutionTags)
-    private var challenge: ChallengeRecord? = null
+    private var challenge: ChallengeIdentity? = null
     private var page = Pagination()
     var order = LeetCodeQuestionSolutionArticlesOrderBy.Hot; private set
     private var tags: LeetCodeSolutionTags? = null
@@ -112,7 +111,7 @@ class ArticlesPanel(project: Project) : SidebarPanel(project), UiDataProvider, F
         scope.launch { query.states.collect { state -> onEdt { when (state) {
             is QueryState.Success -> {
                 val value = state.value
-                if (challenge?.id == value.request.challenge.id) {
+                if (challenge == value.request.challenge) {
                     model.rows = value.list.edges.map { it.node }; avatars.keys.retainAll(model.rows.map { it.author.userAvatar }.toSet()); model.fireTableDataChanged(); tags = value.tags
                     page = value.request.page.copy(totalSize = value.list.totalNum); pager.update(page); status.text = ""
                 }

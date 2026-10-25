@@ -13,40 +13,50 @@ import com.wenjunhuang.codeepiphany.domain.*
 import com.wenjunhuang.codeepiphany.leetcode.api.model.LeetCodeRunResult
 import com.wenjunhuang.codeepiphany.leetcode.api.model.LeetCodeSubmitAnswerResult
 import com.wenjunhuang.codeepiphany.presentation.LogConsole
+import com.wenjunhuang.codeepiphany.presentation.sidebar.SidebarPolicy
 import com.wenjunhuang.codeepiphany.presentation.ConsoleSegment
 import com.wenjunhuang.codeepiphany.presentation.browser.openWebPreview
 import com.wenjunhuang.codeepiphany.runtime.HttpService
 import com.wenjunhuang.codeepiphany.runtime.onEdt
-import com.wenjunhuang.codeepiphany.storage.ChallengeRepository
-import com.wenjunhuang.codeepiphany.storage.ExecutionRequest
-import com.wenjunhuang.codeepiphany.storage.SubmissionMetrics
-import com.wenjunhuang.codeepiphany.storage.IdGenerator
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collect
 import java.util.concurrent.ConcurrentHashMap
+
+internal data class ExecutionRequest(val questionId: String, val slug: String, val defaultCases: String,
+    val language: Language, val version: LanguageVersion)
 
 @Service(Service.Level.PROJECT)
 class ExecutionService(private val project: Project, private val scope: CoroutineScope) {
     private val running = ConcurrentHashMap<VirtualFile, Job>()
     fun isRunning(file: VirtualFile): Boolean = running.containsKey(file)
     fun start(file: VirtualFile, submit: Boolean, cases: List<ChallengeSettings.TestCase>? = null) {
+        if (!SidebarPolicy.enabled(project.basePath)) return
         val job = scope.launch(start = CoroutineStart.LAZY) {
             val console = onEdt { LogConsole.getInstance(project).also { it.show(project) } }
             try {
                 withBackgroundProgress(project, PluginBundle.message(if (submit) "submit.code.start" else "test.code.start", file.name), true) {
-                    val item = ChallengeSettings.getInstance(project).findChallengeId(file)
+                    val item = ChallengeSettings.getInstance(project).resolve(file)
                         ?: throw IllegalStateException(PluginBundle.message("error.no.challenge", file.name))
                     if (!ensureLoggedIn(project, item.dojo)) return@withBackgroundProgress
                     val code = saveAndRead(file)
+                    check(ChallengeSettings.getInstance(project).resolve(file.path, code)?.identity == item.identity) {
+                        "Question identity changed while preparing execution; retry explicitly"
+                    }
                     val processed = item.language.extractCodeFromRegion(code)
-                    val repository = ChallengeRepository.getInstance(project)
-                    val request = repository.query { it.executionRequest(item.challengeId, item.challengeLanguageId) }
-                        ?: error("LeetCode challenge data not found")
+                    require(processed.isNotBlank()) { "Submission region is empty" }
+                    val data = HttpService.getInstance().api(item.dojo).getQuestionData(item.slug)
+                    require(data.titleSlug == item.slug) { "Question identity mismatch" }
+                    val request = ExecutionRequest(data.questionId, item.slug, data.exampleTestcaseList.joinToString("\n"), item.language, item.identity.version)
                     console.info(item.dojo, PluginBundle.message(if (submit) "submit.code.start" else "test.code.start", file.name, item.dojo.show))
-                    if (submit) submit(item, request, code, processed, console, repository)
+                    if (submit) submit(item, request, processed, console)
                     else evaluate(item, request, processed, cases ?: item.testCases.takeIf { it.isNotEmpty() }, console)
                 }
-            } catch (cancelled: CancellationException) { throw cancelled }
+            } catch (cancelled: CancellationException) {
+                if (!project.isDisposed) withContext(NonCancellable) {
+                    console.info(null, if (submit) "提交跟踪已取消；远端可能已受理，请到平台核对，勿盲目重试。" else "测试已取消。")
+                }
+                throw cancelled
+            }
             catch (failure: Exception) {
                 console.error(null, PluginBundle.message(if (submit) "error.submit.code" else "test.code.error", failure.message.orEmpty()))
             }
@@ -84,48 +94,38 @@ class ExecutionService(private val project: Project, private val scope: Coroutin
             }
         }
     }
-    private suspend fun submit(item: ChallengeSettings.Association, request: ExecutionRequest, local: String, code: String,
-        console: LogConsole, repository: ChallengeRepository) {
-        val id = IdGenerator.nextId()
-        try {
-            repository.transaction { it.createSubmission(item.challengeLanguageId, local, code, id) }
-            HttpService.getInstance().api(item.dojo).submitAnswer(request.questionId, request.slug,
-                request.language.toLeetCode(request.version), code).collect { response ->
-                val state = if (response is LeetCodeSubmitAnswerResult.Success) SubmissionResult.fromApi(response.statusMsg) else SubmissionResult.Processing
-                val remoteId = when (response) {
-                    is LeetCodeSubmitAnswerResult.Started -> response.leetCodeSubmissionId
-                    is LeetCodeSubmitAnswerResult.Pending -> response.leetCodeSubmissionId
-                    is LeetCodeSubmitAnswerResult.Success -> response.submissionId
-                }
-                val message = if (response is LeetCodeSubmitAnswerResult.Success) submissionMessage(state, response) else ""
-                val metrics = if (response is LeetCodeSubmitAnswerResult.Success) SubmissionMetrics(
-                    memory = response.memory, totalCorrect = response.totalCorrect, totalTestcases = response.totalTestcases,
-                    statusMemory = response.statusMemory, runtimePercentile = response.runtimePercentile,
-                    memoryPercentile = response.memoryPercentile, lastTestcase = response.lastTestcase,
-                    inputFormatted = response.inputFormatted, expectedOutput = response.expectedOutput,
-                    codeOutput = response.codeOutput, stdOutput = response.stdOutput, statusRuntime = response.statusRuntime
-                ) else null
-                repository.transaction { it.updateSubmission(id, state, message, remoteId, metrics) }
-                if (response is LeetCodeSubmitAnswerResult.Success) {
-                    val details = ConsoleSegment.Link(PluginBundle.message("submissionResult.viewDetails")) { owner ->
+    private suspend fun submit(item: ChallengeSettings.Association, request: ExecutionRequest, code: String,
+        console: LogConsole) {
+        HttpService.getInstance().api(item.dojo).submitAnswer(request.questionId, request.slug,
+            request.language.toLeetCode(request.version), code).collect { response ->
+            val state = if (response is LeetCodeSubmitAnswerResult.Success) SubmissionResult.fromApi(response.statusMsg) else SubmissionResult.Processing
+            val remoteId = when (response) {
+                is LeetCodeSubmitAnswerResult.Started -> response.leetCodeSubmissionId
+                is LeetCodeSubmitAnswerResult.Pending -> response.leetCodeSubmissionId
+                is LeetCodeSubmitAnswerResult.Success -> response.submissionId
+            }
+            if (response is LeetCodeSubmitAnswerResult.Started) {
+                console.print(item.dojo, ConsoleViewContentType.LOG_INFO_OUTPUT,
+                    ConsoleSegment.Text("平台已受理提交；取消跟踪不会撤回提交。\n"),
+                    ConsoleSegment.Link(PluginBundle.message("submissionResult.viewDetails")) { owner ->
                         openWebPreview(owner, item.dojo, "https://${item.dojo.domain}/problems/${request.slug}/submissions/$remoteId/", remoteId)
-                    }
-                    if (state == SubmissionResult.Success) {
-                        console.print(item.dojo, ConsoleViewContentType.LOG_INFO_OUTPUT,
-                            ConsoleSegment.Text("${PluginBundle.message("submission.passed")}\n$message"),
-                            ConsoleSegment.Text("\n"), details)
-                    } else {
-                        console.print(item.dojo, ConsoleViewContentType.LOG_ERROR_OUTPUT,
-                            details, ConsoleSegment.Text("\n"),
-                            ConsoleSegment.Text("${state.show}\n$message"))
-                    }
+                    })
+            }
+            val message = if (response is LeetCodeSubmitAnswerResult.Success) submissionMessage(state, response) else ""
+            if (response is LeetCodeSubmitAnswerResult.Success) {
+                val details = ConsoleSegment.Link(PluginBundle.message("submissionResult.viewDetails")) { owner ->
+                    openWebPreview(owner, item.dojo, "https://${item.dojo.domain}/problems/${request.slug}/submissions/$remoteId/", remoteId)
+                }
+                if (state == SubmissionResult.Success) {
+                    console.print(item.dojo, ConsoleViewContentType.LOG_INFO_OUTPUT,
+                        ConsoleSegment.Text("${PluginBundle.message("submission.passed")}\n$message"),
+                        ConsoleSegment.Text("\n"), details)
+                } else {
+                    console.print(item.dojo, ConsoleViewContentType.LOG_ERROR_OUTPUT,
+                        details, ConsoleSegment.Text("\n"),
+                        ConsoleSegment.Text("${state.show}\n$message"))
                 }
             }
-        } catch (failure: Throwable) {
-            if (!project.isDisposed) withContext(NonCancellable) {
-                runCatching { repository.transaction { it.failSubmission(id, failure.message ?: "Tracking cancelled") } }
-            }
-            throw failure
         }
     }
     private fun submissionMessage(state: SubmissionResult, response: LeetCodeSubmitAnswerResult.Success): String = when (state) {

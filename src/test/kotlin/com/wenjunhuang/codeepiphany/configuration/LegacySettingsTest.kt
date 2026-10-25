@@ -11,17 +11,17 @@ import org.junit.Test
 class LegacySettingsTest {
     @Test fun directoryMovesAndDeletesKeepFileAssociationsConsistent() {
         val settings = ChallengeSettings()
-        val item = ChallengeSettings.Association(1, 2, CodeDojo.LeetCodeCN, Language.Java, emptyList(), emptyList())
+        val item = ChallengeSettings.Association(ChallengeIdentity(CodeDojo.LeetCodeCN, "two-sum", Language.Java), emptyList(), emptyList())
         settings.addChallenge("/code/old/A.java", item)
         settings.addChallenge("/code/old/nested/B.java", item)
         settings.addChallenge("/code/old-neighbor/C.java", item)
         settings.relocatePaths("/code/old", "/code/new", true)
-        assertNull(settings.findChallengeId("/code/old/A.java"))
-        assertNotNull(settings.findChallengeId("/code/new/nested/B.java"))
-        assertNotNull(settings.findChallengeId("/code/old-neighbor/C.java"))
+        assertNull(settings.findAssociation("/code/old/A.java"))
+        assertNotNull(settings.findAssociation("/code/new/nested/B.java"))
+        assertNotNull(settings.findAssociation("/code/old-neighbor/C.java"))
         settings.relocatePaths("/code/new", null, true)
-        assertNull(settings.findChallengeId("/code/new/A.java"))
-        assertNotNull(settings.findChallengeId("/code/old-neighbor/C.java"))
+        assertNull(settings.findAssociation("/code/new/A.java"))
+        assertNotNull(settings.findAssociation("/code/old-neighbor/C.java"))
     }
 
     private fun languageElement() = Element("LanguageSettingsState")
@@ -56,13 +56,15 @@ class LegacySettingsTest {
         }
         val state = XmlSerializer.deserialize(element, ChallengeSettings.ChallengeSettingsState::class.java)
         val settings = ChallengeSettings().apply { loadState(state) }
-        val association = settings.findChallengeId("/fixture/P0001_TwoSum.java")!!
-        assertEquals(1234567890123456789L, association.challengeId)
+        val content = "/* https://leetcode.cn/problems/two-sum/ */\n" + Language.Java.encloseCodeInRegion("class Solution {}")
+        assertNull(settings.findAssociation("/fixture/P0001_TwoSum.java"))
+        val association = settings.resolve("/fixture/P0001_TwoSum.java", content)!!
+        assertEquals("two-sum", association.slug)
         assertEquals(CodeDojo.LeetCodeCN, association.dojo)
         assertEquals("[1,2]", association.testCases.single().input)
         assertEquals("[0,1]", association.defaultTestCases.single().expectedOutput)
         val restored = XmlSerializer.deserialize(XmlSerializer.serialize(state), ChallengeSettings.ChallengeSettingsState::class.java)
-        assertEquals(association, ChallengeSettings().apply { loadState(restored) }.findChallengeId("/fixture/P0001_TwoSum.java"))
+        assertEquals(association, ChallengeSettings().apply { loadState(restored) }.resolve("/fixture/P0001_TwoSum.java", content))
     }
 
     @Test fun stateComponentNamesAndStorageFilesStayStable() {
@@ -73,15 +75,25 @@ class LegacySettingsTest {
         assertEquals(Constants.CHALLENGE_SETTING, ChallengeSettings::class.java.getAnnotation(State::class.java).name)
     }
 
+    @Test fun newIdentityRoundTripRetainsLanguageVersionWithoutLocalIds() {
+        val settings = ChallengeSettings()
+        val identity = ChallengeIdentity(CodeDojo.LeetCode, "two-sum", Language.Java, LanguageVersion.SpecificVersion("17"))
+        settings.addChallenge("new.java", ChallengeSettings.Association(identity))
+        val xml = XmlSerializer.serialize(settings.state)
+        val restored = ChallengeSettings().apply { loadState(XmlSerializer.deserialize(xml, ChallengeSettings.ChallengeSettingsState::class.java)) }
+        assertEquals(identity, restored.findAssociation("new.java")?.identity)
+        assertFalse(org.jdom.output.XMLOutputter().outputString(xml).contains("challengeId"))
+    }
+
     @Test fun fileAssociationsAreReadAsIndependentSnapshotsAndRenamedAtomically() {
         val settings = ChallengeSettings()
-        settings.addChallenge("old.java", ChallengeSettings.Association(1, 2, CodeDojo.LeetCodeCN, Language.Java,
+        settings.addChallenge("old.java", ChallengeSettings.Association(ChallengeIdentity(CodeDojo.LeetCodeCN, "two-sum", Language.Java),
             listOf(ChallengeSettings.TestCase("[1,2]", "[0,1]")), emptyList()))
-        val first = settings.findChallengeId("old.java")!!
+        val first = settings.findAssociation("old.java")!!
         first.testCases.single().input = "changed"
-        assertEquals("[1,2]", settings.findChallengeId("old.java")!!.testCases.single().input)
+        assertEquals("[1,2]", settings.findAssociation("old.java")!!.testCases.single().input)
         settings.modifyCodeFilePath("old.java", "new.java")
-        assertNull(settings.findChallengeId("old.java"))
-        assertEquals(Language.Java, settings.findChallengeId("new.java")!!.language)
+        assertNull(settings.findAssociation("old.java"))
+        assertEquals(Language.Java, settings.findAssociation("new.java")!!.language)
     }
 }

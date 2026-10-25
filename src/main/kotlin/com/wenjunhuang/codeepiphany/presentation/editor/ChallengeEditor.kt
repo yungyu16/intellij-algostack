@@ -22,11 +22,11 @@ import com.intellij.ui.components.JBLayeredPane
 import com.intellij.util.Alarm
 import com.intellij.util.ui.StartupUiUtil
 import com.wenjunhuang.codeepiphany.presentation.icon
+import com.wenjunhuang.codeepiphany.presentation.sidebar.SidebarPolicy
 import com.wenjunhuang.codeepiphany.configuration.ChallengeSettings
 import com.wenjunhuang.codeepiphany.model.Actions
 import com.wenjunhuang.codeepiphany.runtime.ProjectTasks
 import com.wenjunhuang.codeepiphany.runtime.onEdt
-import com.wenjunhuang.codeepiphany.storage.ChallengeRepository
 import kotlinx.coroutines.*
 import org.jdom.Element
 import java.awt.AWTEvent
@@ -39,31 +39,9 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 
 class EditorState(val project: Project, val file: VirtualFile) : Disposable {
-    private val parent = ProjectTasks.getInstance(project).scope
-    private val job = SupervisorJob(parent.coroutineContext[Job])
-    private val scope = CoroutineScope(parent.coroutineContext + job)
-    private var loading: Job? = null
-    @Volatile var title: String? = null; private set
-    val association get() = ChallengeSettings.getInstance(project).findChallengeId(file)
-    init {
-        project.messageBus.connect(this).subscribe(ChallengeRepository.CHANGED, ChallengeRepository.Listener { reload() })
-        reload()
-    }
-    fun reload() {
-        loading?.cancel()
-        val association = association ?: return
-        loading = scope.launch {
-            try {
-                val data = ChallengeRepository.getInstance(project).query { it.challenge(association.challengeId) }
-                onEdt {
-                    title = data?.title
-                    FileEditorManagerEx.getInstanceEx(project).updateFilePresentation(file)
-                }
-            } catch (cancelled: CancellationException) { throw cancelled }
-            catch (failure: Exception) { com.intellij.openapi.diagnostic.Logger.getInstance(EditorState::class.java).warn("Cannot load editor context", failure) }
-        }
-    }
-    override fun dispose() { job.cancel() }
+    val association get() = ChallengeSettings.getInstance(project).resolve(file)
+    val title: String? get() = association?.let { it.title.ifBlank { it.slug } }
+    override fun dispose() = Unit
     companion object { val KEY = Key.create<EditorState>("CodeEpiphany.EditorState") }
 }
 
@@ -136,7 +114,7 @@ class ChallengeEditor(delegate: TextEditor, project: Project, file: VirtualFile)
 class ChallengeEditorProvider : FileEditorProvider, DumbAware {
     private val delegate = PsiAwareTextEditorProvider()
     override fun accept(project: Project, file: VirtualFile): Boolean =
-        delegate.accept(project, file) && ChallengeSettings.getInstance(project).findChallengeId(file) != null
+        SidebarPolicy.enabled(project.basePath) && delegate.accept(project, file) && ChallengeSettings.getInstance(project).resolve(file) != null
     override fun createEditor(project: Project, file: VirtualFile): FileEditor =
         ChallengeEditor(delegate.createEditor(project, file) as TextEditor, project, file)
     override fun getPolicy() = FileEditorPolicy.HIDE_DEFAULT_EDITOR
@@ -147,7 +125,7 @@ class ChallengeEditorProvider : FileEditorProvider, DumbAware {
 
 class ChallengeEditorIconProvider : FileIconPatcher {
     override fun patchIcon(icon: Icon, file: VirtualFile, flags: Int, project: Project?): Icon =
-        project?.let { ChallengeSettings.getInstance(it).findChallengeId(file)?.dojo?.icon } ?: icon
+        project?.takeIf { SidebarPolicy.enabled(it.basePath) }?.let { ChallengeSettings.getInstance(it).resolve(file)?.dojo?.icon } ?: icon
 }
 class ChallengeEditorTabTitleProvider : EditorTabTitleProvider {
     override fun getEditorTabTitle(project: Project, file: VirtualFile): String? =
@@ -165,6 +143,7 @@ class ChallengeFileRenameListener : AsyncFileListener {
         return object : AsyncFileListener.ChangeApplier {
             override fun afterVfsChange() {
                 for (project in ProjectManager.getInstance().openProjects) {
+                    if (project.isDisposed || project.isDefault || !SidebarPolicy.enabled(project.basePath)) continue
                     val settings = ChallengeSettings.getInstance(project)
                     for ((old, new, directory) in changes) settings.relocatePaths(old, new, directory)
                 }

@@ -1,10 +1,15 @@
 package leetcodecn;
 
-class $velocity.camelCaseName($challenge.slug) {
+import java.util.*;
+
+/*
+${challenge.descriptionText}
+*/
+public class ${velocity.challengeFileName($challenge.frontendQuestionId, $challenge.slug)} {
 
     $challenge.code
 
-public static void main(String[] args) {
-    // add your test code
-}
+    public static void main(String[] args) {
+        // add your test code
+    }
 }

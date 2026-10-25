@@ -3,7 +3,6 @@ package com.wenjunhuang.codeepiphany.execution
 import com.wenjunhuang.codeepiphany.configuration.ChallengeSettings
 import com.wenjunhuang.codeepiphany.domain.*
 import com.wenjunhuang.codeepiphany.leetcode.api.model.*
-import com.wenjunhuang.codeepiphany.storage.SqliteDatabase
 import kotlinx.coroutines.*
 import org.junit.Assert.*
 import org.junit.Test
@@ -17,8 +16,8 @@ class ChallengeInitializationTest {
         finally { Files.walk(root).use { paths -> paths.sorted(Comparator.reverseOrder()).forEach(Files::deleteIfExists) } }
     }
 
-    @Test fun templateFileDatabaseAndAssociationWorkForBothLanguagesWithoutOverwriting() = fixture { root ->
-        SqliteDatabase { root.resolve("challenges.db").toFile() }.use { db ->
+    @Test fun templateFileAndContentIdentityWorkForBothLanguagesWithoutOverwriting() = fixture { root ->
+        run {
             val settings = ChallengeSettings()
             for ((language, snippetSlug, snippet) in listOf(Triple(Language.Java, "java", "class Solution {}"), Triple(Language.GO, "golang", "func solve() {}"))) {
                 val data = LeetCodeChallengeData("9001", "26", "Fixture", "fixture", "<p>-10<font size='1'>0</font> &lt;= n</p>",
@@ -31,28 +30,44 @@ class ChallengeInitializationTest {
                 var writes = 0
                 suspend fun initialize() = initializeChallengeFile(root, target, prepared.code,
                     associationMatches = {
-                        val item = settings.findChallengeId(target.toString())
-                        item != null && db.read { it.executionRequest(item.challengeId, item.challengeLanguageId)?.language } == language
-                    }, hasMapping = { settings.findChallengeId(target.toString()) != null },
+                        settings.resolve(target.toString(), Files.readString(target))?.identity == prepared.identity
+                    }, hasMapping = { settings.hasMapping(target.toString()) },
                     persistAndAssociate = {
-                        val saved = db.transaction { it.saveChallenge(prepared.draft) }; writes++
-                        settings.addChallenge(target.toString(), ChallengeSettings.Association(saved.challengeId, saved.languageId,
-                            CodeDojo.LeetCodeCN, language, listOf(ChallengeSettings.TestCase("custom", "keep")), emptyList()))
+                        writes++
+                        settings.addChallenge(target.toString(), ChallengeSettings.Association(prepared.identity, listOf(ChallengeSettings.TestCase("custom", "keep")), emptyList()))
                     }, open = {})
                 val result = initialize()
                 assertEquals("created", result.status); assertTrue(result.associated)
                 assertEquals(false, result.implemented)
                 assertTrue(Files.readString(target).contains("-100 <= n"))
                 assertTrue(Files.readString(target).contains("Submit Code Region Begin"))
-                val before = settings.findChallengeId(target.toString())
-                Files.writeString(target, "user implementation")
+                val before = settings.findAssociation(target.toString())
+                val implementation = prepared.code + "\n// user implementation"
+                Files.writeString(target, implementation)
                 val repeated = initialize()
                 assertEquals("already_exists", repeated.status); assertNull(repeated.implemented)
-                assertEquals("user implementation", Files.readString(target)); assertEquals(1, writes)
-                assertEquals(before, settings.findChallengeId(target.toString()))
-                assertEquals("9001", db.read { it.challenge(before!!.challengeId)!!.dojoId })
+                assertEquals(implementation, Files.readString(target)); assertEquals(1, writes)
+                assertEquals(before, settings.findAssociation(target.toString()))
+                assertEquals("9001", prepared.template.questionId)
+                assertEquals("26", prepared.template.frontendQuestionId)
+                assertEquals(prepared.identity, ChallengeRecognition.recognize(prepared.code, language.fileExt))
             }
         }
+    }
+
+    @Test fun existingContentWithoutMappingIsAcceptedButDifferentVersionConflicts() = fixture { root ->
+        val identity = ChallengeIdentity(CodeDojo.LeetCodeCN, "two-sum", Language.Java, LanguageVersion.SpecificVersion("17"))
+        val file = root.resolve("old.java")
+        val code = ChallengeRecognition.header(identity) + Language.Java.encloseCodeInRegion("class Solution {}")
+        Files.writeString(file, code)
+        val settings = ChallengeSettings()
+        suspend fun initialize(expected: ChallengeIdentity) = initializeChallengeFile(root, file, "new",
+            { settings.resolve(file.toString(), Files.readString(file))?.identity == expected },
+            { settings.hasMapping(file.toString()) }, { error("must not write association") }, { error("must not overwrite or open existing file") })
+        assertEquals("already_exists", initialize(identity).status)
+        assertEquals("conflict", initialize(identity.copy(version = LanguageVersion.AnyVersion)).status)
+        assertEquals(code, Files.readString(file))
+        assertFalse(settings.hasMapping(file.toString()))
     }
 
     @Test fun existingUnassociatedFileAndStaleMappingAreConflicts() = fixture { root ->
@@ -66,7 +81,7 @@ class ChallengeInitializationTest {
 
     @Test fun failureAfterCreatingFilePreservesItAndReportsPartial() = fixture { root ->
         val file = root.resolve("main.go")
-        val result = initializeChallengeFile(root, file, "new", { false }, { false }, { error("database failure") }, {})
+        val result = initializeChallengeFile(root, file, "new", { false }, { false }, { error("association failure") }, {})
         assertEquals("partial", result.status); assertFalse(result.associated); assertEquals("new", Files.readString(file))
     }
 

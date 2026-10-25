@@ -9,6 +9,7 @@ import com.wenjunhuang.codeepiphany.domain.CodeDojo
 import com.wenjunhuang.codeepiphany.domain.Language
 import com.wenjunhuang.codeepiphany.execution.InitializationResult
 import com.wenjunhuang.codeepiphany.execution.initializeChallenge
+import com.wenjunhuang.codeepiphany.presentation.sidebar.SidebarPolicy
 import com.wenjunhuang.codeepiphany.runtime.ProjectTasks
 import com.wenjunhuang.codeepiphany.runtime.onEdt
 import kotlinx.coroutines.async
@@ -25,12 +26,12 @@ class ChallengeAutomation : Disposable {
         if (server != null) return
         val candidate = ChallengeBridgeServer(object : ChallengeBridgeBackend {
             override fun projects(): List<String> = ProjectManager.getInstance().openProjects
-                .filter { !it.isDisposed && !it.isDefault }.mapNotNull { p ->
+                .filter { !it.isDisposed && !it.isDefault && SidebarPolicy.enabled(it.basePath) }.mapNotNull { p ->
                     p.basePath?.let { runCatching { Path.of(it).toRealPath().toString() }.getOrNull() }
                 }
             override suspend fun initialize(request: InitializationRequest): InitializationResult {
                 val project = onEdt {
-                    ProjectManager.getInstance().openProjects.filter { !it.isDisposed && !it.isDefault }
+                    ProjectManager.getInstance().openProjects.filter { !it.isDisposed && !it.isDefault && SidebarPolicy.enabled(it.basePath) }
                         .filter { p -> p.basePath?.let { Path.of(it).toRealPath().toString() } == request.project }.singleOrNull()
                 } ?: return InitializationResult("conflict", reason = "project_missing_or_ambiguous")
                 val deferred = ProjectTasks.getInstance(project).scope.async {

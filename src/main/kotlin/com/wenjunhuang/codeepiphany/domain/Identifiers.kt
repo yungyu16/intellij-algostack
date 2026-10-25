@@ -1,11 +1,5 @@
 package com.wenjunhuang.codeepiphany.domain
 
-// Stored IDs retain their existing SQLite INTEGER/TEXT representation.
-typealias ChallengeId = Long
-typealias ChallengeLanguageId = Long
-typealias SolutionId = Long
-typealias SubmissionId = Long
-typealias CodeDojoChallengeId = String
 typealias FileNameTemplate = String
 typealias CodeTemplate = String
 

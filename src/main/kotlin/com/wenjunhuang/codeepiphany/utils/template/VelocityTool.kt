@@ -10,6 +10,11 @@ object VelocityTool {
             if (it.isEmpty()) "" else it[0].uppercaseChar() + it.substring(1)
         }
 
+    /** 数字展示题号至少四位；非数字题号沿用 slug 类名，避免生成非法标识符。 */
+    @JvmStatic fun challengeFileName(frontendQuestionId: String, slug: String): String =
+        if (frontendQuestionId.matches(Regex("[0-9]+"))) "P${frontendQuestionId.padStart(4, '0')}_${camelCaseName(slug)}"
+        else camelCaseName(slug)
+
     @JvmStatic fun smallCamelCaseName(value: String?): String = camelCaseName(value).let {
         if (it.isEmpty()) "" else it[0].lowercaseChar() + it.substring(1)
     }

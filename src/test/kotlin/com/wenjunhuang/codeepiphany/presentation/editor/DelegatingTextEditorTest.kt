@@ -5,7 +5,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.testFramework.LightVirtualFile
 import com.wenjunhuang.codeepiphany.presentation.browser.PreviewEditor
-import com.wenjunhuang.codeepiphany.presentation.files.CodeEditorProvider
 import org.jdom.Element
 import org.junit.Assert.*
 import org.junit.Test
@@ -48,7 +47,7 @@ class DelegatingTextEditorTest {
             assertFalse(method.declaringClass.isInterface)
             assertEquals(VirtualFile::class.java, method.returnType)
         }
-        for (type in listOf(ChallengeEditorProvider::class.java, CodeEditorProvider::class.java)) {
+        for (type in listOf(ChallengeEditorProvider::class.java)) {
             assertEquals(type, type.getMethod("readState", Element::class.java, Project::class.java, VirtualFile::class.java).declaringClass)
             assertEquals(type, type.getMethod("writeState", FileEditorState::class.java, Project::class.java, Element::class.java).declaringClass)
         }

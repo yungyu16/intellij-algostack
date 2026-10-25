@@ -53,12 +53,17 @@ fun renderTemplate(template: String, language: Language, challenge: Any): String
     return StringWriter().use { writer -> Velocity.evaluate(context, writer, Constants.PROJECT_NAME, template); writer.toString() }
 }
 
+/** 题面 API 可能混合 HTML 与 Markdown，模板和实时侧栏使用同一渲染规则。 */
+fun challengeDescriptionHtml(data: LeetCodeChallengeData): String {
+    val options = MutableDataSet().apply { set(Parser.EXTENSIONS, listOf(AttributesExtension.create())) }
+    return HtmlRenderer.builder(options).build().render(Parser.builder(options).build()
+        .parse(data.translatedContent?.takeIf { it.isNotEmpty() } ?: data.content))
+}
+
 fun challengeTemplate(data: LeetCodeChallengeData, dojo: CodeDojo, language: Language, version: LanguageVersion): ChallengeTemplate {
     val snippet = data.codeSnippets.find { languageFromLeetCode(it.langSlug) == (language to version) }
         ?: throw IllegalArgumentException(PluginBundle.message("error.notSupportLanguage", language.show, version.version))
-    val options = MutableDataSet().apply { set(Parser.EXTENSIONS, listOf(AttributesExtension.create())) }
-    val html = HtmlRenderer.builder(options).build().render(Parser.builder(options).build()
-        .parse(data.translatedContent?.takeIf { it.isNotEmpty() } ?: data.content))
+    val html = challengeDescriptionHtml(data)
     val document = Jsoup.parse(html)
     val output = if (dojo == CodeDojo.LeetCodeCN) "输出" else "Output"
     val strong = document.select("pre strong:containsOwn($output)")
@@ -69,5 +74,5 @@ fun challengeTemplate(data: LeetCodeChallengeData, dojo: CodeDojo, language: Lan
     return ChallengeTemplate(data.questionId, data.frontendQuestionId, dojo,
         data.translatedTitle?.takeIf { it.isNotEmpty() } ?: data.title, snippet.code, data.titleSlug, html,
         ChallengeDifficulty.fromApi(data.difficulty).value, language, version, data,
-        data.exampleTestcaseList.zip(expected).map { (input, result) -> TestCase(input, result) })
+        data.exampleTestcaseList.mapIndexed { index, input -> TestCase(input, expected.getOrElse(index) { "" }) })
 }

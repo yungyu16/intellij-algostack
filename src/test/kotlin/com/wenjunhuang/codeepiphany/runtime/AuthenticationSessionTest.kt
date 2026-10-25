@@ -119,6 +119,30 @@ class AuthenticationSessionTest {
         assertTrue(first.await()); assertTrue(second.await()); assertEquals(1, prompts)
     }
 
+    @Test fun concurrentSilentEnsureRestoresOnceAndNeverPromptsForMissingOrInvalidCredentials() = runBlocking {
+        for (saved in listOf(null, "invalid", "valid")) {
+            val f = Fixture(); f.saved = saved
+            var reads = 0; var validations = 0
+            f.read = { reads++; f.saved }
+            f.validate = { validations++; if (it == "valid") it else null }
+            val results = (1..12).map { async { f.session.ensureAuthenticated(null) } }.awaitAll()
+            assertEquals(List(12) { saved == "valid" }, results)
+            assertEquals(1, reads); assertEquals(if (saved == null) 0 else 1, validations)
+            assertEquals(if (saved == "valid") "valid" else null, f.current)
+        }
+    }
+
+    @Test fun silentStorageFailureDoesNotLoopButExplicitLoginCanRetry() = runBlocking {
+        val f = Fixture(); var reads = 0
+        f.read = { reads++; error("storage unavailable") }
+        repeat(3) { assertFalse(f.session.ensureAuthenticated(null)) }
+        assertEquals(1, reads); assertEquals(1, f.failures.size)
+        f.read = { reads++; "recovered" }
+        var prompted = false
+        assertTrue(f.session.ensureAuthenticated { prompted = true; false })
+        assertFalse(prompted); assertEquals(2, reads); assertEquals("recovered", f.current)
+    }
+
     @Test fun browserErrorsHaveBoundedBackoffAndInvalidCookiesDoNotLoop() {
         var now = 0L
         val retry = AuthenticationRetry { now }

@@ -1,5 +1,28 @@
 # 更新记录
 
+## 1.16.1
+
+- 修复旧 Java/Go 文件的 package 声明位于题面注释之前时无法识别、Description/Solutions 标签页缺失的根因。仅跨过一个语法受限的合法 package 声明，仍要求头部注释中的可信题目 URL 与有效提交区域；不扫描 import 后的注释、字符串或实现体，也不修改题解、配置或历史数据库。
+- SidebarContext 的 cached Document / VFS 内容解析纳入后台 read action，结果在 EDT 检查取消后发布；仍以编辑器选择而非工具窗口焦点驱动上下文，不因切换工具窗口 tab 主动切换编辑器。
+- 增加旧 Java 文件最小形状与 Go 回归，以及 BOM、空白、多段包名、metadata 位置、非法 package、import/实现边界和身份冲突测试。离线测试不替代真实 IDEA 中的标签页、题面与平台题解验收。
+
+## 1.16.0
+
+- root .leetcode 文件/目录标记统一保护启动、桥接与编辑器入口；标记项目启动即用现有应用级认证服务静默恢复校验已保存登录态，不依赖题库 tab。多项目/视图共享一次自动尝试，无凭据/失效不弹窗，保留手动 Login 重试与取消保护。
+
+- 手动打开与 Agent 初始化共用 Java/Go 工程检查：默认布局按所选语言创建 Java 8 Maven pom.xml 或本机 Go major.minor 的 go.mod，不预建另一语言、不覆盖已有工程及代码；自定义路径须已有明确工程。已有题目也补齐工程，失败保留文件并报告 partial。
+
+- 新项目及旧空配置预置 Java／Go AnyVersion 模板：项目相对路径、纯文本题面、Java 至少四位数字题号类名和 Go 每题独立目录；两站目录隔离。已有非空设置原样保留，用户清空并保存后不自动补回，不提前创建题目。
+
+- 完成去数据库化：移除 storage、SQLite/Flyway 和迁移资源，删除 Notes/笔记、本地 Submissions 历史及相关 VFS，不读取、迁移、改写或删除用户历史数据库。
+- 题目身份改为站点、slug、语言/版本；通过头部可信题目 URL 与提交区域识别已有 Java/Go 文件，旧关联自定义用例按需保留读取，不使用本地数字 ID 或哈希替代。
+- Description 实时拉取，Solutions 平台题解保留；运行/提交异步获取后台 questionId，结果仅输出到 Console 并提供平台详情链接，保留带边框结果格式。
+- 初始化保留 created/already_exists/conflict/partial 语义，不覆盖已有代码或用例；新文件补充 URL 与语言版本头信息。
+- 稳定模板/语言配置恢复并保留 .idea/CodeEpiphany 路径，不自动搬迁；queryCriteria 完全不持久化。.leetcode 仅作 root 启用标记，兼容文件和目录，无标记不出现整个工具窗口。
+- 非题目编辑器只隐藏 Description/Solutions，保留题库和 Console；工具窗口焦点不清除题目上下文。
+
+以下为历史版本记录，迁移与存储描述只适用于对应版本，不代表 1.16.0 的行为。
+
 ## 1.15.1
 
 - 工具窗口整体按 `.leetcode` 标记注册：无标记的项目不再出现 leetcode-editor 面板，而非仅隐藏题目页。

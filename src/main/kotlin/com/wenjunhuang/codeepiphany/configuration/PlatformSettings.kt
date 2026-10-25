@@ -5,13 +5,21 @@ import com.intellij.openapi.project.Project
 import com.intellij.util.xmlb.annotations.Attribute
 import com.wenjunhuang.codeepiphany.domain.*
 import com.wenjunhuang.codeepiphany.model.Constants
-import java.nio.file.Files
-import java.nio.file.Path
 
-open class PlatformSettings : PersistentStateComponent<PlatformSettings.CodeDojoSettingsState> {
-    private var settingsState = CodeDojoSettingsState()
+open class PlatformSettings(private val dojo: CodeDojo = CodeDojo.LeetCodeCN) : PersistentStateComponent<PlatformSettings.CodeDojoSettingsState> {
+    private var settingsState = CodeDojoSettingsState().apply {
+        languageSettings = defaultLanguageSettings(dojo)
+        languageDefaultsInitialized = true
+    }
     override fun getState(): CodeDojoSettingsState = settingsState
-    override fun loadState(state: CodeDojoSettingsState) { settingsState = state }
+    override fun loadState(state: CodeDojoSettingsState) {
+        // 旧空配置初始化一次；显式清空并保存后不再恢复默认语言。
+        if (!state.languageDefaultsInitialized && state.languageSettings.isEmpty()) {
+            state.languageSettings = defaultLanguageSettings(dojo)
+        }
+        state.languageDefaultsInitialized = true
+        settingsState = state
+    }
 
     fun getSelectedLanguages(): List<Pair<Language, LanguageVersion>> = state.languageSettings.mapNotNull {
         val language = it.language; val version = it.languageVersion
@@ -23,7 +31,7 @@ open class PlatformSettings : PersistentStateComponent<PlatformSettings.CodeDojo
     class CodeDojoSettingsState {
         var languageSettings: MutableList<LanguageSettingsState> = arrayListOf()
         var descriptionCSS: String = ""
-        var extras: MutableMap<String, String> = linkedMapOf()
+        var languageDefaultsInitialized: Boolean = false
     }
     class LanguageSettingsState {
         @field:Attribute(converter = ConfigConverters.StringConverter::class)
@@ -43,26 +51,12 @@ open class PlatformSettings : PersistentStateComponent<PlatformSettings.CodeDojo
             CodeDojo.LeetCodeCN -> project.getService(LeetCodeCNSettings::class.java)
         }
 
-        /** 旧配置位于 .idea/CodeEpiphany；首次使用 .leetcode 时由面板创建入口整体搬过去。 */
-        @JvmStatic fun migrateLegacyStorage(project: Project) {
-            val root = project.basePath ?: return
-            for (name in listOf("leetcodecn.xml", "leetcode.xml")) {
-                runCatching {
-                    val legacy = Path.of(root, ".idea", Constants.PROJECT_NAME, name)
-                    val modern = Path.of(root, ".leetcode", name)
-                    if (!modern.toFile().isFile() && legacy.toFile().isFile()) {
-                        Files.createDirectories(modern.parent)
-                        Files.copy(legacy, modern)
-                    }
-                }
-            }
-        }
     }
 }
 @Service(Service.Level.PROJECT)
 @State(name = Constants.LEETCODE_SETTING, storages = [Storage(Constants.LEETCODE_SETTING_FILE)])
-class LeetCodeSettings : PlatformSettings()
+class LeetCodeSettings : PlatformSettings(CodeDojo.LeetCode)
 
 @Service(Service.Level.PROJECT)
 @State(name = Constants.LEETCODE_CN_SETTING, storages = [Storage(Constants.LEETCODE_CN_SETTING_FILE)])
-class LeetCodeCNSettings : PlatformSettings()
+class LeetCodeCNSettings : PlatformSettings(CodeDojo.LeetCodeCN)

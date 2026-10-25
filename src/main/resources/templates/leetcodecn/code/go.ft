@@ -1,1 +1,6 @@
+package main
+
+/*
+${challenge.descriptionText}
+*/
 $challenge.code
