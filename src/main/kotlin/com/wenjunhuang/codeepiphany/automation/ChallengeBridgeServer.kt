@@ -21,7 +21,7 @@ import java.util.concurrent.Semaphore
 
 @Serializable
 data class InitializationRequest(val project: String, val slug: String, val language: String, val dojo: String = "leetcodecn") {
-    fun valid(): Boolean = project.isNotBlank() && language in setOf("java", "go") && dojo in setOf("leetcodecn", "leetcode")
+    fun valid(): Boolean = project.isNotBlank() && language in setOf("java", "go") && dojo == "leetcodecn"
         && slug.length <= 160 && Regex("[a-z0-9]+(?:-[a-z0-9]+)*").matches(slug)
 }
 
@@ -77,6 +77,7 @@ internal class ChallengeBridgeServer(private val backend: ChallengeBridgeBackend
                 if (body.size > 4096) { reply(x, 413, error("request_too_large")); return }
                 val request = try { json.decodeFromString<InitializationRequest>(body.toString(Charsets.UTF_8)) }
                     catch (_: Exception) { reply(x, 400, error("invalid_request")); return }
+                if (request.dojo != "leetcodecn") { reply(x, 400, error("unsupported_dojo_only_leetcodecn")); return }
                 if (!request.valid()) { reply(x, 400, error("invalid_request")); return }
                 if (request.project !in backend.projects()) { reply(x, 409, error("project_not_open")); return }
                 if (!creating.tryAcquire()) { reply(x, 409, error("busy")); return }

@@ -1,6 +1,5 @@
 package com.wenjunhuang.codeepiphany.execution
 
-import com.wenjunhuang.codeepiphany.configuration.LeetCodeCNSettings
 import com.wenjunhuang.codeepiphany.domain.*
 import com.wenjunhuang.codeepiphany.leetcode.api.model.*
 import kotlinx.coroutines.*
@@ -15,10 +14,8 @@ class LanguageProjectInitializationTest {
         val root = Files.createTempDirectory("language-project-").toRealPath()
         try { block(root) } finally { root.toFile().deleteRecursively() }
     }
-    private fun setting(root: Path, language: Language): GenerationSettings {
-        val state = LeetCodeCNSettings().state.languageSettings.single { it.language == language }
-        return GenerationSettings(state.sourceFolder!!.replace("\$PROJECT_DIR\$", root.toString()), state.fileNameTemplate!!, state.codeTemplate!!)
-    }
+    private fun setting(root: Path, language: Language): GenerationSettings =
+        ChallengeConventions.generation(root, CodeDojo.LeetCodeCN, language)
     private fun prepared(language: Language, setting: GenerationSettings): PreparedChallenge {
         val snippet = if (language == Language.Java) "class Solution {}" else "func solve() {}"
         val data = LeetCodeChallengeData("9001", "1", "Two Sum", "two-sum", "<p>Fixture</p>",

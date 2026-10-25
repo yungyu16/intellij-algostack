@@ -41,8 +41,8 @@ class LeetCodeJsonTest {
         assertEquals(emptyList<Int>(), tag.questions)
     }
 
-    @Test fun questionListV2KeepsTheFrontendDisplayId() {
-        val list = json.decodeFromString<LeetCodeChallengeListV2>("""{"questions":[{"acRate":50.0,"difficulty":"EASY","paidOnly":false,"questionFrontendId":"LCR 001","title":"test","titleSlug":"test"}],"totalLength":1}""").toV1()
+    @Test fun chinaQuestionListKeepsTheFrontendDisplayId() {
+        val list = json.decodeFromString<LeetCodeChallengeList>("""{"questions":[{"acRate":0.5,"difficulty":"EASY","paidOnly":false,"frontendQuestionId":"LCR 001","title":"test","titleSlug":"test"}],"total":1}""")
         assertEquals("LCR 001", list.questions.single().frontendQuestionId)
         assertEquals(1, list.total)
     }

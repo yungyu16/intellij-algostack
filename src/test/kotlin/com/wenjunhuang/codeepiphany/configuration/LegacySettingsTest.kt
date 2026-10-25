@@ -24,32 +24,6 @@ class LegacySettingsTest {
         assertNotNull(settings.findAssociation("/code/old-neighbor/C.java"))
     }
 
-    private fun languageElement() = Element("LanguageSettingsState")
-        .setAttribute("sourceFolder", "\$PROJECT_DIR\$/code/java/src/main/java/leetcodecn")
-        .setAttribute("language", "java").setAttribute("languageVersion", "")
-        .setAttribute("fileNameTemplate", "P\${challenge.frontendQuestionId}_\${velocity.camelCaseName(\$challenge.slug)}")
-        .setAttribute("codeTemplate", "class Solution {\n}\n")
-
-    @Test fun readsAndWritesTheExistingLanguageAttributes() {
-        val element = languageElement()
-        val state = XmlSerializer.deserialize(element, PlatformSettings.LanguageSettingsState::class.java)
-        assertEquals(Language.Java, state.language)
-        assertEquals(LanguageVersion.AnyVersion, state.languageVersion)
-        assertEquals(element.getAttributeValue("fileNameTemplate"), state.fileNameTemplate)
-        val output = XmlSerializer.serialize(state)
-        for (name in listOf("sourceFolder", "language", "languageVersion", "fileNameTemplate", "codeTemplate")) {
-            assertEquals(name, element.getAttributeValue(name), output.getAttributeValue(name))
-        }
-    }
-
-    @Test fun readsTheExistingListAndRetainsOtherSettings() {
-        val element = Element("component").addContent(Element("option").setAttribute("name", "languageSettings")
-            .addContent(Element("list").addContent(languageElement())))
-        val settings = XmlSerializer.deserialize(element, PlatformSettings.CodeDojoSettingsState::class.java)
-        assertEquals(1, settings.languageSettings.size)
-        assertEquals(Language.Java, settings.languageSettings.single().language)
-    }
-
     @Test fun readsLegacyFileAssociationsIncludingDirectCollectionTags() {
         val element = javaClass.getResourceAsStream("/legacy/challenge.xml").use {
             org.jdom.input.SAXBuilder().build(it).rootElement
@@ -67,17 +41,57 @@ class LegacySettingsTest {
         assertEquals(association, ChallengeSettings().apply { loadState(restored) }.resolve("/fixture/P0001_TwoSum.java", content))
     }
 
+    @Test fun xmlNeverProvesIdentityOrSuppliesLanguageVersion() {
+        for (language in listOf(Language.Java, Language.GO)) for (slug in listOf("", "two-sum")) {
+            val path = "old.${language.fileExt}"
+            val original = ChallengeSettings().apply {
+                state.challenges[path] = ChallengeSettings.ChallengeSettingsStateItem().also {
+                    it.dojo = CodeDojo.LeetCodeCN; it.slug = slug; it.language = language
+                    it.languageVersion = LanguageVersion.SpecificVersion("17")
+                    it.testCases.add(ChallengeSettings.TestCase("custom", "keep"))
+                }
+            }
+            // 通过真实 XML 序列化契约加载，不依赖用户路径或本地数据。
+            val settings = ChallengeSettings().apply {
+                loadState(XmlSerializer.deserialize(XmlSerializer.serialize(original.state), ChallengeSettings.ChallengeSettingsState::class.java))
+            }
+            val region = language.encloseCodeInRegion("// skeleton")
+            val identity = ChallengeIdentity(CodeDojo.LeetCodeCN, "two-sum", language)
+            assertNull(settings.resolve(path, region))
+            assertNull(settings.resolve(path, "// leetcode-editor: language=${language.value}; version=17\n$region"))
+            val urlOnly = "// https://leetcode.cn/problems/two-sum/\n$region"
+            assertEquals(identity, settings.resolve(path, urlOnly)?.identity)
+            assertTrue(settings.resolve(path, urlOnly)!!.testCases.isEmpty())
+            val versioned = ChallengeRecognition.header(identity.copy(version = LanguageVersion.SpecificVersion("17"))) + region
+            assertEquals("custom", settings.resolve(path, versioned)!!.testCases.single().input)
+            assertNull(settings.resolve(path, versioned.replace("leetcode.cn", "evil.test")))
+            assertNull(settings.resolve(path, versioned.replace("language=${language.value}", "language=unknown")))
+            // XML 语言不匹配也不能污染已由扩展名确认的身份或用例。
+            settings.state.challenges[path]!!.language = if (language == Language.Java) Language.GO else Language.Java
+            assertEquals(identity, settings.resolve(path, urlOnly)?.identity)
+            assertTrue(settings.resolve(path, versioned)!!.testCases.isEmpty())
+        }
+    }
+
+    @Test fun retiredInternationalXmlValuesAreIgnoredWithoutMigration() {
+        val association = Element("ChallengeSettingsStateItem")
+            .addContent(Element("option").setAttribute("name", "dojo").setAttribute("value", "leetcode"))
+            .addContent(Element("option").setAttribute("name", "slug").setAttribute("value", "two-sum"))
+            .addContent(Element("option").setAttribute("name", "language").setAttribute("value", "java"))
+        val item = XmlSerializer.deserialize(association, ChallengeSettings.ChallengeSettingsStateItem::class.java)
+        assertNull(item.dojo)
+        val settings = ChallengeSettings().apply { state.challenges["old.java"] = item }
+        assertNull(settings.findAssociation("old.java"))
+        assertNull(ConfigConverters.CodeDojoConverter().fromString("leetcode"))
+    }
+
     @Test fun stateComponentNamesAndStorageFilesStayStable() {
-        val global = CodeEpiphanySettings::class.java.getAnnotation(State::class.java)
-        assertEquals(Constants.SETTING, global.name)
-        assertEquals(Constants.SETTING_FILE, global.storages.single().value)
-        assertEquals(Constants.LEETCODE_CN_SETTING, LeetCodeCNSettings::class.java.getAnnotation(State::class.java).name)
         assertEquals(Constants.CHALLENGE_SETTING, ChallengeSettings::class.java.getAnnotation(State::class.java).name)
     }
 
     @Test fun newIdentityRoundTripRetainsLanguageVersionWithoutLocalIds() {
         val settings = ChallengeSettings()
-        val identity = ChallengeIdentity(CodeDojo.LeetCode, "two-sum", Language.Java, LanguageVersion.SpecificVersion("17"))
+        val identity = ChallengeIdentity(CodeDojo.LeetCodeCN, "two-sum", Language.Java, LanguageVersion.SpecificVersion("17"))
         settings.addChallenge("new.java", ChallengeSettings.Association(identity))
         val xml = XmlSerializer.serialize(settings.state)
         val restored = ChallengeSettings().apply { loadState(XmlSerializer.deserialize(xml, ChallengeSettings.ChallengeSettingsState::class.java)) }

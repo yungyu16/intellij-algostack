@@ -7,14 +7,11 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
-import com.intellij.ui.DocumentAdapter
-import com.intellij.ui.SearchTextField
-import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.*
 import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.JBUI
 import com.wenjunhuang.codeepiphany.PluginBundle
-import com.wenjunhuang.codeepiphany.configuration.PlatformSettings
+import com.wenjunhuang.codeepiphany.execution.ChallengeConventions
 import com.wenjunhuang.codeepiphany.domain.*
 import com.wenjunhuang.codeepiphany.execution.openChallenge
 import com.wenjunhuang.codeepiphany.leetcode.api.LeetCodeClient
@@ -23,14 +20,12 @@ import com.wenjunhuang.codeepiphany.model.Actions
 import com.wenjunhuang.codeepiphany.presentation.*
 import com.wenjunhuang.codeepiphany.presentation.browser.openWebPreview
 import com.wenjunhuang.codeepiphany.runtime.*
-import com.wenjunhuang.codeepiphany.utils.ColorUtils
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
 import java.awt.*
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.*
-import javax.swing.event.DocumentEvent
 import javax.swing.table.AbstractTableModel
 import javax.swing.table.DefaultTableCellRenderer
 
@@ -44,13 +39,17 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
     private val logger = Logger.getInstance(ChallengesView::class.java)
     private val childJob = SupervisorJob(ProjectTasks.getInstance(project).scope.coroutineContext[Job])
     private val scope = CoroutineScope(ProjectTasks.getInstance(project).scope.coroutineContext + childJob)
-    private val settings get() = PlatformSettings.getInstance(project, dojo).state
     private val auth get() = AuthService.getInstance(project)
     private val api get() = HttpService.getInstance().api(dojo)
-    override var mode = QueryMode.QueryParameters; private set
-    private var parameters = ProblemCriteria()
-    private var company = CompanyCriteria()
-    private val pages = QueryMode.entries.associateWith { Pagination() }.toMutableMap()
+    private val criteria = ProblemQueryState()
+    override val mode get() = criteria.mode
+    private var parameters
+        get() = criteria.parameters
+        set(value) { criteria.parameters = value }
+    private var company
+        get() = criteria.company
+        set(value) { criteria.company = value }
+    private val pages get() = criteria.pages
     private var metadata: Metadata? = null
     private var ready = false
     private var readyRevision = -1L
@@ -69,9 +68,9 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
     override val isBusy: Boolean get() = loggingIn || query.states.value is QueryState.Loading
     private val model = ProblemTable()
     private val table = JBTable(model).apply { setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION); autoCreateRowSorter = false }
-    private val search = SearchTextField(true).apply {
-        textEditor.emptyText.appendText(PluginBundle.message("ui.query.searchHint"),
-            SimpleTextAttributes(SimpleTextAttributes.STYLE_PLAIN, ColorUtils.LABEL_GRAY_COLOR))
+    private val search = ProblemSearchBar(::switchTo) { keyword ->
+        criteria.submitKeyword(keyword)
+        request()
     }
     private var updatingControls = false
     private val tagsPanel = JPanel(FlowLayout(FlowLayout.LEFT, 4, 2))
@@ -84,7 +83,7 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
     private val pageSize = JComboBox(PageSize.entries.map { it.value }.toTypedArray())
 
     init {
-        // 筛选动作与站点动作（模式切换、登录、账号、捐赠）合并到面板工具栏。
+        // 范围与关键词在首行，筛选与账号动作另占紧凑工具栏。
         val toolbarGroup = DefaultActionGroup().apply {
             add(ActionManager.getInstance().getAction(Actions.LEETCODE_TOOLBAR_GROUP) as ActionGroup)
             addSeparator()
@@ -93,7 +92,7 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
         val toolbar = ActionManager.getInstance().createActionToolbar(Actions.TOOLBAR_PLACE, toolbarGroup, true)
         toolbar.targetComponent = this
         val north = JPanel(BorderLayout()).apply {
-            add(toolbar.component, BorderLayout.NORTH); add(search, BorderLayout.CENTER); add(tagsPanel, BorderLayout.SOUTH)
+            add(search, BorderLayout.NORTH); add(toolbar.component, BorderLayout.CENTER); add(tagsPanel, BorderLayout.SOUTH)
         }
         content.add(north, BorderLayout.NORTH); content.add(JBScrollPane(table), BorderLayout.CENTER)
         val footer = JPanel(FlowLayout(FlowLayout.RIGHT, 6, 2))
@@ -105,17 +104,6 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
         content.add(footer, BorderLayout.SOUTH)
         val prompt = JPanel(BorderLayout()).apply { add(message, BorderLayout.CENTER); add(loginButton, BorderLayout.SOUTH); border = JBUI.Borders.empty(12) }
         body.add(prompt, "prompt"); body.add(content, "query"); add(body, BorderLayout.CENTER)
-        search.textEditor.document.addDocumentListener(object : DocumentAdapter() {
-            override fun textChanged(event: DocumentEvent) {
-                if (!updatingControls) {
-                    when (mode) {
-                        QueryMode.QueryParameters -> parameters = parameters.withKeyword(search.text)
-                        QueryMode.CompanyQuery -> company = company.withKeyword(search.text)
-                    }
-                    request(true)
-                }
-            }
-        })
         pageSpinner.addChangeListener { if (!updatingControls) setPage((pageSpinner.value as Number).toInt()) }
         pageSize.addActionListener { if (!updatingControls) {
             pages[mode] = pages.getValue(mode).copy(currentPage = 1, pageSize = PageSize.entries.first { it.value == pageSize.selectedItem }); request()
@@ -144,7 +132,7 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
         table.addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(event: MouseEvent) {
                 if (event.clickCount == 2 && SwingUtilities.isLeftMouseButton(event)) {
-                    val languages = PlatformSettings.getInstance(project, dojo).getSelectedLanguages()
+                    val languages = ChallengeConventions.languages
                     if (languages.size == 1) openSelection(languages.single().first, languages.single().second)
                     else ActionManager.getInstance().createActionPopupMenu(Actions.CHALLENGES_TABLE_POPUP_PLACE,
                         ActionManager.getInstance().getAction("CodeEpiphany.Dojos.Actions.OpenChallengeGroup") as ActionGroup).component.show(table, event.x, event.y)
@@ -229,12 +217,9 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
     override fun logout() { scope.launch { auth.logout(dojo); onEdt { ready = false; showBody() } } }
     override fun showProfile() { userInfo?.userSlug?.let { openWebPreview(project, dojo, "https://${dojo.domain}/u/$it", userInfo?.username ?: dojo.show) } }
     override fun switchTo(mode: QueryMode) {
-        this.mode = mode
+        criteria.switchTo(mode)
         model.rows = emptyList(); model.fireTableStructureChanged()
-        updatingControls = true
-        search.text = if (mode == QueryMode.CompanyQuery) company.keyword else parameters.keyword
-        search.isVisible = true
-        updatingControls = false
+        search.showScope(mode)
         updateTags(); updateFooter(); showBody()
         if (ready) request()
     }
@@ -242,7 +227,7 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
     override fun refresh() { if (ready) request() else login() }
     private fun setPage(page: Int) { if (page in 1..pages.getValue(mode).totalPages) { pages[mode] = pages.getValue(mode).copy(currentPage = page); request() } }
     private fun order(): QueryOrder? = when (mode) { QueryMode.QueryParameters -> parameters.orderBy; QueryMode.CompanyQuery -> company.orderBy }
-    private val activeFilterKinds get() = mode.activeFilters(dojo, parameters.selectedFavorite != null)
+    private val activeFilterKinds get() = mode.filterKinds
     private fun currentRequest() = Request(mode, parameters, company, pages.getValue(mode))
     private fun request(reset: Boolean = false) {
         if (!ready || closed) return
@@ -331,7 +316,8 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
         activeFilterKinds.forEach { kind -> val choices = items(kind).associateBy { it.id }
             selected(kind).map { choices[it] ?: FilterItem(it, it) }.forEach { item ->
             tagsPanel.add(filterChip(kind, item) { toggle(kind, item.id) })
-        } }; tagsPanel.revalidate(); tagsPanel.repaint()
+        } }; tagsPanel.isVisible = tagsPanel.componentCount > 0
+        tagsPanel.revalidate(); tagsPanel.repaint()
     }
     private fun selectedRows(): List<LeetCodeChallengeListItem> = table.selectedRows.asSequence().mapNotNull { model.rows.getOrNull(it) }.toList()
     override val canOpenSelection: Boolean get() = selectedRows().any { !it.paidOnly || userInfo?.isPremium == true }
@@ -346,7 +332,7 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
         var rows = emptyList<LeetCodeChallengeListItem>()
         private val premium get() = userInfo?.isPremium == true
         val fields: List<String?> get() = listOf(null, "FRONTEND_ID", "DIFFICULTY") +
-            (if (dojo == CodeDojo.LeetCodeCN && mode != QueryMode.CompanyQuery) listOf("SOLUTION_NUM") else emptyList()) +
+            (if (mode != QueryMode.CompanyQuery) listOf("SOLUTION_NUM") else emptyList()) +
             (if (premium) listOf("FREQUENCY") else emptyList()) + "AC_RATE"
         override fun getRowCount(): Int = rows.size
         override fun getColumnCount(): Int = fields.size
@@ -367,7 +353,7 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
                 "DIFFICULTY" -> ChallengeDifficulty.fromApi(item.difficulty).showAsHtml()
                 "SOLUTION_NUM" -> item.solutionNum ?: 0
                 "FREQUENCY" -> item.freqBar ?: 0.0
-                else -> "%.2f%%".format(item.acRate * if (dojo == CodeDojo.LeetCodeCN) 100 else 1)
+                else -> "%.2f%%".format(item.acRate * 100)
             }
         }
     }

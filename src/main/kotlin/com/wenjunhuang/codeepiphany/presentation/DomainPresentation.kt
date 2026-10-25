@@ -6,9 +6,9 @@ import com.wenjunhuang.codeepiphany.domain.*
 import icons.CodeEpiphanyIcons
 import javax.swing.Icon
 
-val CodeDojo.show: String get() = if (this == CodeDojo.LeetCode) "LeetCode" else PluginBundle.message("leetcodecn.settings.displayName")
-val CodeDojo.icon: Icon get() = if (this == CodeDojo.LeetCode) CodeEpiphanyIcons.Dojos.LEETCODE else CodeEpiphanyIcons.Dojos.LEETCODECN
-val CodeDojo.iconPath: String get() = if (this == CodeDojo.LeetCode) CodeEpiphanyIcons.Dojos.LEETCODE_PATH else CodeEpiphanyIcons.Dojos.LEETCODECN_PATH
+val CodeDojo.show: String get() = PluginBundle.message("leetcodecn.settings.displayName")
+val CodeDojo.icon: Icon get() = CodeEpiphanyIcons.Dojos.LEETCODECN
+val CodeDojo.iconPath: String get() = CodeEpiphanyIcons.Dojos.LEETCODECN_PATH
 val Language.icon: Icon get() = when (this) {
     Language.Asm -> CodeEpiphanyIcons.Languages.ASM
     Language.C -> CodeEpiphanyIcons.Languages.C

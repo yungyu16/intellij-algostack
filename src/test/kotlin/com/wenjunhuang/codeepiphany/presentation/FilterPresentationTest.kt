@@ -29,13 +29,6 @@ class FilterPresentationTest {
         }
     }
 
-    @Test fun globalFavoriteHidesOnlyTheUnsupportedCategoryFilter() {
-        assertFalse(FilterKind.Category in QueryMode.QueryParameters.activeFilters(CodeDojo.LeetCode, true))
-        assertTrue(FilterKind.Favorite in QueryMode.QueryParameters.activeFilters(CodeDojo.LeetCode, true))
-        assertTrue(FilterKind.Category in QueryMode.QueryParameters.activeFilters(CodeDojo.LeetCode, false))
-        assertTrue(FilterKind.Category in QueryMode.QueryParameters.activeFilters(CodeDojo.LeetCodeCN, true))
-    }
-
     @Test fun togglingOneSelectionPreservesOtherStaleSelections() {
         val selected = listOf("old-a", "old-b", "current")
         val available = listOf("current", "new")

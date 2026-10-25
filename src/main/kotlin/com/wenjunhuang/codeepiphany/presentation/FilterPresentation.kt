@@ -15,10 +15,6 @@ internal val QueryMode.filterKinds: Set<FilterKind>
         QueryMode.CompanyQuery -> setOf(FilterKind.Company, FilterKind.Position, FilterKind.InterviewPeriod, FilterKind.Difficulty, FilterKind.Status, FilterKind.Tags)
     }
 
-/** 国际站收藏题单接口不接受 category；隐藏但保留原分类，取消收藏后可恢复。 */
-internal fun QueryMode.activeFilters(dojo: CodeDojo, favoriteSelected: Boolean): Set<FilterKind> =
-    if (this == QueryMode.QueryParameters && dojo == CodeDojo.LeetCode && favoriteSelected) filterKinds - FilterKind.Category else filterKinds
-
 internal val FilterKind.clearable: Boolean get() = this != FilterKind.InterviewPeriod
 
 internal fun <T> toggleSingle(current: T?, choices: List<T>, id: String, key: (T) -> String): T? =

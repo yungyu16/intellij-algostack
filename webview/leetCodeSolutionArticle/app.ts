@@ -3,13 +3,12 @@ import {markedHighlight} from "marked-highlight";
 import hljs from 'highlight.js';
 import './app.scss';
 import 'katex/dist/katex.css';
-import renderMathInElement from 'katex/contrib/auto-render';
 import katex_extension from "./katex_extension";
 
 const showSolutionArticle = (contentBased64: string,
                              codeDojoBased64: string) => {
     const content = decodeBase64(contentBased64);
-    const codeDojo = decodeBase64(codeDojoBased64);
+    if (decodeBase64(codeDojoBased64).toLowerCase() !== 'leetcodecn') throw new Error('Only LeetCodeCN is supported');
     const container = document.getElementById('container')!;
     let marked = new Marked(markedHighlight({
         emptyLangClass: 'hljs',
@@ -19,23 +18,10 @@ const showSolutionArticle = (contentBased64: string,
             return hljs.highlight(code, {language}).value;
         }
     }));
-    if (codeDojo.toLowerCase() === 'leetcodecn')
-        marked = marked.use(katex_extension({}));
+    marked = marked.use(katex_extension({}));
 
 
     container.innerHTML = <string>marked.parse(content);
-    if (codeDojo.toLowerCase() === 'leetcode') {
-        renderMathInElement(container, {
-            delimiters: [
-                {left: '$$', right: '$$', display: false},
-                {left: '$', right: '$', display: false},
-                {left: '\\(', right: '\\)', display: false},
-                {left: '\\[', right: '\\]', display: true}
-            ],
-            throwOnError: true
-        });
-
-    }
 
 }
 

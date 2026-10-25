@@ -16,10 +16,6 @@ import com.wenjunhuang.codeepiphany.presentation.browser.WebDocumentView
 import com.wenjunhuang.codeepiphany.presentation.browser.openWebPreview
 import com.wenjunhuang.codeepiphany.runtime.*
 import kotlinx.coroutines.*
-import org.apache.commons.text.translate.AggregateTranslator
-import org.apache.commons.text.translate.LookupTranslator
-import org.apache.commons.text.translate.OctalUnescaper
-import org.apache.commons.text.translate.UnicodeUnescaper
 import java.awt.BorderLayout
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
@@ -122,7 +118,7 @@ class ArticlesPanel(project: Project) : SidebarPanel(project), UiDataProvider, F
         scope.launch { detailQuery.states.collect { state -> onEdt { when (state) {
             is QueryState.Success -> {
                 val (dojo, article) = state.value
-                document.setContent(if (dojo == CodeDojo.LeetCode) unescape.translate(article.content) else article.content, dojo)
+                document.setContent(article.content, dojo)
             }
             is QueryState.Failure -> status.text = state.error.message.orEmpty()
             else -> Unit
@@ -141,7 +137,7 @@ class ArticlesPanel(project: Project) : SidebarPanel(project), UiDataProvider, F
         query.submit(Request(item, page, order, search.text, selectedTags.toList()))
     }
     fun setOrder(value: LeetCodeQuestionSolutionArticlesOrderBy) { order = value; page = page.resetToFirstPage(); refresh() }
-    fun orders(): List<LeetCodeQuestionSolutionArticlesOrderBy> = LeetCodeQuestionSolutionArticlesOrderBy.entries.filter { challenge?.dojo == CodeDojo.LeetCodeCN || it.leetCode != null }
+    fun orders(): List<LeetCodeQuestionSolutionArticlesOrderBy> = LeetCodeQuestionSolutionArticlesOrderBy.entries
     override fun items(kind: FilterKind): List<FilterItem> {
         if (kind != FilterKind.Tags) return emptyList()
         val tags = tags ?: return emptyList()
@@ -167,7 +163,5 @@ class ArticlesPanel(project: Project) : SidebarPanel(project), UiDataProvider, F
     }
     companion object {
         val KEY = DataKey.create<ArticlesPanel>("CodeEpiphany.Articles")
-        private val unescape = AggregateTranslator(OctalUnescaper(), UnicodeUnescaper(), LookupTranslator(mapOf<CharSequence, CharSequence>(
-            "\\n" to "\n", "\\\\" to "\\", "\\\"" to "\"", "\\'" to "'")))
     }
 }

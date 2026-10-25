@@ -43,7 +43,8 @@ export async function discover(project, directory = defaultDirectory) {
 }
 
 export async function initializeChallenge(project, slug, language, directory = defaultDirectory, dojo = 'leetcodecn') {
-    if (!['leetcodecn', 'leetcode'].includes(dojo) || !['java', 'go'].includes(language) || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 160)
+    if (dojo !== 'leetcodecn') throw new Error('不支持该站点；仅支持 LeetCodeCN (leetcodecn)');
+    if (!['java', 'go'].includes(language) || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 160)
         throw new Error('需要合法 slug，以及 java 或 go 语言');
     project = fs.realpathSync(project);
     const matches = await discover(project, directory);
@@ -69,7 +70,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
             const result = await initializeChallenge(project, slug, language, defaultDirectory, value('--dojo') ?? 'leetcodecn');
             console.log(JSON.stringify(result, null, 2));
             if (!['created', 'already_exists'].includes(result.status)) process.exitCode = 1;
-        } else throw new Error('用法：status [--project 路径] | initialize --slug 题目slug --language java|go [--dojo leetcodecn|leetcode] [--project 路径]');
+        } else throw new Error('用法：status [--project 路径] | initialize --slug 题目slug --language java|go [--dojo leetcodecn] [--project 路径]');
     } catch (e) {
         console.error(e.name === 'TimeoutError' ? '等待超时；IDEA 中操作可能仍在进行。先检查文件与关联，不自动重试创建。' : e.message);
         process.exitCode = 1;

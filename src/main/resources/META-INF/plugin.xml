@@ -15,8 +15,6 @@
 
     <resource-bundle>messages.PluginBundle</resource-bundle>
     <actions>
-        <group id="CodeEpiphany.Actions.LeetCode.ChangeUI"
-               class="com.wenjunhuang.codeepiphany.presentation.actions.ModeAction"/>
         <group id="CodeEpiphany.Dojos.Actions.OpenChallengeGroup"
                popup="true"
                class="com.wenjunhuang.codeepiphany.presentation.actions.OpenChallengeGroup"/>
@@ -121,7 +119,6 @@
 
         <!-- 题库面板迁入底部工具窗口后，站点相关动作改挂在面板工具栏上 -->
         <group id="CodeEpiphany.Dojos.LeetCode.SiteActions">
-            <reference ref="CodeEpiphany.Actions.LeetCode.ChangeUI"/>
             <reference ref="CodeEpiphany.Actions.Login"/>
             <reference ref="CodeEpiphany.Dojos.TitleToolbar.Account"/>
         </group>
@@ -177,18 +174,6 @@
                     icon="CodeEpiphanyIcons.PLUGIN"/>
 
         <registryKey defaultValue="false" description="Enable debug" key="codeepiphany.debug"/>
-
-        <projectConfigurable parentId="tools"
-                             displayName="leetcode-editor"
-                             id="CodeEpiphany.Settings"
-                             instance="com.wenjunhuang.codeepiphany.settings.CodeEpiphanySettingsConfigurable">
-            <configurable id="CodeEpiphany.Settings.LeetCodeCN"
-                          instance="com.wenjunhuang.codeepiphany.leetcode.settings.LeetCodeCNSettingsConfigurable"
-                          key="leetcodecn.settings.displayName"/>
-            <configurable id="CodeEpiphany.Settings.LeetCode"
-                          instance="com.wenjunhuang.codeepiphany.leetcode.settings.LeetCodeSettingsConfigurable"
-                          key="leetcode.settings.displayName"/>
-        </projectConfigurable>
 
         <lang.foldingBuilder language="JAVA"
                              implementationClass="com.wenjunhuang.codeepiphany.editor.extensions.SubmissionRegionFoldingBuilder"/>

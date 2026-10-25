@@ -65,17 +65,8 @@ enum class Language(val value: String, val fileExt: String, val show: String) {
     ).matches(comment)
 
     fun extractCodeFromRegion(code: String): String {
-        val result = StringBuilder()
-        val current = StringBuilder()
-        var inside = false
-        for (line in code.split(Regex("(?<=\\n)|(?<=\\r)(?!\\n)"))) {
-            val trimmed = line.trim()
-            if (matchRegion(trimmed, Constants.SUBMIT_CODE_REGION_BEGIN)) inside = true
-            else if (matchRegion(trimmed, Constants.SUBMIT_CODE_REGION_END)) {
-                if (inside) { inside = false; result.append(current); current.setLength(0) }
-            } else if (inside) current.append(line)
-        }
-        return result.toString()
+        val region = SourceRegions.locate(code, this) ?: return ""
+        return code.substring(region.start, region.end)
     }
 
     companion object {

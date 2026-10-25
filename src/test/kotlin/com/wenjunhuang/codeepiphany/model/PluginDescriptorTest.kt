@@ -10,7 +10,8 @@ class PluginDescriptorTest {
         val artifact = requireNotNull(System.getProperty("codeepiphany.pluginArtifact"))
         java.util.jar.JarFile(artifact).use { jar ->
             val entries = jar.entries().asSequence().map { it.name }.toList()
-            for (retired in listOf("org/sqlite/", "org/flywaydb/", "com/wenjunhuang/codeepiphany/storage/"))
+            for (retired in listOf("org/sqlite/", "org/flywaydb/", "com/wenjunhuang/codeepiphany/storage/",
+                "com/wenjunhuang/codeepiphany/settings/", "com/wenjunhuang/codeepiphany/model/template/"))
                 assertFalse(retired, entries.any { it.startsWith(retired) })
         }
         assertNull(javaClass.getResource("/db/migration/V001__initial.sql"))
@@ -19,6 +20,22 @@ class PluginDescriptorTest {
             assertFalse(retired, xml.contains(retired))
         assertTrue(xml.contains("ActivateSolutions"))
         assertTrue(xml.contains("SidebarWindowFactory"))
+    }
+
+    @Test fun internationalSettingsTemplatesAndOperationsAreNotPackaged() {
+        val artifact = requireNotNull(System.getProperty("codeepiphany.pluginArtifact"))
+        java.util.jar.JarFile(artifact).use { jar ->
+            val entries = jar.entries().asSequence().map { it.name }.toList()
+            assertFalse(entries.any { it.startsWith("templates/leetcode/") })
+            assertFalse(entries.any { it.endsWith("/LeetCodeSettings.class") || it.endsWith("/LeetCodeSettingsConfigurable.class") })
+            assertFalse(entries.any { it.contains("ugcArticle") || it.endsWith("problemsetQuestionListV2.graphql") })
+            assertTrue("templates/leetcodecn/code/java.ft" in entries)
+            assertFalse(entries.any { it.endsWith("/PlatformSettings.class") || it.endsWith("/LeetCodeCNSettings.class") || it.endsWith("/CodeEpiphanySettings.class") })
+            assertFalse(entries.any { it.startsWith("settings/") || it.contains("SetupRequiredPromptView") })
+        }
+        val configs = descriptor().getElementsByTagName("configurable")
+        assertEquals(0, configs.length)
+        assertEquals(0, descriptor().getElementsByTagName("projectConfigurable").length)
     }
 
     @Test fun keepsJcefDependencyForTheLoginBrowser() {
@@ -62,7 +79,7 @@ class PluginDescriptorTest {
         val missing = (0 until references.length).map { references.item(it).attributes.getNamedItem("ref").nodeValue }
             .filter { it.startsWith("CodeEpiphany.") && it !in ids }
         assertEquals(emptyList<String>(), missing)
-        assertTrue("CodeEpiphany.Actions.LeetCode.ChangeUI" in ids)
+        assertFalse("CodeEpiphany.Actions.LeetCode.ChangeUI" in ids)
         assertTrue("CodeEpiphany.Dojos.Actions.OpenChallengeGroup" in ids)
     }
 }

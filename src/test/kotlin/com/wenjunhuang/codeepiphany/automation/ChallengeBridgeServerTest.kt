@@ -22,7 +22,7 @@ class ChallengeBridgeServerTest {
         .apply { if (origin) header("Origin", "https://example.invalid") }
         .method(if (body == null) "GET" else "POST", HttpRequest.BodyPublishers.ofString(body.orEmpty())).build()
 
-    @Test fun narrowAuthenticatedEndpointSupportsBothLanguagesAndSites() {
+    @Test fun narrowAuthenticatedEndpointSupportsBothLanguagesAndRejectsInternationalSite() {
         val calls = CopyOnWriteArrayList<InitializationRequest>()
         val backend = object : ChallengeBridgeBackend {
             override fun projects() = listOf("/project")
@@ -41,13 +41,19 @@ class ChallengeBridgeServerTest {
             assertEquals(404, status(request(server, body, route = "/submit")))
             assertEquals(400, status(request(server, "{")))
             assertEquals(413, status(request(server, "x".repeat(4097))))
-            for (invalid in listOf(input.copy(slug = "../escape"), input.copy(language = "python"), input.copy(dojo = "other")))
+            for (invalid in listOf(input.copy(slug = "../escape"), input.copy(language = "python"), input.copy(dojo = "other"), input.copy(dojo = "leetcode")))
                 assertEquals(400, status(request(server, Json.encodeToString(invalid))))
             assertEquals(409, status(request(server, Json.encodeToString(input.copy(project = "/wrong")))))
             assertTrue(calls.isEmpty())
-            for (language in listOf("java", "go")) for (dojo in listOf("leetcodecn", "leetcode"))
+            for (language in listOf("java", "go")) for (dojo in listOf("leetcodecn"))
                 assertEquals(200, status(request(server, Json.encodeToString(input.copy(language = language, dojo = dojo)))))
-            assertEquals(4, calls.size)
+            assertEquals(200, status(request(server, """{"project":"/project","slug":"two-sum","language":"java"}""")))
+            assertEquals(3, calls.size)
+            assertTrue(calls.all { it.dojo == "leetcodecn" })
+            val rejected = client.send(request(server, Json.encodeToString(input.copy(dojo = "leetcode"))), HttpResponse.BodyHandlers.ofString())
+            assertEquals(400, rejected.statusCode())
+            assertTrue(rejected.body().contains("unsupported_dojo_only_leetcodecn"))
+            assertEquals(3, calls.size)
         } }
     }
 

@@ -4,7 +4,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable(with = CodeDojoSerializer::class)
 enum class CodeDojo(val domain: String, val value: String) {
-    LeetCode("leetcode.com", "leetcode"),
     LeetCodeCN("leetcode.cn", "leetcodecn");
 
     val loginUrl: String get() = "https://$domain/accounts/login/"

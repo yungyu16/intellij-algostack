@@ -6,12 +6,13 @@ import java.net.HttpCookie
 
 class CodeDojoTest {
     @Test fun persistedSiteIdentifiersRemainStable() {
-        assertEquals(setOf("leetcode", "leetcodecn"), CodeDojo.entries.map { it.value }.toSet())
+        assertEquals(setOf("leetcodecn"), CodeDojo.entries.map { it.value }.toSet())
         assertEquals(CodeDojo.LeetCodeCN, CodeDojo.fromString("LEETCODECN"))
         assertNull(CodeDojo.fromString("unsupported-site"))
     }
     @Test fun cookieHostsResolveToTheCorrectSite() {
-        assertEquals(CodeDojo.LeetCode, CodeDojo.fromHostname(".leetcode.com"))
+        assertNull(CodeDojo.fromString("leetcode"))
+        assertNull(CodeDojo.fromHostname(".leetcode.com"))
         assertEquals(CodeDojo.LeetCodeCN, CodeDojo.fromHostname("WWW.LEETCODE.CN"))
         assertNull(CodeDojo.fromHostname("leetcode.com.example.org"))
         assertNull(CodeDojo.fromHostname("notleetcode.cn"))

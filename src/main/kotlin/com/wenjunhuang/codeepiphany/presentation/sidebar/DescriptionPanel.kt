@@ -2,8 +2,6 @@ package com.wenjunhuang.codeepiphany.presentation.sidebar
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
-import com.wenjunhuang.codeepiphany.configuration.CodeEpiphanySettings
-import com.wenjunhuang.codeepiphany.configuration.PlatformSettings
 import com.wenjunhuang.codeepiphany.domain.CodeDojo
 import com.wenjunhuang.codeepiphany.execution.challengeDescriptionHtml
 import com.wenjunhuang.codeepiphany.presentation.browser.WebDocumentView
@@ -34,11 +32,9 @@ class DescriptionPanel(project: Project) : SidebarPanel(project) {
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (failure: Exception) { onEdt { status.text = failure.message ?: "Cannot load description" } }
         } }
-        project.messageBus.connect(this).subscribe(CodeEpiphanySettings.TOPIC, CodeEpiphanySettings.CodeEpiphanySettingsChangedListener { refresh() })
     }
     private fun refresh() {
         val challenge = SidebarContext.getInstance(project).challenge.value
-        document.setContent(html, challenge?.dojo ?: CodeDojo.LeetCodeCN,
-            challenge?.let { PlatformSettings.getInstance(project, it.dojo).state.descriptionCSS }.orEmpty())
+        document.setContent(html, challenge?.dojo ?: CodeDojo.LeetCodeCN)
     }
 }

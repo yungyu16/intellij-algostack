@@ -30,7 +30,6 @@ class WebDocumentView(private val project: Project, private val article: Boolean
     private val index = if (article) "leetCodeSolutionArticle/index.html" else "challengeDescription/index.html"
     private var content = ""
     private var dojo = CodeDojo.LeetCodeCN
-    private var customCss = ""
     private var zoom = 100.0
     private val requestHandler = object : CefRequestHandlerAdapter() {
         override fun getResourceRequestHandler(browser: CefBrowser, frame: CefFrame, request: CefRequest, navigation: Boolean,
@@ -72,11 +71,11 @@ class WebDocumentView(private val project: Project, private val article: Boolean
             throw failure
         }
     }
-    fun setContent(text: String, site: CodeDojo, css: String = "") { content = text; dojo = site; customCss = css; reload() }
+    fun setContent(text: String, site: CodeDojo) { content = text; dojo = site; reload() }
     private fun reload() {
         val template = server.template(index)
         server.set(index, if (article) WebResources.articlePage(template, content, dojo.value) else WebResources.descriptionPage(template, content))
-        server.set("intellijStyle.css", style() + "\n" + customCss, "text/css; charset=utf-8")
+        server.set("intellijStyle.css", style(), "text/css; charset=utf-8")
         browser.loadURL("${server.baseUrl}/$index?reload=${System.nanoTime()}")
     }
     private fun style(): String {

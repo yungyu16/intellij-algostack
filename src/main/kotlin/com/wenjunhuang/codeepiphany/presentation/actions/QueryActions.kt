@@ -5,7 +5,7 @@ import com.intellij.openapi.actionSystem.ex.CheckboxAction
 import com.intellij.openapi.actionSystem.ex.ComboBoxAction
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.wm.ToolWindowManager
-import com.wenjunhuang.codeepiphany.configuration.PlatformSettings
+import com.wenjunhuang.codeepiphany.execution.ChallengeConventions
 import com.wenjunhuang.codeepiphany.domain.Language
 import com.wenjunhuang.codeepiphany.presentation.*
 import icons.CodeEpiphanyIcons
@@ -59,26 +59,10 @@ class OpenChallengeGroup : ActionGroup(), DumbAware {
     override fun getChildren(event: AnActionEvent?): Array<AnAction> {
         val project = event?.project ?: return emptyArray()
         val host = event.getData(ActionContext.CHALLENGES) ?: return emptyArray()
-        return PlatformSettings.getInstance(project, host.dojo).getSelectedLanguages().map { (language, version) ->
+        return ChallengeConventions.languages.map { (language, version) ->
             object : com.intellij.openapi.project.DumbAwareAction(Language.prettyPrint(language, version), null, language.icon) {
                 override fun actionPerformed(event: AnActionEvent) = host.openSelection(language, version)
             }
         }.toTypedArray()
-    }
-}
-class ModeAction : ActionGroup(), DumbAware {
-    init { isPopup = true }
-    override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
-    override fun update(event: AnActionEvent) {
-        val owner = site(event); event.presentation.isEnabledAndVisible = owner?.loggedIn == true
-        event.presentation.icon = when (owner?.mode) { QueryMode.CompanyQuery -> CodeEpiphanyIcons.BUILDING; else -> CodeEpiphanyIcons.QUERY_PARAM }
-    }
-    override fun getChildren(event: AnActionEvent?): Array<AnAction> {
-        val owner = event?.let(::site) ?: return emptyArray()
-        return QueryMode.entries.map { mode -> object : CheckboxAction(mode.show), DumbAware {
-            override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
-            override fun isSelected(event: AnActionEvent): Boolean = owner.mode == mode
-            override fun setSelected(event: AnActionEvent, selected: Boolean) { if (selected) owner.switchTo(mode) }
-        } }.toTypedArray()
     }
 }

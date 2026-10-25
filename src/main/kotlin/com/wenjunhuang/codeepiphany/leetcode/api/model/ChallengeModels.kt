@@ -200,26 +200,3 @@ data class LeetCodeChallengeListItem(
     val titleCn: String? = null,
     val titleSlug: String
 )
-
-@Serializable
-data class LeetCodeChallengeListV2(
-    val questions: List<LeetCodeChallengeListItemV2>,
-    val totalLength: Int
-) {
-    fun toV1() = LeetCodeChallengeList(questions.map { it.toV1() }, totalLength)
-}
-
-@Serializable
-data class LeetCodeChallengeListItemV2(
-    val acRate: Double,
-    val difficulty: String,
-    val frequency: Double? = null,
-    val paidOnly: Boolean,
-    val status: String? = null,
-    val questionFrontendId: String,
-    val title: String,
-    val titleSlug: String
-) {
-    fun toV1() = LeetCodeChallengeListItem(acRate, difficulty, frequency, paidOnly, null, status,
-        questionFrontendId, title, null, titleSlug)
-}

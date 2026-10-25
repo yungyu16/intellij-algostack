@@ -1,5 +1,4 @@
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
-import org.jetbrains.intellij.platform.gradle.tasks.GenerateLexerTask
 import org.jetbrains.intellij.platform.gradle.tasks.InstrumentCodeTask
 
 plugins {
@@ -7,8 +6,6 @@ plugins {
     kotlin("plugin.serialization") version "2.4.0"
     id("org.jetbrains.intellij.platform") version "2.19.0"
 }
-
-apply(plugin = "org.jetbrains.intellij.platform.grammarkit")
 
 group = "com.wenjunhuang.codeepiphany"
 version = providers.gradleProperty("pluginVersion").get()
@@ -26,7 +23,6 @@ java {
 
 sourceSets {
     main {
-        java.srcDir(tasks.named("generateLexer"))
         resources.srcDir(layout.buildDirectory.dir("webviewResources"))
     }
 }
@@ -41,12 +37,6 @@ configurations.matching { it.name == "runtimeClasspath" || it.name.endsWith("Run
 }
 
 kotlin { jvmToolchain(25) }
-
-tasks.named<GenerateLexerTask>("generateLexer") {
-    sourceFile = layout.projectDirectory.file("src/main/grammar/ChallengeFileTemplateTextLexer.flex")
-}
-
-tasks.named("compileKotlin") { dependsOn("generateLexer") }
 
 // 安装包和 IDE 更新通知共用 CHANGELOG 的当前版本条目。
 val releaseNotes = providers.fileContents(layout.projectDirectory.file("CHANGELOG.md")).asText
@@ -75,7 +65,6 @@ dependencies {
         bundledPlugin("com.intellij.java")
         bundledModule("com.intellij.modules.jcef")
         testFramework(TestFrameworkType.Platform)
-        jflex("1.9.1")
     }
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
     compileOnly(kotlin("stdlib", "2.4.0"))
@@ -93,7 +82,7 @@ dependencies {
 intellijPlatform {
     pluginConfiguration {
         version = project.version.toString()
-        description = "<p>Personal fork of LeetCode Epiphany for LeetCode and LeetCodeCN.</p>"
+        description = "<p>Personal fork of LeetCode Epiphany for LeetCodeCN only.</p>"
         changeNotes = releaseNotes
         ideaVersion { sinceBuild = providers.gradleProperty("platformSinceBuild") }
     }

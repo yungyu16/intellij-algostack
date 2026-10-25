@@ -53,8 +53,6 @@ object CodeEpiphanyIcons {
 
   object Dojos {
     @JvmField val LEETCODECN_PATH  = "/icons/dojos/leetcodecn.svg"
-    @JvmField val LEETCODE_PATH    = "/icons/dojos/leetcode.svg"
-    @JvmField val LEETCODE: Icon   = IconLoader.getIcon(LEETCODE_PATH, CodeEpiphanyIcons::class.java.classLoader)
     @JvmField val LEETCODECN: Icon = IconLoader.getIcon(LEETCODECN_PATH, CodeEpiphanyIcons::class.java.classLoader)
   }
 

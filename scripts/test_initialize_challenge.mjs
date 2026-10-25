@@ -48,14 +48,13 @@ test('客户端：显式国际站不能落回中国站，默认请求保持旧�
   const temp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'challenge-site-test-')));
   t.after(() => fs.rmSync(temp, { recursive: true, force: true }));
   const m = await mock(t, temp, temp, 1);
-  await initializeChallenge(temp, 'two-sum', 'java', temp, 'leetcode');
+  await assert.rejects(initializeChallenge(temp, 'two-sum', 'java', temp, 'leetcode'), /仅支持 LeetCodeCN/);
   await initializeChallenge(temp, 'two-sum', 'go', temp, 'leetcodecn');
   assert.deepEqual(m.calls, [
-    { project: temp, slug: 'two-sum', language: 'java', dojo: 'leetcode' },
     { project: temp, slug: 'two-sum', language: 'go' },
   ]);
   await assert.rejects(initializeChallenge(temp, 'two-sum', 'java', temp, 'other'));
-  assert.equal(m.calls.length, 2);
+  assert.equal(m.calls.length, 1);
 });
 
 test('客户端：拒绝不安全描述文件；无桥接时不降级写数据库', async t => {

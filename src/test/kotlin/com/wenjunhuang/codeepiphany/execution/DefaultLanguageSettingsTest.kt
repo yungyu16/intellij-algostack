@@ -1,74 +1,52 @@
 package com.wenjunhuang.codeepiphany.execution
 
-import com.intellij.util.xmlb.XmlSerializer
-import com.wenjunhuang.codeepiphany.configuration.*
 import com.wenjunhuang.codeepiphany.domain.*
 import com.wenjunhuang.codeepiphany.leetcode.api.model.*
-import org.jdom.Element
 import org.junit.Assert.*
 import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
 
 class DefaultLanguageSettingsTest {
-    private fun restore(settings: PlatformSettings): PlatformSettings = PlatformSettings().apply {
-        loadState(XmlSerializer.deserialize(XmlSerializer.serialize(settings.state), PlatformSettings.CodeDojoSettingsState::class.java))
-    }
-
-    @Test fun newAndLegacyEmptySettingsInitializeOnceAndExplicitEmptySurvivesReload() {
-        val settings = LeetCodeCNSettings()
-        val expected = listOf(Language.Java to LanguageVersion.AnyVersion, Language.GO to LanguageVersion.AnyVersion)
-        assertEquals(expected, settings.getSelectedLanguages())
-        for (xml in listOf(Element("component"), Element("component").addContent(
-            Element("option").setAttribute("name", "languageSettings").addContent(Element("list"))))) {
-            settings.loadState(XmlSerializer.deserialize(xml, PlatformSettings.CodeDojoSettingsState::class.java))
-            assertEquals(expected, settings.getSelectedLanguages())
-        }
-        assertEquals(expected, restore(settings).getSelectedLanguages())
-        // 设置页 Apply 直接替换当前 state 的列表；读取和持久化都不能补回删除项。
-        settings.state.languageSettings = arrayListOf()
-        assertTrue(settings.getSelectedLanguages().isEmpty())
-        assertTrue(restore(settings).getSelectedLanguages().isEmpty())
-        assertEquals(2, LeetCodeCNSettings().getSelectedLanguages().size)
-    }
-
-    @Test fun legacyCustomJavaOnlyIsNotAugmentedOrRewrittenOnEitherSite() {
-        val language = Element("LanguageSettingsState").setAttribute("language", "java")
-            .setAttribute("languageVersion", "").setAttribute("sourceFolder", "custom/path")
-            .setAttribute("fileNameTemplate", "MyName").setAttribute("codeTemplate", "my template")
-        val xml = Element("component").addContent(Element("option").setAttribute("name", "languageSettings")
-            .addContent(Element("list").addContent(language)))
-            .addContent(Element("option").setAttribute("name", "descriptionCSS").setAttribute("value", "custom css"))
-        for (settings in listOf(LeetCodeSettings(), LeetCodeCNSettings())) {
-            settings.loadState(XmlSerializer.deserialize(xml, PlatformSettings.CodeDojoSettingsState::class.java))
-            for (loaded in listOf(settings, restore(settings))) {
-                val only = loaded.state.languageSettings.single()
-                assertEquals(Language.Java, only.language)
-                assertEquals(LanguageVersion.AnyVersion, only.languageVersion)
-                assertEquals("custom/path", only.sourceFolder)
-                assertEquals("MyName", only.fileNameTemplate)
-                assertEquals("my template", only.codeTemplate)
-                assertEquals("custom css", loaded.state.descriptionCSS)
+    @Test fun onlyJavaAndGoAnyVersionAreOffered() {
+        assertEquals(listOf(Language.Java to LanguageVersion.AnyVersion, Language.GO to LanguageVersion.AnyVersion), ChallengeConventions.languages)
+        for ((language, version) in listOf(Language.Python to LanguageVersion.AnyVersion, Language.Java to LanguageVersion.SpecificVersion("17"))) {
+            assertThrows(IllegalArgumentException::class.java) {
+                ChallengeConventions.generation(Path.of("/unused"), CodeDojo.LeetCodeCN, language, version)
             }
         }
+    }
+
+    @Test fun legacyPreferencesCannotChangeConventionsAndRemainUntouched() {
+        val root = Files.createTempDirectory("retired-preferences-")
+        try {
+            val xml = root.resolve(".idea/CodeEpiphany/leetcodecn.xml")
+            Files.createDirectories(xml.parent)
+            val old = """<component><option name="descriptionCSS" value="custom css"/><option name="languageSettings"><list><LanguageSettingsState language="java" sourceFolder="custom/path" fileNameTemplate="OldName" codeTemplate="old code"/></list></option></component>"""
+            Files.writeString(xml, old)
+            val setting = ChallengeConventions.generation(root, CodeDojo.LeetCodeCN, Language.Java)
+            assertEquals(root.resolve("code/java/src/main/java/leetcodecn").toString(), setting.folder)
+            assertFalse(setting.fileName.contains("OldName"))
+            assertFalse(setting.code.contains("old code"))
+            assertEquals(2, ChallengeConventions.languages.size)
+            assertEquals(old, Files.readString(xml))
+            assertFalse(Files.exists(root.resolve("code")))
+        } finally { root.toFile().deleteRecursively() }
     }
 
     @Test fun defaultsRenderSiteSpecificPathsPlainTextAndUnchangedSubmissionWithNoEarlyFiles() {
         val root = Files.createTempDirectory("default-templates-")
         try {
             for (dojo in CodeDojo.entries) {
-                val settings = if (dojo == CodeDojo.LeetCodeCN) LeetCodeCNSettings() else LeetCodeSettings()
                 for ((id, name) in listOf("1" to "P0001_TwoSum", "12345" to "P12345_TwoSum", "Interview 4" to "TwoSum")) {
-                    for (setting in settings.state.languageSettings) {
-                        val language = setting.language!!
+                    for ((language, version) in ChallengeConventions.languages) {
+                        val setting = ChallengeConventions.generation(root, dojo, language, version)
                         val snippet = if (language == Language.Java) "class Solution { public int solve() { return 0; } }" else "func solve() int { return 0 }"
                         val data = LeetCodeChallengeData("9001", id, "Two Sum", "two-sum", "<p>Compare &lt;= 2 */</p>",
                             isPaidOnly = false, difficulty = "Easy", likes = 0, dislikes = 0, similarQuestions = "[]",
                             exampleTestcaseList = emptyList(), topicTags = emptyList(), hints = emptyList(), testCase = "", metaData = "{}",
                             codeSnippets = listOf(LeetCodeQuestionCodeSnippet("fixture", if (language == Language.Java) "java" else "golang", snippet)))
-                        val folder = setting.sourceFolder!!.replace("\$PROJECT_DIR\$", root.toString())
-                        val prepared = renderChallenge(data, dojo, language, LanguageVersion.AnyVersion,
-                            GenerationSettings(folder, setting.fileNameTemplate!!, setting.codeTemplate!!))
+                        val prepared = renderChallenge(data, dojo, language, LanguageVersion.AnyVersion, setting)
                         val expected = if (language == Language.Java) "code/java/src/main/java/${dojo.value}/$name.java"
                             else "code/go/${dojo.value}/$name/main.go"
                         assertEquals(root.resolve(expected).toFile(), prepared.file)

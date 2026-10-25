@@ -70,6 +70,30 @@ class ChallengeInitializationTest {
         assertFalse(settings.hasMapping(file.toString()))
     }
 
+    @Test fun mappedFileWithoutUrlConflictsAndXmlVersionCannotMakeItMatch() = fixture { root ->
+        for (language in listOf(Language.Java, Language.GO)) {
+            val file = root.resolve("old.${language.fileExt}")
+            val identity = ChallengeIdentity(CodeDojo.LeetCodeCN, "two-sum", language, LanguageVersion.SpecificVersion("17"))
+            val settings = ChallengeSettings()
+            settings.addChallenge(file.toString(), ChallengeSettings.Association(identity, listOf(ChallengeSettings.TestCase("custom"))))
+            suspend fun initialize(expected: ChallengeIdentity) = initializeChallengeFile(root, file, "new",
+                { settings.resolve(file.toString(), Files.readString(file))?.identity == expected },
+                { settings.hasMapping(file.toString()) }, { error("must not persist") }, { error("must not open") })
+            val region = language.encloseCodeInRegion("// existing implementation")
+            Files.writeString(file, region)
+            assertEquals("conflict", initialize(identity).status)
+            val urlOnly = "// https://leetcode.cn/problems/two-sum/\n$region"
+            Files.writeString(file, urlOnly)
+            assertEquals("conflict", initialize(identity).status)
+            assertEquals("already_exists", initialize(identity.copy(version = LanguageVersion.AnyVersion)).status)
+            val versioned = ChallengeRecognition.header(identity) + region
+            Files.writeString(file, versioned)
+            assertEquals("already_exists", initialize(identity).status)
+            assertEquals(versioned, Files.readString(file))
+            assertEquals("custom", settings.resolve(file.toString(), versioned)!!.testCases.single().input)
+        }
+    }
+
     @Test fun existingUnassociatedFileAndStaleMappingAreConflicts() = fixture { root ->
         val file = root.resolve("main.go"); Files.writeString(file, "keep")
         val result = initializeChallengeFile(root, file, "new", { false }, { false }, { error("must not persist") }, {})

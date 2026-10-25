@@ -30,6 +30,7 @@ class ChallengeSettings : PersistentStateComponent<ChallengeSettings.ChallengeSe
     }
     fun addChallenge(file: VirtualFile, item: Association) = addChallenge(path(file), item)
     @Synchronized fun hasMapping(path: String): Boolean = path in settingsState.challenges
+    /** 仅供关联管理读取已保存快照；不证明文件身份，业务入口必须使用 resolve。 */
     @Synchronized fun findAssociation(path: String): Association? {
         val item = settingsState.challenges[path] ?: return null
         if (item.slug.isBlank()) return null
@@ -38,10 +39,10 @@ class ChallengeSettings : PersistentStateComponent<ChallengeSettings.ChallengeSe
     }
     @Synchronized fun resolve(path: String, text: String): Association? {
         val stored = settingsState.challenges[path]
-        val identity = ChallengeRecognition.recognize(text, path.substringAfterLast('.'), findAssociation(path)?.identity) ?: return null
-        // 无 slug 的旧关联仅贡献同站点、同语言的用例，身份必须由源文件证明。
-        val compatible = stored?.takeIf { it.dojo == identity.dojo && it.language == identity.language &&
-            (it.slug.isBlank() || it.slug == identity.slug && it.languageVersion == identity.version) }
+        val identity = ChallengeRecognition.recognize(text, path.substringAfterLast('.')) ?: return null
+        // 身份必须由源文件证明；无 slug 的旧关联只放宽 slug 匹配，不放宽站点和语言/版本。
+        val compatible = stored?.takeIf { it.dojo == identity.dojo && it.language == identity.language && it.languageVersion == identity.version &&
+            (it.slug.isBlank() || it.slug == identity.slug) }
         return if (compatible != null) snapshot(compatible, identity) else Association(identity)
     }
     fun resolve(file: VirtualFile): Association? {

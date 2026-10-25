@@ -42,7 +42,7 @@ class LeetCodeClientTest {
         Fixture { chain -> response(chain.request(), """{"data":{"problemsetQuestionList":{"questions":[],"total":0}}}""") }.use { f ->
             f.api("leetcode.cn").searchChallenges(40, 20, LeetCodeClient.Filters(
                 favoriteId = "favorite-1", difficulty = "EASY", status = "AC", tags = listOf("array"),
-                order = LeetCodeClient.Sort("FRONTEND_ID", "ASCENDING")
+                order = LeetCodeClient.Sort("FRONTEND_ID", "ASCENDING"), keyword = "two sum"
             ))
             val request = f.requests.last()
             assertEquals("fixture-token", request.header("x-csrftoken"))
@@ -52,19 +52,40 @@ class LeetCodeClientTest {
             val variables = body.getValue("variables").jsonObject
             assertEquals(40, variables.getValue("skip").jsonPrimitive.int)
             val filters = variables.getValue("filters").jsonObject
+            assertEquals("two sum", filters.getValue("searchKeywords").jsonPrimitive.content)
+            assertEquals("EASY", filters.getValue("difficulty").jsonPrimitive.content)
+            assertEquals("array", filters.getValue("tags").jsonArray.single().jsonPrimitive.content)
             assertEquals("favorite-1", filters.getValue("listId").jsonPrimitive.content)
             assertEquals("AC", filters.getValue("status").jsonPrimitive.content)
             assertEquals("ASCENDING", filters.getValue("sortOrder").jsonPrimitive.content)
         }
     }
 
-    @Test fun globalFavoriteUsesTheFavoriteEndpointAndKeepsDisplayIds() = runBlocking {
-        Fixture { chain -> response(chain.request(), """{"data":{"favoriteQuestionList":{"questions":[{"acRate":50.0,"difficulty":"EASY","paidOnly":false,"questionFrontendId":"LCR 001","title":"test","titleSlug":"test"}],"total":1}}}""") }.use { f ->
-            val list = f.api("leetcode.com").searchChallenges(0, 20, LeetCodeClient.Filters(favoriteId = "favorites"))
-            assertEquals("LCR 001", list.questions.single().frontendQuestionId)
+    @Test fun companySearchSendsKeywordAndAllSelectedFiltersTogether() = runBlocking {
+        Fixture { chain -> response(chain.request(), """{"data":{"favoriteQuestionList":{"questions":[],"total":0}}}""") }.use { f ->
+            f.api("leetcode.cn").searchCompanyChallenges(40, 20, "all", listOf("company-a", "company-b"),
+                listOf("backend"), LeetCodeClient.Filters(difficulty = "MEDIUM", status = "AC", tags = listOf("array"), keyword = "sum"))
             val body = payload(f.requests.last())
             assertEquals("favoriteQuestionList", body.getValue("operationName").jsonPrimitive.content)
-            assertEquals("favorites", body.getValue("variables").jsonObject.getValue("favoriteSlug").jsonPrimitive.content)
+            val variables = body.getValue("variables").jsonObject
+            assertEquals("company-a-all", variables.getValue("favoriteSlug").jsonPrimitive.content)
+            assertEquals(40, variables.getValue("skip").jsonPrimitive.int)
+            assertEquals("sum", variables.getValue("searchKeyword").jsonPrimitive.content)
+            val filters = variables.getValue("filtersV2").jsonObject
+            for ((kind, field, value) in listOf(
+                Triple("companyFilter", "companySlugs", "company-b"), Triple("positionFilter", "positionSlugs", "backend"),
+                Triple("difficultyFilter", "difficulties", "MEDIUM"), Triple("statusFilter", "questionStatuses", "SOLVED"),
+                Triple("topicFilter", "topicSlugs", "array"))) {
+                assertEquals(value, filters.getValue(kind).jsonObject.getValue(field).jsonArray.single().jsonPrimitive.content)
+            }
+        }
+    }
+
+    @Test fun internationalSiteIsRejectedBeforeAnyHttpRequest() {
+        Fixture { error("No HTTP request is allowed") }.use { f ->
+            val failure = assertThrows(IllegalArgumentException::class.java) { f.api("leetcode.com") }
+            assertTrue(failure.message!!.contains("only LeetCodeCN"))
+            assertTrue(f.requests.isEmpty())
         }
     }
 

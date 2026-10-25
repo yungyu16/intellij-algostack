@@ -69,7 +69,7 @@ class WebResources : Disposable {
             val hashes = document.select("script:not([src])").map { hash(it.data()) } + document.select("[onload]").map { hash(it.attr("onload")) }
             return "default-src 'none'; script-src 'self' 'unsafe-hashes' ${hashes.joinToString(" ")}; " +
                 "style-src 'self' 'unsafe-inline'; img-src https: data:; font-src 'self' data:; " +
-                "frame-src https://leetcode.com https://*.leetcode.com https://leetcode.cn https://*.leetcode.cn; " +
+                "frame-src https://leetcode.cn https://*.leetcode.cn; " +
                 "base-uri 'none'; form-action 'none'; connect-src 'none'"
         }
     }

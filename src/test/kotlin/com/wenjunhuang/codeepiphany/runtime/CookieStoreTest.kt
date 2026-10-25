@@ -11,12 +11,11 @@ class CookieStoreTest {
     @Test fun accountCookiesStayIsolatedBySiteAndHostBoundary() {
         val store = CookieStore()
         store.restore(CodeDojo.LeetCodeCN, listOf(HttpCookie("LEETCODE_SESSION", "cn-session")))
-        store.restore(CodeDojo.LeetCode, listOf(HttpCookie("LEETCODE_SESSION", "global-session")))
         assertEquals("cn-session", store.loadForRequest("https://leetcode.cn/graphql/".toHttpUrl()).single().value)
-        assertEquals("global-session", store.loadForRequest("https://leetcode.com/graphql/".toHttpUrl()).single().value)
+        assertTrue(store.loadForRequest("https://leetcode.com/graphql/".toHttpUrl()).isEmpty())
         assertTrue(store.loadForRequest("https://leetcode.cn.example.org/".toHttpUrl()).isEmpty())
         store.clear(CodeDojo.LeetCodeCN)
-        assertEquals("global-session", store.get(CodeDojo.LeetCode).single().value)
+        assertTrue(store.get(CodeDojo.LeetCodeCN).isEmpty())
     }
     @Test fun anonymousCsrfResponsesCannotEraseStoredCredentials() {
         val changes = mutableListOf<List<HttpCookie>>()

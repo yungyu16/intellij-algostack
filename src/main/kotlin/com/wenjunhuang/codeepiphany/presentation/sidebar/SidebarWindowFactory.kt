@@ -8,18 +8,13 @@ import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.openapi.wm.ToolWindowManager
-import com.wenjunhuang.codeepiphany.PluginBundle
-import com.wenjunhuang.codeepiphany.configuration.CodeEpiphanySettings
-import com.wenjunhuang.codeepiphany.configuration.PlatformSettings
 import com.wenjunhuang.codeepiphany.domain.CodeDojo
 import com.wenjunhuang.codeepiphany.presentation.LogConsole
 import com.wenjunhuang.codeepiphany.presentation.dojo.ChallengesView
-import com.wenjunhuang.codeepiphany.presentation.show
 import com.intellij.openapi.util.Disposer
 import com.wenjunhuang.codeepiphany.runtime.ProjectTasks
 import com.wenjunhuang.codeepiphany.runtime.onEdt
 import kotlinx.coroutines.launch
-import com.wenjunhuang.codeepiphany.toolwindows.dojo.SetupRequiredPromptView
 
 class SidebarWindowFactory : ToolWindowFactory, DumbAware {
     override fun isApplicable(project: Project): Boolean = SidebarPolicy.enabled(project.basePath)
@@ -32,7 +27,7 @@ class SidebarWindowFactory : ToolWindowFactory, DumbAware {
             val toolbar = ActionManager.getInstance().createActionToolbar("CodeEpiphany.Console", DefaultActionGroup(*console.createConsoleActions()), true)
             toolbar.targetComponent = console.component; setToolbar(toolbar.component)
         }
-        manager.addContent(manager.factory.createContent(consolePanel, "Console", false))
+        manager.addContent(manager.factory.createContent(consolePanel, SidebarPolicy.CONSOLE, false))
         val contextual = listOf("Description" to DescriptionPanel(project), "Solutions" to ArticlesPanel(project)).map { (name, panel) ->
             manager.factory.createContent(panel, name, false).apply {
                 setDisposer(panel)
@@ -50,25 +45,14 @@ class SidebarWindowFactory : ToolWindowFactory, DumbAware {
         }
         Disposer.register(toolWindow.disposable, com.intellij.openapi.Disposable { tabs.cancel() })
         addChallengeTabs(project, manager)
-        project.messageBus.connect(project).subscribe(CodeEpiphanySettings.TOPIC,
-            CodeEpiphanySettings.CodeEpiphanySettingsChangedListener { addChallengeTabs(project, manager) })
     }
 
-    /** 题库按站点各占一个标签页；未配置语言时给出配置提示。 */
+    /** Problems 始终存在，不依赖项目语言配置。 */
     private fun addChallengeTabs(project: Project, manager: com.intellij.ui.content.ContentManager) {
-        manager.contents.filter { it.component is ChallengesView || it.displayName == PluginBundle.message("ui.setupView.title") }
-            .forEach { manager.removeContent(it, true) }
-        var added = false
-        for (dojo in CodeDojo.entries) {
-            if (PlatformSettings.getInstance(project, dojo).getSelectedLanguages().isEmpty()) continue
-            val view = ChallengesView(project, dojo)
-            manager.addContent(manager.factory.createContent(view, dojo.show, false).apply { setDisposer(view) })
-            added = true
-        }
-        if (!added) {
-            val prompt = SetupRequiredPromptView(project)
-            manager.addContent(manager.factory.createContent(prompt.component, PluginBundle.message("ui.setupView.title"), false))
-        }
+        manager.contents.filter { it.displayName == SidebarPolicy.PROBLEMS }.forEach { manager.removeContent(it, true) }
+        val dojo = CodeDojo.LeetCodeCN
+        val view = ChallengesView(project, dojo)
+        manager.addContent(manager.factory.createContent(view, SidebarPolicy.PROBLEMS, false).apply { setDisposer(view) })
     }
 }
 fun activateSidebar(project: Project, name: String) {

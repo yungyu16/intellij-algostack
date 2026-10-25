@@ -24,8 +24,6 @@ object Constants {
   const val LEETCODE_CN_SETTING = PROJECT_ID + ".leetcodecn.settings"
   // 稳定模板保留 IDEA 项目存储位置，可由使用者按路径纳入 Git。
   const val LEETCODE_CN_SETTING_FILE = SETTINGS_FOLDER + "/leetcodecn.xml"
-  const val LEETCODE_SETTING = PROJECT_ID + ".leetcode.settings"
-  const val LEETCODE_SETTING_FILE = SETTINGS_FOLDER + "/leetcode.xml"
 
   const val SUBMIT_CODE_REGION_BEGIN = "IMPORTANT!! Submit Code Region Begin(Do not remove this line)"
   const val SUBMIT_CODE_REGION_END = "IMPORTANT!! Submit Code Region End(Do not remove this line)"

@@ -23,8 +23,7 @@ class LeetCodeClient(
     private val baseUrl: HttpUrl = "https://$domain/".toHttpUrl(),
     private val pollIntervalMillis: Long = 1_000
 ) {
-    init { require(domain == "leetcode.com" || domain == "leetcode.cn") }
-    val isChina: Boolean get() = domain == "leetcode.cn"
+    init { require(domain == "leetcode.cn") { "Unsupported site: $domain; only LeetCodeCN is supported" } }
     private val json get() = LeetCodeJson.format
     private val empty = JsonObject(emptyMap())
 
@@ -83,7 +82,7 @@ class LeetCodeClient(
 
     private fun query(operation: String): String {
         val prefix = "/leetcode/graphql/"
-        val china = if (isChina) javaClass.getResourceAsStream("$prefix${operation}_cn.graphql") else null
+        val china = javaClass.getResourceAsStream("$prefix${operation}_cn.graphql")
         return (china ?: javaClass.getResourceAsStream("$prefix$operation.graphql")
             ?: throw InvalidResponse("Missing bundled GraphQL operation: $operation"))
             .bufferedReader().use { it.readLines().joinToString("\r") }
@@ -120,12 +119,8 @@ class LeetCodeClient(
         return decode((data["companyTagsV2"] as? JsonObject)?.get("companyTagInfoNodes") ?: data.required("companyTags"))
     }
 
-    suspend fun getTagTypeWithTags(): List<LeetCodeTagTypeWithTags> = if (isChina) {
+    suspend fun getTagTypeWithTags(): List<LeetCodeTagTypeWithTags> =
         decode(graphQL("questionTagTypeWithTags").required("questionTagTypeWithTags"))
-    } else {
-        val tags = decode<List<LeetCodeTag>>(request("problems/api/tags/").jsonObject.required("topics"))
-        listOf(LeetCodeTagTypeWithTags("All Tags", null, tags.map { LeetCodeTagRelation(it.questions.size, it) }))
-    }
 
     /** 关键词与各项筛选可以同时生效，接口对两种查询使用同一个 operation。 */
     private fun classicFilters(filters: Filters) = buildJsonObject {
@@ -154,35 +149,21 @@ class LeetCodeClient(
     }
 
     suspend fun searchChallenges(offset: Int, limit: Int, filters: Filters = Filters()): LeetCodeChallengeList {
-        if (!isChina && filters.favoriteId != null) {
-            val result = searchCompanyChallenges(offset, limit, null, listOf(filters.favoriteId), emptyList(), filters)
-            return LeetCodeChallengeList(result.questions.map {
-                LeetCodeChallengeListItem(it.acRate, it.difficulty, it.freqBar, it.paidOnly, null, it.status,
-                    it.questionFrontendId, it.title, null, it.titleSlug)
-            }, result.total)
-        }
-        return search(offset, limit, filters)
-    }
-
-    private suspend fun search(offset: Int, limit: Int, filters: Filters): LeetCodeChallengeList {
-        val operation = if (isChina) "problemsetQuestionList" else "problemsetQuestionListV2"
         val variables = buildJsonObject {
             put("skip", offset); put("limit", limit); put("categorySlug", filters.categorySlug)
-            put("filters", if (isChina) classicFilters(filters) else modernFilters(filters))
-            if (!isChina) { put("sortBy", sort(filters.order, "sortField", defaultSort)); put("searchKeyword", filters.keyword) }
+            put("filters", classicFilters(filters))
         }
-        val data = graphQL(operation, variables).required(operation)
-        return if (isChina) decode(data) else decode<LeetCodeChallengeListV2>(data).toV1()
+        return decode(graphQL("problemsetQuestionList", variables).required("problemsetQuestionList"))
     }
 
     suspend fun searchCompanyChallenges(
-        offset: Int, limit: Int, interviewPeriod: String?, companies: List<String>, positions: List<String>, filters: Filters
+        offset: Int, limit: Int, interviewPeriod: String, companies: List<String>, positions: List<String>, filters: Filters
     ): LeetCodeCompanyChallengeList {
-        require(companies.isNotEmpty()) { "At least one company/favorite is required" }
+        require(companies.isNotEmpty()) { "At least one company is required" }
         val favorite = companies.first()
         val variables = buildJsonObject {
             put("skip", offset); put("limit", limit)
-            put("favoriteSlug", if (interviewPeriod == null) favorite else "$favorite-$interviewPeriod")
+            put("favoriteSlug", "$favorite-$interviewPeriod")
             put("filtersV2", modernFilters(filters, companies.drop(1), positions))
             put("sortBy", sort(filters.order, "sortField", defaultSort)); put("searchKeyword", filters.keyword)
         }
@@ -205,8 +186,6 @@ class LeetCodeClient(
 
     fun submitAnswer(id: String, slug: String, language: String, code: String): Flow<LeetCodeSubmitAnswerResult> =
         submit("problems/$slug/submit/", id, language, code)
-    fun submitContestAnswer(id: String, slug: String, contest: String, language: String, code: String): Flow<LeetCodeSubmitAnswerResult> =
-        submit("contest/api/$contest/problems/$slug/submit/", id, language, code)
     private fun submit(path: String, id: String, language: String, code: String): Flow<LeetCodeSubmitAnswerResult> = flow {
         val response = decode<LeetCodeSubmitAnswerResponse>(request(path,
             json.encodeToJsonElement(LeetCodeSubmitAnswerRequest(language, id, code))))
@@ -223,22 +202,22 @@ class LeetCodeClient(
     }
 
     suspend fun getSolutionTags(slug: String): LeetCodeSolutionTags {
-        val operation = if (isChina) "solutionTags" else "ugcArticleSolutionTags"
+        val operation = "solutionTags"
         return decode(graphQL(operation, buildJsonObject { put("questionSlug", slug) }).required(operation))
     }
     suspend fun searchQuestionSolutionArticles(
         offset: Int, limit: Int, slug: String, order: LeetCodeQuestionSolutionArticlesOrderBy, userInput: String?, tags: List<String>
     ): LeetCodeQuestionSolutionArticles {
-        val operation = if (isChina) "questionTopicsList" else "ugcArticleSolutionArticles"
+        val operation = "questionTopicsList"
         val variables = buildJsonObject {
             put("skip", offset); put("first", limit); put("questionSlug", slug)
-            put("orderBy", (if (isChina) order.leetCodeCN else order.leetCode)?.let(::JsonPrimitive) ?: JsonNull)
+            put("orderBy", order.leetCodeCN.let(::JsonPrimitive))
             put("userInput", userInput.orEmpty()); put("tagSlugs", strings(tags))
         }
-        return decode(graphQL(operation, variables).required(if (isChina) "questionSolutionArticles" else operation))
+        return decode(graphQL(operation, variables).required("questionSolutionArticles"))
     }
     suspend fun getSolutionArticle(slug: String): LeetCodeSolutionArticle {
-        val operation = if (isChina) "discussTopic" else "ugcArticleSolutionArticle"
-        return decode(graphQL(operation, buildJsonObject { put("slug", slug) }).required(if (isChina) "solutionArticle" else operation))
+        val operation = "discussTopic"
+        return decode(graphQL(operation, buildJsonObject { put("slug", slug) }).required("solutionArticle"))
     }
 }

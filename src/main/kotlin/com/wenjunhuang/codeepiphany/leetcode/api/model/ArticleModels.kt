@@ -97,9 +97,9 @@ data class LeetCodeSolutionArticle(
     val videosInfo: List<LeetCodeQuestionSolutionArticleVideoInfo> = emptyList()
 )
 
-enum class LeetCodeQuestionSolutionArticlesOrderBy(val leetCodeCN: String, val leetCode: String?, val show: String) {
-    MostUpvote("MOST_UPVOTE", "MOST_UPVOTE", "Most Upvoted"),
-    Hot("HOT", "HOT", "Hot"),
-    Newest("NEWEST_TO_OLDEST", "MOST_RECENT", "Newest"),
-    Oldest("OLDEST_TO_NEWEST", null, "Oldest")
+enum class LeetCodeQuestionSolutionArticlesOrderBy(val leetCodeCN: String, val show: String) {
+    MostUpvote("MOST_UPVOTE", "Most Upvoted"),
+    Hot("HOT", "Hot"),
+    Newest("NEWEST_TO_OLDEST", "Newest"),
+    Oldest("OLDEST_TO_NEWEST", "Oldest")
 }

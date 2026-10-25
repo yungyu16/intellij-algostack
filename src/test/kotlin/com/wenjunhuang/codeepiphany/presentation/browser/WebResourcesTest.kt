@@ -27,7 +27,7 @@ class WebResourcesTest {
         assertFalse(WebResources.validResourcePath("../META-INF/plugin.xml"))
         assertFalse(WebResources.validResourcePath("assets/../../secret"))
         assertFalse(WebResources.validResourcePath("assets\\..\\secret"))
-        assertTrue(WebResources.trustedFrame("https://leetcode.com/graphql/"))
+        assertFalse(WebResources.trustedFrame("https://leetcode.com/graphql/"))
         assertTrue(WebResources.trustedFrame("https://www.leetcode.cn/path"))
         assertFalse(WebResources.trustedFrame("http://leetcode.com/path"))
         assertFalse(WebResources.trustedFrame("https://leetcode.com.evil.example/path"))

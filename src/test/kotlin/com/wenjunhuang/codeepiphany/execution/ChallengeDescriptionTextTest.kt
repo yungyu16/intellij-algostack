@@ -43,7 +43,7 @@ class ChallengeDescriptionTextTest {
     }
 
     @Test fun exposesTextThroughVelocityWithoutChangingHtmlOrSubmissionCode() {
-        for (dojo in listOf(CodeDojo.LeetCode, CodeDojo.LeetCodeCN)) {
+        for (dojo in CodeDojo.entries) {
             for ((language, slug) in listOf(Language.Java to "java", Language.GO to "golang")) {
                 val html = "<p><font color='red'>10</font><sup>5</sup> &lt;= n; List&lt;Node&gt; */</p>\n"
                 val data = LeetCodeChallengeData(

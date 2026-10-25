@@ -6,6 +6,16 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ChallengeRecognitionTest {
+    @Test fun defaultProblemsAndConsoleRemainWhenContextualTabsAreHidden() {
+        val identity = ChallengeIdentity(CodeDojo.LeetCodeCN, "two-sum", Language.Java)
+        assertEquals(listOf("Console", "Problems"), SidebarPolicy.visibleTabs(null))
+        assertEquals(listOf("Console", "Problems", "Description", "Solutions"), SidebarPolicy.visibleTabs(identity))
+        assertFalse(SidebarPolicy.visibleTab("LeetCodeCN", identity))
+        assertFalse(SidebarPolicy.visibleTab("LeetCode", null))
+        // 切工具窗口 tab 不写入 identity；普通编辑器产生 null 后只移除题目页。
+        assertEquals(listOf("Console", "Problems"), SidebarPolicy.visibleTabs(null))
+    }
+
     @Test fun existingJavaAndGoAreRecognizedWithoutXmlOrDatabase() {
         for (dojo in CodeDojo.entries) for (language in listOf(Language.Java, Language.GO)) {
             val text = "/*\n * 1. 两数之和\n * https://${dojo.domain}/problems/two-sum/description/\n */\n" +
@@ -37,7 +47,8 @@ class ChallengeRecognitionTest {
     }
 
     @Test fun legacyGoPackageBeforeProblemCommentIsRecognized() {
-        val text = "package main\n/* https://leetcode.cn/problems/two-sum/ */\n" +
+        // 只读核对旧 Go 文件：package main、题面块注释、独占行提交区域；不复制用户解法。
+        val text = "package main\n\n/*\n1. 两数之和\nhttps://leetcode.cn/problems/two-sum/\n*/\n" +
             Language.GO.encloseCodeInRegion("func twoSum() {}")
         assertEquals(ChallengeIdentity(CodeDojo.LeetCodeCN, "two-sum", Language.GO),
             ChallengeRecognition.recognize(text, "go"))
@@ -71,37 +82,28 @@ class ChallengeRecognitionTest {
         assertEquals("two-sum", ChallengeRecognition.recognize(go, "go")?.slug)
     }
 
-    @Test fun rejectsPackageLookalikesMalformedDeclarationsAndOtherLanguagePreambles() {
-        val invalid = mapOf(
-            Language.Java to listOf("package", "package leetcodecn", "package 123;", "package a..b;", "package a-b;",
-                "package class;", "package a.int;", "package _;", "packageName p;", "package() {}", "package p; package q;",
-                "@Deprecated\npackage p;", "package a /* comment */ . b;", "package \\u0061;",
-                "package p; String s = \"not a comment\";"),
-            Language.GO to listOf("package", "package main.extra", "package 123", "package main()", "package main garbage",
-                "package func", "package _", "packageName main", "package main; package other;", "package main; var s = `text`",
-                "package main /* same-line block comment */")
-        )
-        for ((language, declarations) in invalid) for (declaration in declarations) {
-            val code = "$declaration\n// https://leetcode.cn/problems/two-sum/\n" + language.encloseCodeInRegion("// skeleton")
-            assertNull("$language: $declaration", ChallengeRecognition.recognize(code, language.fileExt))
+    @Test fun recognitionDoesNotPretendToValidatePackageSyntax() {
+        // 不再把 package/import 当作扫描边界，也不验证源文件可编译性。
+        for (declaration in listOf("@Deprecated\npackage practice;", "package a /* comment */ . b;", "package malformed")) {
+            val code = "$declaration\n// https://leetcode.cn/problems/two-sum/\n" +
+                Language.Java.encloseCodeInRegion("class Solution {}")
+            assertEquals("two-sum", ChallengeRecognition.recognize(code, "java")?.slug)
         }
-        assertNull(ChallengeRecognition.recognize("package practice\n// https://leetcode.cn/problems/two-sum/\n" +
-            Language.Kotlin.encloseCodeInRegion("fun solve() {}"), "kt"))
     }
 
-    @Test fun importsAndImplementationRemainHeaderBoundaries() {
+    @Test fun importsAndImplementationDoNotLimitCommentPositions() {
         for (language in listOf(Language.Java, Language.GO)) {
             val declaration = if (language == Language.Java) "package practice;\n" else "package main\n"
             val imports = if (language == Language.Java) "import java.util.List;\n" else "import \"fmt\"\n"
             val header = "/* https://leetcode.cn/problems/two-sum/ */\n"
             val region = language.encloseCodeInRegion("// skeleton")
             assertEquals("two-sum", ChallengeRecognition.recognize(declaration + header + imports + region, language.fileExt)?.slug)
-            assertNull(ChallengeRecognition.recognize(declaration + imports + header + region, language.fileExt))
+            assertEquals("two-sum", ChallengeRecognition.recognize(declaration + imports + header + region, language.fileExt)?.slug)
             val body = if (language == Language.Java) "class Solution {\n" else "func solve() {\n"
-            assertNull(ChallengeRecognition.recognize(declaration + body + header + region + "\n}", language.fileExt))
-            // 已有头部身份不受 import 后或实现中的其他 URL 干扰；不扫描这些位置。
+            assertEquals("two-sum", ChallengeRecognition.recognize(declaration + body + header + region + "\n}", language.fileExt)?.slug)
+            // 全文件真实注释都参与身份冲突检查。
             val unrelated = "// https://leetcode.cn/problems/three-sum/\n"
-            assertEquals("two-sum", ChallengeRecognition.recognize(declaration + header + imports + unrelated + region, language.fileExt)?.slug)
+            assertNull(ChallengeRecognition.recognize(declaration + header + imports + unrelated + region, language.fileExt))
             val string = if (language == Language.Java) "String s = \"https://leetcode.cn/problems/two-sum/\";\n"
                 else "var s = `https://leetcode.cn/problems/two-sum/`\n"
             assertNull(ChallengeRecognition.recognize(declaration + string + region, language.fileExt))
@@ -126,7 +128,8 @@ class ChallengeRecognitionTest {
     @Test fun rejectsNonQuestionsUntrustedHostsCodeStringsAndMissingOrReversedRegions() {
         val region = Language.Java.encloseCodeInRegion("class Solution {}")
         for (url in listOf("https://leetcode.cn.evil.test/problems/two-sum/", "https://leetcode.cn@evil.test/problems/two-sum/",
-            "http://leetcode.cn/problems/two-sum/", "https://leetcode.cn:444/problems/two-sum/", "https://leetcode.cn/problemset/")) {
+            "http://leetcode.cn/problems/two-sum/", "https://leetcode.cn:444/problems/two-sum/",
+            "https://leetcode.cn:443/problems/two-sum/", "https://user@leetcode.cn/problems/two-sum/", "https://leetcode.cn/problemset/")) {
             assertNull(url, ChallengeRecognition.recognize("// $url\n$region", "java"))
         }
         assertNull(ChallengeRecognition.recognize("/* header */ String url = \"https://leetcode.cn/problems/two-sum/\"\n$region", "java"))
@@ -137,12 +140,65 @@ class ChallengeRecognitionTest {
         assertFalse(SidebarPolicy.visibleTab("Description", null))
         assertFalse(SidebarPolicy.visibleTab("Solutions", null))
         assertTrue(SidebarPolicy.visibleTab("Console", null))
-        assertTrue(SidebarPolicy.visibleTab("LeetCode", null))
-        assertTrue(SidebarPolicy.visibleTab("LeetCodeCN", null))
+        assertTrue(SidebarPolicy.visibleTab("Problems", null))
+    }
+
+    @Test fun internationalHeadersCannotUseChineseAssociations() {
+        val settings = ChallengeSettings()
+        settings.addChallenge("old.java", ChallengeSettings.Association(ChallengeIdentity(CodeDojo.LeetCodeCN, "two-sum", Language.Java)))
+        for (host in listOf("leetcode.com", "www.leetcode.com")) {
+            val code = "// https://$host/problems/two-sum/\n" + Language.Java.encloseCodeInRegion("class Solution {}")
+            assertNull(ChallengeRecognition.recognize(code, "java"))
+            assertNull(settings.resolve("old.java", code))
+        }
+    }
+
+    @Test fun acceptsUrlSuffixesAndCommonMarkdownPunctuation() {
+        for (host in listOf("leetcode.cn", "www.leetcode.cn")) for (suffix in listOf(
+            "", "/", "/description/", "/solutions/123/title/", "/submissions/42/", "/arbitrary/path",
+            "?envType=study-plan-v2&envId=top-100-liked", "/?a=b#description", "/#题目", "/.", "/,", "/;", "/*", "/)", "/\"", "/>", "/!", "/。", "]", "，", "。", "!", "）"
+        )) {
+            val text = "// https://$host/problems/two-sum$suffix\n" + Language.Java.encloseCodeInRegion("class Solution {}")
+            assertEquals(suffix, "two-sum", ChallengeRecognition.recognize(text, "java")?.slug)
+        }
+        for (suffix in listOf("@", ":", "%invalid")) {
+            val text = "// https://leetcode.cn/problems/two-sum$suffix\n" + Language.Java.encloseCodeInRegion("class Solution {}")
+            assertNull(suffix, ChallengeRecognition.recognize(text, "java"))
+        }
+        // 相同 slug 的不同子页并不歧义；不验证子页是否真实存在。
+        val text = "// https://leetcode.cn/problems/two-sum/description/\n// https://www.leetcode.cn/problems/two-sum/solutions/\n" +
+            Language.Java.encloseCodeInRegion("class Solution {}")
+        assertEquals("two-sum", ChallengeRecognition.recognize(text, "java")?.slug)
+    }
+
+    @Test fun rejectsRegionsInsideMultilineLiteralsOrBlockComments() {
+        for (language in listOf(Language.Java, Language.GO)) {
+            val region = language.encloseCodeInRegion("// not submission code")
+            val delimiter = if (language == Language.Java) "\"\"\"" else "`"
+            val literal = if (language == Language.Java) "String s = " else "var s = "
+            val header = "// https://leetcode.cn/problems/two-sum/\n"
+            for (fake in listOf("$literal$delimiter\n$region\n$delimiter", "/*\n$region\n*/")) {
+                assertNull(language.toString(), ChallengeRecognition.recognize(header + fake, language.fileExt))
+                val source = header + fake + "\n" + language.encloseCodeInRegion("// actual code")
+                assertEquals("two-sum", ChallengeRecognition.recognize(source, language.fileExt)?.slug)
+                assertEquals("// actual code\n", language.extractCodeFromRegion(source))
+            }
+        }
+    }
+
+    @Test fun literalEscapesAndCommentsDoNotHideRealRegions() {
+        for (language in listOf(Language.Java, Language.GO)) {
+            val header = "\uFEFF/* https://leetcode.cn/problems/two-sum/?x=1#description */\r\n"
+            val declaration = if (language == Language.Java) "package practice;\n" else "package main\n"
+            val literals = "// quotes in comment: \" ' ` /*\n/* quotes in block: \" ' ` */\n" +
+                "var s = \"escaped \\\" quote and // text\";\nvar c = '\\\'';\n"
+            val code = header + declaration + literals + language.encloseCodeInRegion("// skeleton")
+            assertEquals("two-sum", ChallengeRecognition.recognize(code.replace("\n", "\r\n"), language.fileExt)?.slug)
+        }
     }
 
     @Test fun rejectsAmbiguousProblemHeadersAndPreservesLanguageVersion() {
-        val identity = ChallengeIdentity(CodeDojo.LeetCode, "two-sum", Language.Java, LanguageVersion.SpecificVersion("17"))
+        val identity = ChallengeIdentity(CodeDojo.LeetCodeCN, "two-sum", Language.Java, LanguageVersion.SpecificVersion("17"))
         val code = ChallengeRecognition.header(identity) + Language.Java.encloseCodeInRegion("class Solution {}")
         assertEquals(identity, ChallengeRecognition.recognize(code, "java"))
         assertNull(ChallengeRecognition.recognize("// https://leetcode.cn/problems/three-sum/\n$code", "java"))
