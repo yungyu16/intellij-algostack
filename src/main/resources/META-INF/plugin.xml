@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <idea-plugin>
     <id>com.yungyu.leetcode-editor</id>
-    <name>题栈</name>
+    <name>题栈(AlgoStack)</name>
     <vendor url="https://github.com/yungyu16">yungyu16</vendor>
     <version>0.0.0</version>
     <description>面向 IntelliJ IDEA 的个人维护刷题插件（AlgoStack），仅支持力扣中国站。支持题目搜索与筛选、按内置约定生成

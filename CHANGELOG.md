@@ -1,5 +1,9 @@
 # 更新记录
 
+## 1.0.11
+
+- 插件管理页显示名称调整为 `题栈(AlgoStack)`。
+
 ## 1.0.10
 
 - 按职责压平并重组 Kotlin 包与资源：客户端移至 `leetcode`、请求资源移至 `graphql`，题库集中到 `presentation/problems`，折叠扩展归入 `presentation/editor`，模板工具归入 `execution`；同步 XML、测试与打包资源断言，不变更插件身份或外部协议。
