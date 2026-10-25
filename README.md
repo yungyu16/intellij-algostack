@@ -4,7 +4,7 @@
 
 支持题目搜索与筛选、按内置约定生成 Java／Go 题目、使用平台默认用例测试、提交代码及平台题解阅读。不提供自定义用例编辑，不保存题目关联或用例状态，不读写 `.idea/CodeEpiphany/challenge.xml`。1.16.0 起不使用本地数据库，不提供本地 Notes/笔记和 Submissions 历史；提交结果仅输出到 Console，并提供平台详情链接。Description 实时从平台读取，Solutions 仍是平台题解文章。标记项目启动时静默恢复并校验已保存会话，本机 Agent 可初始化 Java／Go 骨架和语言工程，不实现解法或提交。仅支持力扣中国站，显式国际站输入会被拒绝，不自动转站。
 
-当前开发版本为 **AlgoStack 1.0.1**，构建生成 `AlgoStack-1.0.1.zip`，Gradle 工程名与分发目录为 `AlgoStack`。版本号由 `gradle.properties` 的 `pluginVersion` 维护，后续独立交付递增版本并更新 [CHANGELOG](CHANGELOG.md)，不反复覆盖 `1.0.0`。本地 tag `v1.0.0` 仅标记版本初始化提交，不代表后续修改；[1.0.0 验证记录](docs/1.0.0验证记录.md)和[1.17.2 验证记录](docs/1.17.2验证记录.md)均保留对应批次的历史结论，不替代当前版本验收。
+当前开发版本为 **AlgoStack 1.0.3**，构建生成 `AlgoStack-1.0.3.zip`，Gradle 工程名与分发目录为 `AlgoStack`。版本号由 `gradle.properties` 的 `pluginVersion` 维护，后续独立交付递增版本并更新 [CHANGELOG](CHANGELOG.md)，不反复覆盖 `1.0.0`。本地 tag `v1.0.0` 仅标记版本初始化提交，不代表后续修改；[1.0.0 验证记录](docs/1.0.0验证记录.md)和[1.17.2 验证记录](docs/1.17.2验证记录.md)均保留对应批次的历史结论，不替代当前版本验收。
 
 ## 安装与使用
 

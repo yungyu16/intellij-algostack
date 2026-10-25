@@ -45,7 +45,14 @@ class ChallengeEditor(delegate: TextEditor, project: Project, file: VirtualFile)
     val state = EditorState(project, file)
     private val ui by lazy {
         val editorComponent = delegate.component
-        val layered = object : JBLayeredPane() {
+        val layered = object : JBLayeredPane(), UiDataProvider {
+            override fun uiDataSnapshot(sink: DataSink) {
+                // 工具栏是编辑器的兄弟组件，不能继承编辑器子树里的选区上下文。
+                sink[CommonDataKeys.PROJECT] = state.project
+                sink[CommonDataKeys.VIRTUAL_FILE] = state.file
+                sink[CommonDataKeys.EDITOR] = delegate.editor
+                sink[PlatformCoreDataKeys.FILE_EDITOR] = this@ChallengeEditor
+            }
             override fun doLayout() {
                 components.forEach { component ->
                     if (component === editorComponent) component.setBounds(0, 0, width, height)
