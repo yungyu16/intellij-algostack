@@ -1,0 +1,10 @@
+query questionCompanyTagsV2 {
+  companyTagsV2 {
+    companyTagInfoNodes {
+      name
+      slug
+      id
+      questionCount: companyQuestionNum
+    }
+  }
+}
