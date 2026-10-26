@@ -19,7 +19,7 @@
 | Java | `code/java/src/main/java/leetcodecn/P0001_TwoSum.java` | `code/java/pom.xml`，Java 8 Maven |
 | Go | `code/go/leetcodecn/p0001_two_sum/main.go` | `code/go/go.mod`，版本取本机 Go 的 major.minor |
 
-仅初始化所选语言，不覆盖已有源码或工程描述文件。Java 空非构造方法填入 `UnsupportedOperationException("Not implemented")` 占位，仍需自己实现；Go 保留平台骨架。工程复用和重名另存限制见[语言工程初始化](docs/工程结构.md#语言工程初始化)。
+仅初始化所选语言，不覆盖已有源码或工程描述文件。Java 空非构造方法填入 `UnsupportedOperationException("Not implemented")` 占位，仍需自己实现；Go 空函数／方法填入 `panic("Not implemented")`。两种语言的题面注释统一包含题号、标题、原题 URL 和正文；已有题解不批量改写。工程复用和重名另存限制见[语言工程初始化](docs/工程结构.md#语言工程初始化)。
 
 默认显示 **Console** 和 **Problems**；选中可识别的题目文件后显示 **Description**（实时题面）和 **Solutions**（平台题解）。搜索输入只保存草稿，Enter／搜索按钮才提交；筛选、排序和翻页使用已提交关键词。切换查询范围保留各自条件、回首页并恢复默认排序；公司范围未选公司时不查询。
 

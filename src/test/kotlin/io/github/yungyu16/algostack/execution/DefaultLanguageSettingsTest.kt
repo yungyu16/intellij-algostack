@@ -56,7 +56,11 @@ class DefaultLanguageSettingsTest {
             assertSame(data, template.content)
             assertTrue(template.description.contains("<p>中文题面</p>"))
             assertFalse(template.description.contains("Original"))
-            assertEquals(snippet, language.extractCodeFromRegion(template.getCode()).trim())
+            assertEquals(if (language == Language.GO) goTemplateStub(snippet) else snippet, language.extractCodeFromRegion(template.getCode()).trim())
+            assertEquals("26. 两数之和", template.getHeadingText())
+            if (language == Language.GO) assertTrue(template.getCode().contains("panic(\"Not implemented\")"))
+            val unsafeTitle = challengeTemplate(data.copy(translatedTitle = "标题 */\r\n下一行"), CodeDojo.LeetCodeCN, language, version)
+            assertEquals("26. 标题 * /  下一行", unsafeTitle.getHeadingText())
             assertEquals(
                 "9001/26/two-sum",
                 renderTemplate("\${challenge.questionId}/\${challenge.frontendQuestionId}/\${challenge.slug}", template)
@@ -67,6 +71,7 @@ class DefaultLanguageSettingsTest {
                     CodeDojo.LeetCodeCN, language, version
                 )
                 assertEquals("Two Sum", fallback.name)
+                assertEquals("26. Two Sum", fallback.getHeadingText())
                 assertTrue(fallback.description.contains("<p>Original</p>"))
             }
         }
@@ -75,7 +80,7 @@ class DefaultLanguageSettingsTest {
     @Test
     fun generationValidatesRenderedUrlAndRegionWithoutAddingAHeader() {
         for ((language, version) in ChallengeConventions.languages) {
-            val snippet = if (language == Language.Java) "class Solution {}" else "func solve() {}"
+            val snippet = if (language == Language.Java) "class Solution {}" else "func solve() { return }"
             val slug = language.toLeetCode(version)
             val data = LeetCodeChallengeData(
                 "9001", "1", "Two Sum", "two-sum", "<p>Fixture</p>",
@@ -158,7 +163,7 @@ class DefaultLanguageSettingsTest {
                         assertEquals(root.resolve(expected).toFile(), prepared.file)
                         assertFalse(prepared.file.exists())
                         assertFalse(Files.exists(root.resolve("code")))
-                        assertTrue(prepared.code.contains("Compare <= 2 * /"))
+                        assertTrue(prepared.code.contains("/*\n$id. Two Sum\nhttps://leetcode.cn/problems/two-sum/\n\nCompare <= 2 * /"))
                         assertFalse(prepared.code.contains("<p>"))
                         assertFalse(prepared.code.contains("leetcode-editor:"))
                         assertEquals(snippet, language.extractCodeFromRegion(prepared.code).trim())

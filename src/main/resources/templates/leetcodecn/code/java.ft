@@ -3,7 +3,9 @@ package leetcodecn;
 import java.util.*;
 
 /*
+${challenge.headingText}
 https://leetcode.cn/problems/${challenge.slug}/
+
 ${challenge.descriptionText}
 */
 public class ${velocity.challengeFileName($challenge.frontendQuestionId, $challenge.slug)} {

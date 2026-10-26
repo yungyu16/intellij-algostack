@@ -1,7 +1,9 @@
 package main
 
 /*
+${challenge.headingText}
 https://leetcode.cn/problems/${challenge.slug}/
+
 ${challenge.descriptionText}
 */
 $challenge.code
