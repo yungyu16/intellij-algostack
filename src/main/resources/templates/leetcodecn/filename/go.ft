@@ -1,1 +1,1 @@
-${velocity.challengeFileName($challenge.frontendQuestionId, $challenge.slug)}/main
+${velocity.challengeDirectoryName($challenge.frontendQuestionId, $challenge.slug)}/main

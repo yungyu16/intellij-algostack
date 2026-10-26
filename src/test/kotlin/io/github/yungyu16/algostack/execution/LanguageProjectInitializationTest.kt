@@ -87,7 +87,7 @@ class LanguageProjectInitializationTest {
         assertEquals("created", initialize(root, Language.GO).status)
         val module = root.resolve("code/go/go.mod")
         assertEquals("module leetcode-practice\n\ngo 1.20\n", Files.readString(module))
-        assertTrue(Files.readString(root.resolve("code/go/leetcodecn/P0001_TwoSum/main.go")).contains("package main"))
+        assertTrue(Files.readString(root.resolve("code/go/leetcodecn/p0001_two_sum/main.go")).contains("package main"))
         assertFalse(Files.exists(root.resolve("code/java")))
         Files.writeString(module, "module custom.example/practice\n\ngo 1.19\n")
         assertEquals(
@@ -150,7 +150,7 @@ class LanguageProjectInitializationTest {
         assertTrue(Files.readString(root.resolve("code/java/pom.xml")).endsWith("</project>\n"))
         val failed = initialize(root, Language.GO, goVersion = { error("local Go unavailable") })
         assertEquals("partial", failed.status); assertFalse(failed.associated)
-        assertTrue(Files.exists(root.resolve("code/go/leetcodecn/P0001_TwoSum/main.go")))
+        assertTrue(Files.exists(root.resolve("code/go/leetcodecn/p0001_two_sum/main.go")))
         assertFalse(Files.exists(root.resolve("code/go/go.mod")))
         assertEquals("already_exists", initialize(root, Language.GO).status)
     }
@@ -254,8 +254,8 @@ class LanguageProjectInitializationTest {
         ensureLanguageProject(root, CodeDojo.LeetCodeCN, Language.GO)
         val source = prepared(Language.GO, settings)
         Files.createDirectories(source.file.toPath().parent); Files.writeString(source.file.toPath(), source.code)
-        Files.createDirectories(root.resolve("code/go/leetcodecn/P0002_Another"))
-        Files.writeString(root.resolve("code/go/leetcodecn/P0002_Another/main.go"), "package main\nfunc solve() {}\n")
+        Files.createDirectories(root.resolve("code/go/leetcodecn/p0002_another"))
+        Files.writeString(root.resolve("code/go/leetcodecn/p0002_another/main.go"), "package main\nfunc solve() {}\n")
         for (arguments in listOf(listOf("mod", "edit", "-json"), listOf("test", "./..."))) {
             val process = ProcessBuilder(listOf("go") + arguments).directory(root.resolve("code/go").toFile())
                 .redirectErrorStream(true).apply {

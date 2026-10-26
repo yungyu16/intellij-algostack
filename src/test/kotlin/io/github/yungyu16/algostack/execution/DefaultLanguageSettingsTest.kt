@@ -131,10 +131,10 @@ class DefaultLanguageSettingsTest {
         val root = Files.createTempDirectory("default-templates-")
         try {
             for (dojo in CodeDojo.entries) {
-                for ((id, name) in listOf(
-                    "1" to "P0001_TwoSum",
-                    "12345" to "P12345_TwoSum",
-                    "Interview 4" to "TwoSum"
+                for ((id, javaName, goName) in listOf(
+                    Triple("1", "P0001_TwoSum", "p0001_two_sum"),
+                    Triple("12345", "P12345_TwoSum", "p12345_two_sum"),
+                    Triple("Interview 4", "TwoSum", "two_sum")
                 )) {
                     for ((language, version) in ChallengeConventions.languages) {
                         val setting = ChallengeConventions.generation(root, dojo, language, version)
@@ -153,8 +153,8 @@ class DefaultLanguageSettingsTest {
                             )
                         )
                         val prepared = renderChallenge(data, dojo, language, LanguageVersion.AnyVersion, setting)
-                        val expected = if (language == Language.Java) "code/java/src/main/java/${dojo.value}/$name.java"
-                        else "code/go/${dojo.value}/$name/main.go"
+                        val expected = if (language == Language.Java) "code/java/src/main/java/${dojo.value}/$javaName.java"
+                        else "code/go/${dojo.value}/$goName/main.go"
                         assertEquals(root.resolve(expected).toFile(), prepared.file)
                         assertFalse(prepared.file.exists())
                         assertFalse(Files.exists(root.resolve("code")))
@@ -166,9 +166,9 @@ class DefaultLanguageSettingsTest {
                         assertEquals(1, Regex("https://").findAll(prepared.code).count())
                         assertEquals(prepared.identity, ChallengeRecognition.recognize(prepared.code, language.fileExt))
                         if (language == Language.Java) {
-                            assertTrue(prepared.code.contains("public class $name"))
+                            assertTrue(prepared.code.contains("public class $javaName"))
                             // 只在测试临时目录编译；默认配置与 renderChallenge 本身不写文件。
-                            val source = root.resolve("$name.java")
+                            val source = root.resolve("$javaName.java")
                             Files.writeString(source, prepared.code)
                             val compiler = ProcessBuilder(
                                 Path.of(System.getProperty("java.home"), "bin", "javac").toString(),

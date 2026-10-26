@@ -22,4 +22,21 @@ class VelocityToolTest {
     fun camelCaseName() {
         assertEquals("HelloThereMyGoodFriend", render("CamelCaseName", "hello there my_good-friend"))
     }
+
+    @Test
+    fun snakeCaseName() {
+        assertEquals(
+            "hello_there_my_good_friend",
+            VelocityTool.snakeCaseName("hello there my_good-friend")
+        )
+        assertEquals("", VelocityTool.snakeCaseName(null))
+    }
+
+    @Test
+    fun challengeDirectoryName() {
+        assertEquals("p0001_two_sum", VelocityTool.challengeDirectoryName("1", "two-sum"))
+        assertEquals("p12345_two_sum", VelocityTool.challengeDirectoryName("12345", "two-sum"))
+        // 非数字题号与 Java 一致只沿用 slug，不再拼接题号。
+        assertEquals("two_sum", VelocityTool.challengeDirectoryName("Interview 4", "two-sum"))
+    }
 }

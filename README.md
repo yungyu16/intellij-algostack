@@ -17,7 +17,7 @@
 | 语言 | 题目路径示例 | 缺失时创建的工程 |
 |---|---|---|
 | Java | `code/java/src/main/java/leetcodecn/P0001_TwoSum.java` | `code/java/pom.xml`，Java 8 Maven |
-| Go | `code/go/leetcodecn/P0001_TwoSum/main.go` | `code/go/go.mod`，版本取本机 Go 的 major.minor |
+| Go | `code/go/leetcodecn/p0001_two_sum/main.go` | `code/go/go.mod`，版本取本机 Go 的 major.minor |
 
 仅初始化所选语言，不覆盖已有源码或工程描述文件。Java 空非构造方法填入 `UnsupportedOperationException("Not implemented")` 占位，仍需自己实现；Go 保留平台骨架。工程复用和重名另存限制见[语言工程初始化](docs/工程结构.md#语言工程初始化)。
 
