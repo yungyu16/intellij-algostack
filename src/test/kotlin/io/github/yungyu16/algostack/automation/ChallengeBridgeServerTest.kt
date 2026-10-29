@@ -31,7 +31,7 @@ class ChallengeBridgeServerTest {
         val calls = CopyOnWriteArrayList<InitializationRequest>()
         val backend = object : ChallengeBridgeBackend {
             override fun projects() = listOf("/project")
-            override suspend fun initialize(request: InitializationRequest): InitializationResult {
+            override suspend fun initialize(request: InitializationRequest, onStage: (String) -> Unit): InitializationResult {
                 calls += request; return InitializationResult("created", associated = true, implemented = false)
             }
         }
@@ -80,13 +80,70 @@ class ChallengeBridgeServerTest {
     }
 
     @Test
+    fun failureDiagnosticsRetainStageAndCauseWithoutLeakingMessagesOrChangingHttpContract() {
+        val logs = CopyOnWriteArrayList<String>()
+        val secret = "Authorization: Bearer secret; Cookie: session=secret; response=private"
+        val backend = object : ChallengeBridgeBackend {
+            override fun projects() = listOf("/project")
+            override suspend fun initialize(request: InitializationRequest, onStage: (String) -> Unit): InitializationResult {
+                onStage("template_render_recognition")
+                throw IllegalStateException(secret, IllegalArgumentException("Question identity mismatch"))
+            }
+        }
+        HttpClient.newHttpClient().use { client ->
+            ChallengeBridgeServer(backend, logs::add).use { server ->
+                val body = Json.encodeToString(InitializationRequest("/project", "find-pivot-index", "java"))
+                val response = client.send(request(server, body), HttpResponse.BodyHandlers.ofString())
+                assertEquals(409, response.statusCode())
+                assertEquals("""{"error":"initialize_failed_or_cancelled_check_target"}""", response.body())
+                val log = logs.single()
+                assertTrue(log.contains("request_id="))
+                assertTrue(log.contains("stage=template_render_recognition"))
+                assertTrue(log.contains("slug=find-pivot-index"))
+                assertTrue(log.contains("java.lang.IllegalStateException"))
+                assertTrue(log.contains("java.lang.IllegalArgumentException"))
+                assertTrue(log.contains("平台返回的题目 slug 与请求不一致"))
+                assertTrue(log.contains("  at "))
+                assertFalse(log.contains(secret))
+                assertFalse(log.contains(server.token))
+                assertFalse(log.contains("/project"))
+                assertFalse(response.body().contains("request_id"))
+            }
+        }
+    }
+
+    @Test
+    fun partialResultAndDiagnosticSinkFailureDoNotChangeTheResponse() {
+        val logs = CopyOnWriteArrayList<String>()
+        val backend = object : ChallengeBridgeBackend {
+            override fun projects() = listOf("/project")
+            override suspend fun initialize(request: InitializationRequest, onStage: (String) -> Unit): InitializationResult {
+                onStage("vfs_refresh")
+                return InitializationResult("partial", associated = false, reason = "refresh_failed")
+            }
+        }
+        HttpClient.newHttpClient().use { client ->
+            ChallengeBridgeServer(backend) { message ->
+                logs += message
+                throw IllegalStateException("diagnostic sink unavailable")
+            }.use { server ->
+                val body = Json.encodeToString(InitializationRequest("/project", "two-sum", "go"))
+                val response = client.send(request(server, body), HttpResponse.BodyHandlers.ofString())
+                assertEquals(200, response.statusCode())
+                assertEquals("partial", Json.decodeFromString<InitializationResult>(response.body()).status)
+                assertTrue(logs.single().contains("stage=vfs_refresh status=partial"))
+            }
+        }
+    }
+
+    @Test
     fun serializesInitializationAndProtectsDescriptor() {
         val entered = CompletableDeferred<Unit>();
         val release = CompletableDeferred<Unit>()
         val root = Files.createTempDirectory("challenge-bridge-state-")
         val backend = object : ChallengeBridgeBackend {
             override fun projects() = listOf("/project")
-            override suspend fun initialize(request: InitializationRequest): InitializationResult {
+            override suspend fun initialize(request: InitializationRequest, onStage: (String) -> Unit): InitializationResult {
                 entered.complete(Unit); release.await(); return InitializationResult("created", associated = true)
             }
         }

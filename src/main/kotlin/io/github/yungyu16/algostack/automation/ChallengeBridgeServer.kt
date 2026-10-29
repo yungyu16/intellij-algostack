@@ -1,5 +1,7 @@
 package io.github.yungyu16.algostack.automation
 
+import com.intellij.openapi.diagnostic.Logger
+import io.github.yungyu16.algostack.execution.initializationFailureDetails
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import io.github.yungyu16.algostack.execution.InitializationResult
@@ -32,11 +34,14 @@ data class InitializationRequest(
 
 internal interface ChallengeBridgeBackend {
     fun projects(): List<String>
-    suspend fun initialize(request: InitializationRequest): InitializationResult
+    suspend fun initialize(request: InitializationRequest, onStage: (String) -> Unit): InitializationResult
 }
 
 /** 与旧桥接客户端兼容；只有窄接口，不开放任意文件、代码执行或平台测试/提交。 */
-internal class ChallengeBridgeServer(private val backend: ChallengeBridgeBackend) : AutoCloseable {
+internal class ChallengeBridgeServer(
+    private val backend: ChallengeBridgeBackend,
+    private val reportFailure: (String) -> Unit = { Logger.getInstance("AlgoStack.Initialization").warn(it) }
+) : AutoCloseable {
     private val json = Json { encodeDefaults = true }
     internal val token = HexFormat.of().formatHex(ByteArray(32).also { SecureRandom().nextBytes(it) })
     private val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 8)
@@ -88,6 +93,10 @@ internal class ChallengeBridgeServer(private val backend: ChallengeBridgeBackend
             ) {
                 reply(x, 403, error("forbidden")); return
             }
+            val requestId = UUID.randomUUID().toString()
+            val started = System.nanoTime()
+            var stage = "request_validation"
+            var context = "request_id=$requestId"
             try {
                 if (x.requestURI.toString() == "/status" && x.requestMethod == "GET") {
                     reply(
@@ -121,6 +130,9 @@ internal class ChallengeBridgeServer(private val backend: ChallengeBridgeBackend
                 if (!request.valid()) {
                     reply(x, 400, error("invalid_request")); return
                 }
+                // 仅在校验通过后记录受限字段，不记录项目路径、原始请求或请求头。
+                context += " dojo=${request.dojo} language=${request.language} slug=${request.slug}"
+                stage = "project_lookup"
                 if (request.project !in backend.projects()) {
                     reply(x, 409, error("project_not_open")); return
                 }
@@ -128,13 +140,22 @@ internal class ChallengeBridgeServer(private val backend: ChallengeBridgeBackend
                     reply(x, 409, error("busy")); return
                 }
                 try {
-                    val result = runBlocking { withTimeout(120_000) { backend.initialize(request) } }
+                    stage = "project_task"
+                    val result = runBlocking { withTimeout(120_000) {
+                        backend.initialize(request) { stage = it }
+                    } }
+                    if (result.status == "partial" || result.status == "conflict") {
+                        runCatching { reportFailure("初始化未完成 $context stage=$stage status=${result.status}；检查目标文件和 IDEA 日志，不自动重试") }
+                    }
+                    stage = "response_delivery"
                     reply(x, 200, json.encodeToJsonElement(result))
                 } finally {
                     creating.release()
                 }
-            } catch (_: Exception) {
-                // 底层异常可能含网络响应或凭据，不透传；取消后也可能已有文件，禁止盲目覆盖重试。
+            } catch (failure: Exception) {
+                val elapsed = (System.nanoTime() - started) / 1_000_000
+                // 日志自身失败不能改变 HTTP 错误契约；原异常及消息不直接交给 Logger。
+                runCatching { reportFailure("初始化失败 $context stage=$stage elapsed_ms=$elapsed\n${initializationFailureDetails(failure)}") }
                 runCatching { reply(x, 409, error("initialize_failed_or_cancelled_check_target")) }
             }
         }

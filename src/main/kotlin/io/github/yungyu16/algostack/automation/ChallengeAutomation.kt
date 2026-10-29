@@ -31,7 +31,8 @@ class ChallengeAutomation : Disposable {
                     p.basePath?.let { runCatching { Path.of(it).toRealPath().toString() }.getOrNull() }
                 }
 
-            override suspend fun initialize(request: InitializationRequest): InitializationResult {
+            override suspend fun initialize(request: InitializationRequest, onStage: (String) -> Unit): InitializationResult {
+                onStage("project_resolution")
                 val project = onEdt {
                     ProjectManager.getInstance().openProjects.filter {
                         !it.isDisposed && !it.isDefault && SidebarPolicy.enabled(
@@ -44,7 +45,7 @@ class ChallengeAutomation : Disposable {
                 val deferred = ProjectTasks.getInstance(project).scope.async {
                     initializeChallenge(
                         project, requireNotNull(CodeDojo.fromString(request.dojo)), request.slug,
-                        requireNotNull(Language.fromString(request.language))
+                        requireNotNull(Language.fromString(request.language)), onStage
                     )
                 }
                 try {

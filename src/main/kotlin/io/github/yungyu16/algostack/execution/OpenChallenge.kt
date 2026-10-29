@@ -36,10 +36,14 @@ private fun generationSettings(
 
 private suspend fun prepareChallenge(
     dojo: CodeDojo, slug: String, language: Language,
-    version: LanguageVersion, setting: GenerationSettings
+    version: LanguageVersion, setting: GenerationSettings,
+    onStage: (String) -> Unit = {}
 ): PreparedChallenge {
+    onStage("question_fetch_decode")
     val data = HttpService.getInstance().api(dojo).getQuestionData(slug)
+    onStage("question_identity")
     require(data.titleSlug == slug) { "Question identity mismatch" }
+    onStage("template_render_recognition")
     return renderChallenge(data, dojo, language, version, setting)
 }
 
@@ -101,8 +105,10 @@ suspend fun initializeChallenge(
     project: Project,
     dojo: CodeDojo,
     slug: String,
-    language: Language
+    language: Language,
+    onStage: (String) -> Unit = {}
 ): InitializationResult {
+    onStage("initialization_preconditions")
     require(language == Language.Java || language == Language.GO) { "Only Java and Go are supported" }
     require(slug.length <= 160 && Regex("[a-z0-9]+(?:-[a-z0-9]+)*").matches(slug)) { "Invalid slug" }
     check(!project.isDisposed && project.isOpen) { "Project is not open" }
@@ -110,21 +116,27 @@ suspend fun initializeChallenge(
         "conflict",
         reason = "root_leetcode_marker_required"
     )
+    onStage("generation_settings")
     val setting = generationSettings(project, dojo, language, LanguageVersion.AnyVersion)
+    onStage("project_real_path")
     val root = withContext(Dispatchers.IO) { Path.of(requireNotNull(project.basePath)).toRealPath() }
-    val prepared = prepareChallenge(dojo, slug, language, LanguageVersion.AnyVersion, setting)
+    val prepared = prepareChallenge(dojo, slug, language, LanguageVersion.AnyVersion, setting, onStage)
+    onStage("destination_validation")
     val target = prepared.file.toPath().toAbsolutePath().normalize()
     val folder = Path.of(setting.folder).toAbsolutePath().normalize()
     require(folder.startsWith(root) && target.startsWith(folder)) { "Automation destination must stay inside the open project and conventional folder" }
     var virtualFile: VirtualFile? = null
+    onStage("file_initialization")
     return initializeChallengeFile(
         root, target, prepared.code,
         identityMatches = {
+            onStage("source_identity")
             withContext(Dispatchers.IO) {
                 ChallengeFiles.resolve(target.toString(), java.nio.file.Files.readString(target)) == prepared.identity
             }
         },
         refresh = {
+            onStage("vfs_refresh")
             currentCoroutineContext().ensureActive()
             val file = withContext(Dispatchers.IO) {
                 LocalFileSystem.getInstance().refreshAndFindFileByIoFile(target.toFile())
@@ -132,10 +144,16 @@ suspend fun initializeChallenge(
                 ?: error("Cannot refresh generated file")
             virtualFile = file
         },
-        open = { openEditor(project, requireNotNull(virtualFile)) },
-        initializeProject = { ensureLanguageProject(root, dojo, language) },
+        open = {
+            onStage("editor_open")
+            openEditor(project, requireNotNull(virtualFile))
+        },
+        initializeProject = {
+            onStage("language_project")
+            ensureLanguageProject(root, dojo, language)
+        },
         reportFailure = {
             Logger.getInstance("AlgoStack.Initialization")
-                .warn("Challenge initialization incomplete for ${dojo.value}/${language.value}", it)
+                .warn("初始化文件流程未完成 dojo=${dojo.value} language=${language.value}\n${initializationFailureDetails(it)}")
         })
 }

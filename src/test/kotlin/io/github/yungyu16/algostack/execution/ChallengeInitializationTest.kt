@@ -115,6 +115,24 @@ class ChallengeInitializationTest {
     }
 
     @Test
+    fun diagnosticFailureDoesNotHidePartialResultOrDeleteTheCreatedFile() = fixture { root ->
+        val file = root.resolve("main.go")
+        var reported: Exception? = null
+        val result = initializeChallengeFile(
+            root, file, "new", { false }, { error("refresh failure") }, {},
+            reportFailure = {
+                reported = it
+                error("logger failure")
+            }
+        )
+        assertEquals("partial", result.status)
+        assertFalse(result.associated)
+        assertEquals("initialization_incomplete: refresh failure", result.reason)
+        assertEquals("refresh failure", reported!!.message)
+        assertEquals("new", Files.readString(file))
+    }
+
+    @Test
     fun identityVerificationFailureDoesNotOpenEditor() = fixture { root ->
         val result =
             initializeChallengeFile(root, root.resolve("main.go"), "new", { false }, {}, { error("must not open") })

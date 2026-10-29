@@ -58,7 +58,8 @@ internal suspend fun initializeChallengeFile(
         // 取消必须向项目任务传播；调用端不能据此假设没有写入，应检查目标文件。
         throw cancelled
     } catch (failure: Exception) {
-        reportFailure(failure)
+        // 诊断是旁路，不能遮蔽原始失败或把 partial/conflict 变成桥接异常。
+        runCatching { reportFailure(failure) }
         return InitializationResult(
             if (created || associated) "partial" else "conflict", location, associated,
             reason = if (created || associated) "initialization_incomplete: ${failure.message}" else "create_failed"
