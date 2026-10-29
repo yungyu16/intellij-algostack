@@ -115,6 +115,36 @@ class ChallengeEditorTitlesServiceTest {
         assertEquals(listOf(file), fixture.manager.presentations)
     }
 
+    @Test
+    fun declarationEditsUseUnsavedDocumentAndOnlyIdentityChangesRefreshPresentation() = withFixture { fixture ->
+        Files.createFile(fixture.marker)
+        val declared = "// @leetcode https://leetcode.cn/problems/find-pivot-index/\n" +
+            "// reference: https://leetcode.cn/problems/find-the-middle-index-in-array/\n" +
+            Language.Java.encloseCodeInRegion("class Solution {}")
+        val file = LightVirtualFile("moved.java", declared)
+        fixture.manager.openedFiles.add(file)
+        val document = fixture.document(file)
+        assertNull(ChallengeEditorTabTitleProvider().getEditorTabTitle(fixture.project, file))
+        fun currentSlug(): String? = ReadAction.compute<String?, RuntimeException> {
+            io.github.yungyu16.algostack.utils.ChallengeFiles.resolve(file)?.slug
+        }
+        assertEquals("find-pivot-index", currentSlug())
+        fixture.replace(document, declared.replace("reference:", "ordinary reference:"))
+        UIUtil.dispatchAllInvocationEvents()
+        assertTrue(fixture.manager.presentations.isEmpty())
+
+        fixture.replace(document, declared + "\n// @leetcode invalid")
+        UIUtil.dispatchAllInvocationEvents()
+        assertNull(currentSlug())
+        assertEquals(listOf(file), fixture.manager.presentations)
+        fixture.manager.presentations.clear()
+
+        fixture.replace(document, declared.replace("@leetcode https://leetcode.cn/problems/find-pivot-index/", "@leetcode https://leetcode.cn/problems/two-sum/"))
+        UIUtil.dispatchAllInvocationEvents()
+        assertEquals("two-sum", currentSlug())
+        assertEquals(listOf(file), fixture.manager.presentations)
+    }
+
     private fun source(slug: String) =
         "// https://leetcode.cn/problems/$slug/\n" + Language.Java.encloseCodeInRegion("class Solution {}")
 

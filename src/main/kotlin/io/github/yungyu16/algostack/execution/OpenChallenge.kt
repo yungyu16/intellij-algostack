@@ -57,12 +57,11 @@ internal fun renderChallenge(
     require(parts.isNotEmpty() && parts.none { it.isBlank() }) { "File name template generated an empty path" }
     val identity = ChallengeIdentity(dojo, data.titleSlug, language, version)
     val code = renderTemplate(setting.code, template)
-    require(
-        ChallengeRecognition.recognize(
-            code,
-            language.fileExt
-        ) == identity
-    ) { "Template must provide a matching problem URL and one submission region" }
+    // 这里验证产物的可恢复性，不靠源码猜测本次请求的已知身份。
+    val recognized = ChallengeRecognition.inspect(code, language.fileExt)
+    if (recognized.identity != identity) {
+        throw ChallengeSourceException(recognized.failure ?: RecognitionFailure.IDENTITY_MISMATCH)
+    }
     return PreparedChallenge(
         File(setting.folder, parts.joinToString(File.separator) + ".${language.fileExt}"),
         code,

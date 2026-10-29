@@ -105,6 +105,34 @@ class ChallengeInitializationTest {
     }
 
     @Test
+    fun explicitIdentityReferencesAndLegacyExistingFilesStayIdempotent() = fixture { root ->
+        for (language in listOf(Language.Java, Language.GO)) {
+            val identity = ChallengeIdentity(CodeDojo.LeetCodeCN, "find-pivot-index", language)
+            val region = language.encloseCodeInRegion("// user implementation")
+            val main = "https://leetcode.cn/problems/find-pivot-index/"
+            val related = "https://leetcode.cn/problems/find-the-middle-index-in-array/"
+            val generated = "/*\n@leetcode $main\n参考：$related\n*/\n$region"
+            val file = root.resolve("renamed.${language.fileExt}")
+            suspend fun initialize() = initializeChallengeFile(
+                root, file, generated,
+                { ChallengeFiles.resolve(file.toString(), Files.readString(file)) == identity }, {}, {})
+            assertEquals("created", initialize().status)
+            assertEquals("already_exists", initialize().status)
+            assertEquals(generated, Files.readString(file))
+
+            val legacy = "// $main\n$region"
+            Files.writeString(file, legacy)
+            assertEquals("already_exists", initialize().status)
+            assertEquals(legacy, Files.readString(file))
+
+            val other = generated.replace("@leetcode $main", "@leetcode $related")
+            Files.writeString(file, other)
+            assertEquals("conflict", initialize().status)
+            assertEquals(other, Files.readString(file))
+        }
+    }
+
+    @Test
     fun failureAfterCreatingFilePreservesItAndReportsPartial() = fixture { root ->
         val file = root.resolve("main.go")
         val result = initializeChallengeFile(root, file, "new", { false }, { error("refresh failure") }, {})

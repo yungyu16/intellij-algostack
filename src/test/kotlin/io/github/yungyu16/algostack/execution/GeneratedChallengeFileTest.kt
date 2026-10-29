@@ -43,6 +43,32 @@ class GeneratedChallengeFileTest {
     }
 
     @Test
+    fun pivotIndexTemplatesKeepRelatedProblemLinksWithoutLosingIdentity() {
+        for ((language, version) in ChallengeConventions.languages) {
+            val platform = if (language == Language.Java) "class Solution { public int pivotIndex(int[] nums) {} }"
+            else "func pivotIndex(nums []int) int {}"
+            val reference = "https://leetcode.cn/problems/find-the-middle-index-in-array/"
+            val data = LeetCodeChallengeData(
+                "724", "724", "Find Pivot Index", "find-pivot-index", "",
+                translatedTitle = "寻找数组的中心下标",
+                translatedContent = "<p>注意：本题与1991题相同：<a href='$reference'>$reference</a></p>",
+                difficulty = "Easy", exampleTestcaseList = listOf("[1,7,3,6,5,6]"),
+                codeSnippets = listOf(LeetCodeQuestionCodeSnippet("fixture", language.toLeetCode(version), platform))
+            )
+            val prepared = renderChallenge(
+                data, CodeDojo.LeetCodeCN, language, version,
+                ChallengeConventions.generation(Path.of("/unused"), CodeDojo.LeetCodeCN, language)
+            )
+            assertTrue(prepared.code.contains("@leetcode https://leetcode.cn/problems/find-pivot-index/"))
+            assertTrue(prepared.code.contains(reference))
+            assertEquals(prepared.identity, ChallengeRecognition.recognize(prepared.code, language.fileExt))
+            assertEquals(prepared.identity, io.github.yungyu16.algostack.utils.ChallengeFiles.resolve("moved/renamed.${language.fileExt}", prepared.code))
+            assertFalse(language.extractCodeFromRegion(prepared.code).contains("@leetcode"))
+            assertFalse(prepared.file.exists())
+        }
+    }
+
+    @Test
     fun javaRenameRequiresAClassIdentifierButGoKeepsItsExistingNameRules() {
         for (name in listOf("Retry", "Solution", "第二次", "Retry_2", "\$Retry")) {
             assertTrue(name, isChallengeFileNameValid(name, Language.Java))

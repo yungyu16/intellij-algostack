@@ -163,7 +163,7 @@ class DefaultLanguageSettingsTest {
                         assertEquals(root.resolve(expected).toFile(), prepared.file)
                         assertFalse(prepared.file.exists())
                         assertFalse(Files.exists(root.resolve("code")))
-                        assertTrue(prepared.code.contains("/*\n$id. Two Sum\nhttps://leetcode.cn/problems/two-sum/\n\nCompare <= 2 * /"))
+                        assertTrue(prepared.code.contains("/*\n$id. Two Sum\n@leetcode https://leetcode.cn/problems/two-sum/\n\nCompare <= 2 * /"))
                         assertFalse(prepared.code.contains("<p>"))
                         assertFalse(prepared.code.contains("leetcode-editor:"))
                         assertEquals(snippet, language.extractCodeFromRegion(prepared.code).trim())

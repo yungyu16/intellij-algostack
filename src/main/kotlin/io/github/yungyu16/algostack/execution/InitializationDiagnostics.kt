@@ -1,5 +1,6 @@
 package io.github.yungyu16.algostack.execution
 
+import io.github.yungyu16.algostack.domain.ChallengeSourceException
 import io.github.yungyu16.algostack.leetcode.LeetCodeClient
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
@@ -21,6 +22,7 @@ internal fun initializationFailureDetails(failure: Throwable): String = buildStr
 }
 
 private fun safeInitializationMessage(error: Throwable): String = when (error) {
+    is ChallengeSourceException -> error.reason.description
     is TimeoutCancellationException -> "初始化等待超时；检查网络及 IDEA 任务状态，确认目标文件后再决定是否重试"
     is CancellationException -> "初始化任务已取消；检查项目关闭、插件卸载或上游取消，目标文件可能已经写入"
     is LeetCodeClient.HttpException -> "力扣请求返回 HTTP ${error.status}；检查网络、代理或访问权限"

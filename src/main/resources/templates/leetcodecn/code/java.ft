@@ -4,7 +4,7 @@ import java.util.*;
 
 /*
 ${challenge.headingText}
-https://leetcode.cn/problems/${challenge.slug}/
+@leetcode https://leetcode.cn/problems/${challenge.slug}/
 
 ${challenge.descriptionText}
 */
