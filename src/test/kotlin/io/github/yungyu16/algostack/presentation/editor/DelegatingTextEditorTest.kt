@@ -52,18 +52,30 @@ class DelegatingTextEditorTest {
     }
 
     @Test
-    fun loadedStateFollowsTheDelegateInsteadOfTheInterfaceDefault() {
+    fun loadingRemainsOwnedByTheUnderlyingEditorWithoutOverridingInternalProbe() {
         var loaded = false
+        val underlying = Proxy.newProxyInstance(javaClass.classLoader, arrayOf(com.intellij.openapi.editor.Editor::class.java)) { _, method, _ ->
+            error("Unexpected Editor call: ${method.name}")
+        } as com.intellij.openapi.editor.Editor
+        val highlighter = Proxy.newProxyInstance(javaClass.classLoader, arrayOf(com.intellij.codeHighlighting.BackgroundEditorHighlighter::class.java)) { _, method, _ ->
+            error("Unexpected highlighter call: ${method.name}")
+        } as com.intellij.codeHighlighting.BackgroundEditorHighlighter
         val delegate = Proxy.newProxyInstance(javaClass.classLoader, arrayOf(TextEditor::class.java)) { _, method, _ ->
-            check(method.name == "isEditorLoaded")
-            loaded
+            when (method.name) {
+                "getEditor" -> underlying
+                "getBackgroundHighlighter" -> if (loaded) highlighter else null
+                else -> error("Unexpected delegate call: ${method.name}")
+            }
         } as TextEditor
         val editor = DelegatingTextEditor(delegate, LightVirtualFile("solution.java"))
-        assertFalse(editor.isEditorLoaded)
+        assertFalse(DelegatingTextEditor::class.java.declaredMethods.any { it.name == "isEditorLoaded" })
+        assertSame(underlying, editor.editor)
+        assertNull(editor.backgroundHighlighter)
         loaded = true
-        assertTrue(editor.isEditorLoaded)
+        assertSame(underlying, editor.editor)
+        assertSame(highlighter, editor.backgroundHighlighter)
         loaded = false
-        assertFalse(editor.isEditorLoaded)
+        assertNull(editor.backgroundHighlighter)
     }
 
     @Test

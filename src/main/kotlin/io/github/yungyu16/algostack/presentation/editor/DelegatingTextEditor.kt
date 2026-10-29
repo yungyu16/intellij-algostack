@@ -39,7 +39,8 @@ open class DelegatingTextEditor(protected val delegate: TextEditor, private val 
         if (bridges.isEmpty()) listenerBridges.remove(listener)
     }
 
-    override fun isEditorLoaded(): Boolean = delegate.isEditorLoaded
+    // 不覆盖 TextEditor 的内部加载探针；加载/恢复仍由 getEditor 返回的底层编辑器负责。
+    // PsiAwareTextEditorImpl 未加载时的 backgroundHighlighter 为 null，避免提前创建高亮任务。
     override fun getFile(): VirtualFile = sourceFile
     override fun getState(level: FileEditorStateLevel): FileEditorState = delegate.getState(level)
     override fun setState(state: FileEditorState, exactState: Boolean) = delegate.setState(state, exactState)
