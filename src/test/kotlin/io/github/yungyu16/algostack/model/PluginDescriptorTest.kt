@@ -16,6 +16,14 @@ class PluginDescriptorTest {
             }
             assertEquals("com.yungyu.leetcode-editor", document.getElementsByTagName("id").item(0).textContent.trim())
             assertEquals(version, document.getElementsByTagName("version").item(0).textContent.trim())
+            assertEquals("AlgoStack", document.getElementsByTagName("name").item(0).textContent.trim())
+            val description = document.getElementsByTagName("description").item(0).textContent
+            assertTrue(description.contains("题栈"))
+            assertTrue(description.contains("力扣中国站"))
+            assertTrue(description.contains("Java／Go"))
+            val plainDescription = description.replace(Regex("<[^>]+>"), "").trim()
+            assertTrue(plainDescription.startsWith("AlgoStack is a personal coding practice plugin"))
+            assertTrue(plainDescription.length >= 40)
         }
     }
 

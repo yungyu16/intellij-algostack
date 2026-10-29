@@ -1,6 +1,6 @@
-# 题栈（AlgoStack）
+# AlgoStack
 
-面向 IntelliJ IDEA 的个人维护版刷题插件，仅支持[力扣中国站 LeetCodeCN](https://leetcode.cn)。基于 [WenjunHuang/CodeEpiphany](https://github.com/WenjunHuang/CodeEpiphany) 开发，采用 [Apache License 2.0](LICENSE)。
+AlgoStack（题栈）是面向 IntelliJ IDEA 的个人维护版刷题插件，仅支持[力扣中国站 LeetCodeCN](https://leetcode.cn)。基于 [WenjunHuang/CodeEpiphany](https://github.com/WenjunHuang/CodeEpiphany) 开发，采用 [Apache License 2.0](LICENSE)。
 
 支持题目搜索与筛选、Java／Go 骨架和语言工程生成、平台默认用例测试、代码提交及平台题解阅读。没有设置页、自定义用例、本地笔记或提交历史；结果输出到 Console，并提供平台详情链接。本机 Agent／脚本可以初始化骨架，但不能通过桥接执行解法、测试或提交。
 

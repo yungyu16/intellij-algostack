@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <idea-plugin>
     <id>com.yungyu.leetcode-editor</id>
-    <name>题栈(AlgoStack)</name>
+    <name>AlgoStack</name>
     <vendor url="https://github.com/yungyu16">yungyu16</vendor>
     <version>0.0.0</version>
-    <description>面向 IntelliJ IDEA 的个人维护刷题插件（AlgoStack），仅支持力扣中国站。支持题目搜索与筛选、按内置约定生成
-        Java／Go 题目、测试与提交及平台题解阅读，并提供本机 Agent 自动化初始化接口。
-    </description>
+    <description><![CDATA[<p>AlgoStack is a personal coding practice plugin for IntelliJ IDEA, supporting LeetCodeCN only.</p>
+        <p>题栈是面向 IntelliJ IDEA 的个人维护刷题插件，仅支持力扣中国站 LeetCodeCN。</p>
+        <p>支持题目搜索与筛选、Java／Go 骨架和语言工程生成、平台默认用例测试、代码提交及题解阅读，并提供本机 Agent 自动化初始化接口。</p>
+        <p>基于 LeetCode Epiphany 开发的个人维护版本。</p>
+    ]]></description>
     <change-notes>Initial release</change-notes>
 
     <idea-version since-build="262" />

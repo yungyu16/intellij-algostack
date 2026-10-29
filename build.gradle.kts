@@ -80,7 +80,6 @@ dependencies {
 intellijPlatform {
     pluginConfiguration {
         version = project.version.toString()
-        description = "<p>Personal fork of LeetCode Epiphany for LeetCodeCN only.</p>"
         changeNotes = releaseNotes
         ideaVersion { sinceBuild = providers.gradleProperty("platformSinceBuild") }
     }
