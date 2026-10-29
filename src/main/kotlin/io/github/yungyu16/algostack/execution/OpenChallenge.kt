@@ -56,7 +56,8 @@ internal fun renderChallenge(
         .filter { it.isNotEmpty() }.map { FileUtils.sanitizeFilename(renderTemplate(it, template).trim()) }
     require(parts.isNotEmpty() && parts.none { it.isBlank() }) { "File name template generated an empty path" }
     val identity = ChallengeIdentity(dojo, data.titleSlug, language, version)
-    val code = renderTemplate(setting.code, template)
+    val rendered = renderTemplate(setting.code, template)
+    val code = if (language == Language.Java) formatGeneratedJava(parts.last() + ".java", rendered) else rendered
     // 这里验证产物的可恢复性，不靠源码猜测本次请求的已知身份。
     val recognized = ChallengeRecognition.inspect(code, language.fileExt)
     if (recognized.identity != identity) {

@@ -5,7 +5,7 @@ internal fun goTemplateStub(code: String): String {
     // 注释和字符串作为完整词法单元跳过，避免其中的 func、括号影响结构判断。
     val lexemes = Regex("//[^\\r\\n]*|/\\*[\\s\\S]*?\\*/|`[^`]*`|\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|[\\p{L}_][\\p{L}\\p{N}_]*|[^\\s]")
         .findAll(code).filterNot { it.value.startsWith("//") || it.value.startsWith("/*") }.toList()
-    val insertions = mutableListOf<Pair<Int, String>>()
+    val replacements = mutableListOf<Triple<Int, Int, String>>()
     val newline = if (code.contains("\r\n")) "\r\n" else "\n"
     var braces = 0
     var parentheses = 0
@@ -33,8 +33,10 @@ internal fun goTemplateStub(code: String): String {
                     if (closing?.value == "}") {
                         val lineStart = code.lastIndexOf('\n', token.range.first - 1) + 1
                         val indent = code.substring(lineStart, token.range.first).takeWhile { it == ' ' || it == '\t' }
-                        // 插入在右括号前，保留原注释；换行确保行注释不会吞掉 panic。
-                        insertions.add(closing.range.first to "$newline$indent\tpanic(\"Not implemented\")$newline$indent")
+                        val start = token.range.last + 1
+                        // 替换空体而非追加：去掉平台预留的尾部空白，但保留原注释。
+                        val comments = code.substring(start, closing.range.first).trimEnd()
+                        replacements.add(Triple(start, closing.range.first, "$comments$newline$indent\tpanic(\"Not implemented\")$newline$indent"))
                     }
                 }
                 braces++
@@ -44,6 +46,6 @@ internal fun goTemplateStub(code: String): String {
         index++
     }
     return StringBuilder(code).apply {
-        insertions.asReversed().forEach { (offset, text) -> insert(offset, text) }
+        replacements.asReversed().forEach { (start, end, text) -> replace(start, end, text) }
     }.toString()
 }

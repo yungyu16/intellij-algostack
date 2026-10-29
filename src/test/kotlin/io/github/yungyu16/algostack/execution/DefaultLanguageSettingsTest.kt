@@ -92,7 +92,8 @@ class DefaultLanguageSettingsTest {
             val region = language.encloseCodeInRegion(snippet)
             val valid = "// template-owned\n$url$region"
             val setting = GenerationSettings("/unused", "Fixture", valid)
-            assertEquals(valid, renderChallenge(data, CodeDojo.LeetCodeCN, language, version, setting).code)
+            assertEquals(if (language == Language.Java) formatGeneratedJava("Fixture.java", valid) else valid,
+                renderChallenge(data, CodeDojo.LeetCodeCN, language, version, setting).code)
             for (invalid in listOf(
                 region, url, valid.replace("two-sum", "three-sum"), valid + region,
                 "var url = \"https://leetcode.cn/problems/two-sum/\";\n$region"
@@ -166,7 +167,9 @@ class DefaultLanguageSettingsTest {
                         assertTrue(prepared.code.contains("/*\n$id. Two Sum\n@leetcode https://leetcode.cn/problems/two-sum/\n\nCompare <= 2 * /"))
                         assertFalse(prepared.code.contains("<p>"))
                         assertFalse(prepared.code.contains("leetcode-editor:"))
-                        assertEquals(snippet, language.extractCodeFromRegion(prepared.code).trim())
+                        val extracted = language.extractCodeFromRegion(prepared.code)
+                        assertEquals(if (language == Language.Java) formatGeneratedJava("Solution.java", snippet).trim() else snippet,
+                            if (language == Language.Java) extracted.trimIndent().trim() else extracted.trim())
                         assertEquals(1, Regex("Submit Code Region Begin").findAll(prepared.code).count())
                         assertEquals(1, Regex("https://").findAll(prepared.code).count())
                         assertEquals(prepared.identity, ChallengeRecognition.recognize(prepared.code, language.fileExt))

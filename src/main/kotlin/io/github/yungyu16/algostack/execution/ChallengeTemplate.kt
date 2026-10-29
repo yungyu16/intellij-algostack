@@ -28,12 +28,21 @@ class ChallengeTemplate(
 ) {
     fun getDescriptionText(): String = ChallengeDescriptionText.convert(description)
     fun getHeadingText(): String = "$frontendQuestionId. $name".replace("*/", "* /").replace('\r', ' ').replace('\n', ' ')
-    fun getCode(): String =
-        language.encloseCodeInRegion(when (language) {
+    fun getCode(): String {
+        val code = when (language) {
             Language.Java -> javaTemplateStub(rawCode)
             Language.GO -> goTemplateStub(rawCode)
             else -> rawCode
-        })
+        }
+        // 新骨架不继承编辑器包围动作的前导换行，模板负责外围空行。
+        // Java 两条标记预置为外层类成员缩进，避免 IDEA 保留其首列位置。
+        val markerIndent = if (language == Language.Java) "    " else ""
+        return listOf(
+            markerIndent + language.createComment(" ${Constants.SUBMIT_CODE_REGION_BEGIN}"),
+            code.trimEnd(),
+            markerIndent + language.createComment(" ${Constants.SUBMIT_CODE_REGION_END}")
+        ).joinToString("\n")
+    }
 
     fun getCodeDojo(): String = dojo.value
     fun getLanguage(): String = language.value
