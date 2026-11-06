@@ -30,9 +30,8 @@ class HttpService : Disposable {
                 ProxySettings.getInstance().getProxyConfiguration()
             }))
             .proxyAuthenticator { _, response ->
-                val credentials = ProxySettings.getInstance().getStaticProxyCredentials(
-                    ProxyCredentialStore.getInstance().asProxyCredentialProvider()
-                )
+                val credentials = ProxyCredentialStore.getInstance()
+                    .getCredentials(ProxySettings.getInstance().getProxyConfiguration())
                 if (credentials == null || response.challenges()
                         .none { it.scheme.equals("OkHttp-Preemptive", true) }
                 ) null

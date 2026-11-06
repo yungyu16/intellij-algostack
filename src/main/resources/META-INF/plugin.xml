@@ -11,11 +11,11 @@
     ]]></description>
     <change-notes>Initial release</change-notes>
 
-    <idea-version since-build="262" />
+    <idea-version since-build="263" />
 
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.java</depends>
-    <!-- Fork modification: declare the JCEF dependency for IDEA 2026.2 class loading. -->
+    <!-- Fork modification: declare the JCEF dependency for IDEA 2026.3 class loading. -->
     <depends>com.intellij.modules.jcef</depends>
 
     <resource-bundle>messages.PluginBundle</resource-bundle>

@@ -6,7 +6,7 @@ AlgoStack（题栈）是面向 IntelliJ IDEA 的个人维护版刷题插件，�
 
 ## 安装与使用
 
-目标为 IntelliJ IDEA 2026.2。源码版本与目标平台以 [gradle.properties](gradle.properties) 为准，安装包名为 `AlgoStack-<pluginVersion>.zip`；构建包版本不代表本机正在运行的版本。
+目标为 IntelliJ IDEA 2026.3。源码版本与目标平台以 [gradle.properties](gradle.properties) 为准，安装包名为 `AlgoStack-<pluginVersion>.zip`；构建包版本不代表本机正在运行的版本。
 
 1. 按[开发指南](docs/开发指南.md)构建 ZIP。通过 **Settings → Plugins → 齿轮 → Install Plugin from Disk** 安装，按提示重启。
 2. 在刷题项目根目录放置 `.leetcode` 标记（文件或目录均可），重新打开项目。无标记时不显示插件工具窗口、不恢复登录或启动桥接。

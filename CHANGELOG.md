@@ -1,5 +1,10 @@
 # 更新记录
 
+## 1.0.19
+
+- 目标平台升级到 IntelliJ IDEA 2026.3，最低构建号随之提高到 `263`，不再声明兼容 2026.2；JDK 25 与 Node.js 24 不变。
+- 代理认证改用 `ProxyCredentialStore.getCredentials(ProxyConfiguration)`，移除 2026.3 中标记为 error 的 `ProxySettings.getStaticProxyCredentials` 与 `asProxyCredentialProvider` 调用；凭据仍只在静态代理下读取平台凭据库，预请求认证行为不变。
+
 ## 1.0.18
 
 - 移除文本编辑器包装器对 `TextEditor.isEditorLoaded()` 内部 API 的覆盖与调用，使用标准接口契约；底层 Editor、状态恢复、高亮器及属性事件仍透传，不伪造加载状态或放宽 Plugin Verifier 检查策略。
