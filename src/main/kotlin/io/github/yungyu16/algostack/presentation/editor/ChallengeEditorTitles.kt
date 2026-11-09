@@ -128,6 +128,8 @@ class ChallengeEditorTitles(private val project: Project, private val scope: Cor
     }
 
     private fun refresh(file: VirtualFile) {
+        // 全局监听器也会收到 Dispatchers.UI 上的终端文档事件；必须在申请读锁前排除未打开的文件。
+        if (project.isDisposed || !FileEditorManager.getInstance(project).isFileOpen(file)) return
         val changed = ReadAction.compute<Boolean, RuntimeException> {
             // 文档监听器属于全局 multicaster，其他项目或未打开文件不能触发请求和排队。
             if (project.isDisposed || !FileEditorManager.getInstance(project).isFileOpen(file)) return@compute false

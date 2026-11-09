@@ -5,7 +5,12 @@ import com.intellij.mock.MockProject
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ReadAction
+import com.intellij.openapi.application.impl.ApplicationImpl
 import com.intellij.openapi.editor.Document
+import com.intellij.openapi.editor.EditorFactory
+import com.intellij.openapi.editor.event.DocumentListener
+import com.intellij.openapi.editor.impl.event.DocumentEventImpl
+import com.intellij.openapi.editor.impl.event.EditorEventMulticasterImpl
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
@@ -51,6 +56,22 @@ class ChallengeEditorTitlesServiceTest {
         Files.delete(fixture.marker)
         assertNull(provider.getEditorTabTitle(fixture.project, file))
         assertEquals(2, fixture.project.titleServiceReads)
+    }
+
+    @Test
+    fun unopenedDocumentDoesNotAcquireReadLockWhenLocksAreProhibited() = withFixture { fixture ->
+        Files.createFile(fixture.marker)
+        val file = LightVirtualFile("terminal-output.txt", "terminal output")
+        val document = fixture.document(file)
+        val application = ApplicationManager.getApplication() as ApplicationImpl
+        // 只重放变更通知，避免普通文件 Document 自身的写锁约束干扰终端场景。
+        val event = DocumentEventImpl(document, 0, "terminal output", "restored terminal output", document.modificationStamp, true, 0, 0, 0, 0)
+        application.withLocksProhibited("Terminal UI document notification") {
+            fixture.documentListener.documentChanged(event)
+        }
+        fixture.manager.openedFiles.add(file)
+        UIUtil.dispatchAllInvocationEvents()
+        assertTrue(fixture.manager.presentations.isEmpty())
     }
 
     @Test
@@ -186,12 +207,17 @@ class ChallengeEditorTitlesServiceTest {
         val marker: Path = root.resolve(".leetcode")
         val project = TitleProject(root, disposable)
         val manager = RecordingFileEditorManager()
+        val documentListener: DocumentListener
 
         init {
             project.registerService(FileEditorManager::class.java, manager)
             // 请求仍经过真实缓存和取消逻辑，但取消的父 Job 保证不访问真实站点。
             val scope = CoroutineScope(Job().apply { cancel() })
+            val multicaster = EditorFactory.getInstance().eventMulticaster as EditorEventMulticasterImpl
+            val previous = multicaster.listeners[DocumentListener::class.java].orEmpty().toSet()
             val service = ChallengeEditorTitles(project, scope)
+            documentListener = multicaster.listeners[DocumentListener::class.java].orEmpty()
+                .filterNot { it in previous }.single() as DocumentListener
             project.registerService(ChallengeEditorTitles::class.java, service)
             Disposer.register(disposable, service)
         }
