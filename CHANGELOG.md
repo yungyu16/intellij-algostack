@@ -1,5 +1,9 @@
 # 更新记录
 
+## 1.0.20
+
+- 优先初始化 Console／Problems，隔离 Description／Solutions 初始化异常；JCEF 不可用时保留基础 Tab，并在详情 Tab 显示失败提示、记录日志，不自动重建全局浏览器运行态。
+
 ## 1.0.19
 
 - 目标平台升级到 IntelliJ IDEA 2026.3，最低构建号随之提高到 `263`，不再声明兼容 2026.2；JDK 25 与 Node.js 24 不变。

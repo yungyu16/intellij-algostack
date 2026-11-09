@@ -29,12 +29,13 @@ class SidebarWindowFactory : ToolWindowFactory, DumbAware {
             toolbar.targetComponent = console.component; setToolbar(toolbar.component)
         }
         manager.addContent(manager.factory.createContent(consolePanel, SidebarPolicy.CONSOLE, false))
+        addChallengeTabs(project, manager)
         val contextual = listOf(
-            "Description" to DescriptionPanel(project),
-            "Solutions" to ArticlesPanel(project)
+            "Description" to createSidebarPanel("Description") { DescriptionPanel(project) },
+            "Solutions" to createSidebarPanel("Solutions") { ArticlesPanel(project) }
         ).map { (name, panel) ->
             manager.factory.createContent(panel, name, false).apply {
-                setDisposer(panel)
+                setDisposer(panel as com.intellij.openapi.Disposable)
                 Disposer.register(toolWindow.disposable, this)
             }
         }
@@ -50,7 +51,6 @@ class SidebarWindowFactory : ToolWindowFactory, DumbAware {
             }
         }
         Disposer.register(toolWindow.disposable, com.intellij.openapi.Disposable { tabs.cancel() })
-        addChallengeTabs(project, manager)
     }
 
     /** Problems 始终存在，不依赖项目语言配置。 */

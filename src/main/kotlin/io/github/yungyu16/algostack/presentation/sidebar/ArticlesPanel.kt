@@ -28,7 +28,7 @@ import javax.swing.event.DocumentEvent
 import javax.swing.table.AbstractTableModel
 import javax.swing.table.DefaultTableCellRenderer
 
-class ArticlesPanel(project: Project) : SidebarPanel(project), UiDataProvider, FilterHost, QueryHost {
+class ArticlesPanel(project: Project, private val document: WebDocumentView = WebDocumentView(project, true)) : SidebarPanel(project), UiDataProvider, FilterHost, QueryHost {
     private data class Request(
         val challenge: ChallengeIdentity, val page: Pagination,
         val order: LeetCodeQuestionSolutionArticlesOrderBy, val keyword: String, val tags: List<String>
@@ -49,7 +49,6 @@ class ArticlesPanel(project: Project) : SidebarPanel(project), UiDataProvider, F
     private var selectedTags = emptySet<String>()
     private val search = JBTextField()
     private val status = JBLabel()
-    private val document = WebDocumentView(project, true)
     private val model = ArticlesModel()
     private val table = JBTable(model)
     private val avatars = linkedMapOf<String, javax.swing.Icon>()

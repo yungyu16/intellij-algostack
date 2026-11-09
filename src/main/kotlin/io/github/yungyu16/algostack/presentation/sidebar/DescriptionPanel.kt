@@ -13,8 +13,7 @@ import kotlinx.coroutines.launch
 import java.awt.BorderLayout
 import javax.swing.JLabel
 
-class DescriptionPanel(project: Project) : SidebarPanel(project) {
-    private val document = WebDocumentView(project)
+class DescriptionPanel(project: Project, private val document: WebDocumentView = WebDocumentView(project)) : SidebarPanel(project) {
     private val status = JLabel()
     private var html = ""
 
