@@ -29,7 +29,7 @@ AlgoStack（题栈）是面向 IntelliJ IDEA 的个人维护版刷题插件，�
 
 ## 数据与兼容边界
 
-- 插件 ID 为 `com.yungyu.leetcode-editor`，不能与同 ID 的上游插件同时安装。
+- 插件 ID 为 `io.github.yungyu16.algostack`，与包名及仓库名一致；曾用 `com.yungyu.leetcode-editor`，与同 ID 上游插件不可同装的约束随之解除，但升级旧安装时需先卸载旧 ID 版本。
 - **历史数据库和项目 XML 不读取、改写、迁移或删除。** 旧语言、路径、模板、CSS、自定义用例、笔记和提交历史不再生效或展示；queryCriteria 只保留在内存。
 - 已有题目按源码真实注释中的可信中国站 URL、扩展名和唯一提交区域识别，不依赖文件路径关联。无 URL 不从 XML 兜底，显式国际站输入不自动转站。详细规则见[题目身份与旧文件](docs/工程结构.md#题目身份与旧文件)。
 - 凭据由 IDEA PasswordSafe 管理，不应提交到 Git。升级或回滚只处理插件程序，不操作题解和旧数据。

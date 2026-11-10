@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <idea-plugin>
-    <id>com.yungyu.leetcode-editor</id>
+    <id>io.github.yungyu16.algostack</id>
     <name>AlgoStack</name>
     <vendor url="https://github.com/yungyu16">yungyu16</vendor>
     <version>0.0.0</version>

@@ -73,7 +73,7 @@ jobs:
           PLUGIN_FILE=$(find build/distributions -name '*.zip' -print -quit)
           echo "Uploading ${PLUGIN_FILE}..."
           curl --fail-with-body -i \
-            -F "xmlId=com.yungyu.leetcode-editor" \
+            -F "xmlId=io.github.yungyu16.algostack" \
             -F "file=@${PLUGIN_FILE}" \
             -H "Authorization: Bearer ${JETBRAINS_TOKEN}" \
             https://plugins.jetbrains.com/plugin/uploadPlugin

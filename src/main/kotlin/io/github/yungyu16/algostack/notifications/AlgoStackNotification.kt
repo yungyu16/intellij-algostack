@@ -10,7 +10,7 @@ import io.github.yungyu16.algostack.PluginBundle
 import io.github.yungyu16.algostack.utils.IdeUtils
 
 object AlgoStackNotification {
-    const val GITHUB_URL = "https://github.com/yungyu16/AlgoStack"
+    const val GITHUB_URL = "https://github.com/yungyu16/intellij-algostack"
     const val CHANGELOG_URL = "$GITHUB_URL/blob/main/CHANGELOG.md"
     fun notifyFirstInstall(project: Project) = show(
         project,

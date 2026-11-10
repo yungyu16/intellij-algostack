@@ -5,7 +5,7 @@
 - 工程入口为 Gradle Wrapper。`docs/` 的核心说明按三份维护：`开发指南.md` 放构建、测试、验收、排障与安装操作，`工程结构.md` 放实现和兼容契约，`挑战初始化桥接接口.md` 放外部协议、CLI 与失败处理；WebView 局部契约维护在 `webview/README.md`。
 - 业务与 IDEA 集成使用 Kotlin，源码放 `src/main/kotlin/`，资源放 `src/main/resources/`。UI 使用 Kotlin 构建 Swing 组件，不维护 Java UI Designer 表单或 `.form` 插桩配置。构建已移除 Scala、jOOQ、SQLite 和 Flyway，不引入本地数据库或数据迁移。
 - 目标为 IDEA 2026.3，使用 JDK 25 与 Node.js 24。不要恢复旧 SBT 构建或旧平台分支。
-- 保留插件 ID、LeetCodeCN 站点标识及配置名。不得打开、改写、迁移或删除用户历史数据库；已退休的数据库迁移仅保留在 Git 历史。
+- 保留插件 ID `io.github.yungyu16.algostack`、LeetCodeCN 站点标识及配置名；磁盘契约锚点（`PROJECT_ID`/`PROJECT_NAME`/`APP_SETTING*`）与插件 ID 解耦，凭据与设置文件不受 ID 变更影响。不得打开、改写、迁移或删除用户历史数据库；已退休的数据库迁移仅保留在 Git 历史。
 - 新题固定使用 Java／Go、内置目录和模板，不提供设置页或自定义用例，不持久化题目关联、用例或 queryCriteria；旧 XML 不读取、改写、迁移或删除。root `.leetcode` 仅作启用标记，支持文件或目录。
 - 保留提交区域、平台类名和函数签名契约。新增功能不引入其他刷题平台。
 - 验证使用 `./gradlew check buildPlugin`，配置检查使用 `./gradlew verifyPluginProjectConfiguration`。默认测试不访问真实站点；编译、测试、插件打包、真实 IDEA 验收分别报告。
