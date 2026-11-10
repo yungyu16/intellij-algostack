@@ -6,6 +6,6 @@
 
 每个独立需求创建单独的 Conventional Commits 中文提交，只暂存本次任务的明确路径。提交前执行 `./gradlew check buildPlugin verifyPluginProjectConfiguration`，分别说明编译、测试、打包及真实 IDEA 验收结果；按变更选择回归与客户端检查，验证边界见[开发指南](docs/开发指南.md#测试与验收)。
 
-不提交个人 IDEA 配置、凭据、Cookie、本地 API 数据和构建产物。新题沿用 Java／Go 内置目录、命名与模板约定，不恢复设置页或读取旧的自定义模板配置。不引入本地数据库或数据迁移；不得打开、改写、迁移或删除用户历史数据库，已退休的 Flyway 迁移仅保留在 Git 历史。
+不提交个人 IDEA 配置、凭据、Cookie、本地 API 数据和构建产物。新题沿用 Java／Go 内置目录、命名与模板约定，不提供设置页或自定义模板。不引入本地数据库或数据迁移。
 
 仅在获得明确授权后推送到个人 fork，不发布 Marketplace。
