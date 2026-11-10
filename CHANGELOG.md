@@ -1,5 +1,10 @@
 # 更新记录
 
+## 1.0.23
+
+- 新增深色主题图标：原图标主底为近白色，深色主题下显示为白色方块；深色版将主底改为深色并提亮蓝橙描边，图形不变。
+- 完善插件列表页描述：按主要功能、使用前提、快速开始分段，明确仅支持力扣中国站与 Java／Go 两种语言、需要 IDEA 2026.3 或更高版本、以及项目根目录 `.leetcode` 标记这一前置条件。
+
 ## 1.0.22
 
 - 插件 ID 从 `com.yungyu.leetcode-editor` 换为 `io.github.yungyu16.algostack`，磁盘锚点（凭据服务名、设置文件 `AlgoStack_app.xml`）同步统一；旧 CodeEpiphany 锚点下的文件与凭据不读取、不迁移、不删除。GitHub 仓库名同步改为 `yungyu16/intellij-algostack`。
