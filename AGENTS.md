@@ -9,5 +9,5 @@
 - 新题固定使用 Java／Go、内置目录和模板，不提供设置页或自定义用例，不持久化题目关联、用例或 queryCriteria；旧 XML 不读取、改写、迁移或删除。root `.leetcode` 仅作启用标记，支持文件或目录。
 - 保留提交区域、平台类名和函数签名契约。新增功能不引入其他刷题平台。
 - 验证使用 `./gradlew check buildPlugin`，配置检查使用 `./gradlew verifyPluginProjectConfiguration`。默认测试不访问真实站点；编译、测试、插件打包、真实 IDEA 验收分别报告。
-- 每个独立需求创建单独 Conventional Commits 中文提交。涉及插件行为的独立交付递增 `gradle.properties` 的 `pluginVersion` 并新增对应 CHANGELOG 条目，不反复覆盖已交付版本；同一交付内的修正及纯文档变更不机械升版，不移动已有 tag。只暂存明确路径，不混入用户改动；仅获明确授权才推送到个人 fork，不发布 Marketplace。
+- 每个独立需求创建单独 Conventional Commits 中文提交。涉及插件行为的独立交付递增 `gradle.properties` 的 `pluginVersion` 并新增对应 CHANGELOG 条目，不反复覆盖已交付版本；同一交付内的修正及纯文档变更不机械升版，不移动已有 tag。只暂存明确路径，不混入用户改动；仅获明确授权才推送到个人 fork。Agent 不主动发布 Marketplace；发布由用户推送 `v*` tag 经 publish 工作流执行（构建、上传、Release），凭据为仓库 secret `JETBRAINS_TOKEN`。
 - 不提交 `.idea/`、`.iml`、凭据、Cookie、本地 API 数据、备份和构建输出。
