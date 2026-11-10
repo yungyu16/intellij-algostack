@@ -16,13 +16,13 @@ class GeneratedSkeletonFormattingTest {
     }
 
     private fun generate(language: Language, snippet: String): PreparedChallenge {
-        val platformLanguage = language.toLeetCode(LanguageVersion.AnyVersion)
+        val platformLanguage = language.toLeetCode()
         val data = LeetCodeChallengeData(
             "724", "724", "Find Pivot Index", "find-pivot-index", "<p>Compare &lt;= 10000; List&lt;Node&gt;</p>",
             difficulty = "Easy", exampleTestcaseList = emptyList(),
             codeSnippets = listOf(LeetCodeQuestionCodeSnippet(platformLanguage, platformLanguage, snippet))
         )
-        return renderChallenge(data, CodeDojo.LeetCodeCN, language, LanguageVersion.AnyVersion,
+        return renderChallenge(data, CodeDojo.LeetCodeCN, language,
             ChallengeConventions.generation(Path.of("/unused"), CodeDojo.LeetCodeCN, language))
     }
 

@@ -18,33 +18,22 @@ class DefaultLanguageSettingsTest {
     }
 
     @Test
-    fun onlyJavaAndGoAnyVersionAreOffered() {
-        assertEquals(
-            listOf(Language.Java to LanguageVersion.AnyVersion, Language.GO to LanguageVersion.AnyVersion),
-            ChallengeConventions.languages
-        )
-        for ((language, version) in listOf(
-            Language.Python to LanguageVersion.AnyVersion,
-            Language.Java to LanguageVersion.SpecificVersion("17")
-        )) {
-            assertThrows(IllegalArgumentException::class.java) {
-                ChallengeConventions.generation(Path.of("/unused"), CodeDojo.LeetCodeCN, language, version)
-            }
-        }
+    fun onlyJavaAndGoAreOffered() {
+        assertEquals(listOf(Language.Java, Language.GO), ChallengeConventions.languages)
     }
 
     @Test
     fun challengeTemplateMapsPlatformFieldsAndFallsBackWhenTranslationsAreAbsent() {
-        for ((language, version) in ChallengeConventions.languages) {
+        for (language in ChallengeConventions.languages) {
             val snippet = if (language == Language.Java) "class Solution {}" else "func solve() {}"
-            val slug = language.toLeetCode(version)
+            val slug = language.toLeetCode()
             val data = LeetCodeChallengeData(
                 "9001", "26", "Two Sum", "two-sum", "<p>Original</p>",
                 translatedTitle = "两数之和", translatedContent = "<p>中文题面</p>",
                 difficulty = "Easy", exampleTestcaseList = emptyList(),
                 codeSnippets = listOf(LeetCodeQuestionCodeSnippet(slug, slug, snippet))
             )
-            val template = challengeTemplate(data, CodeDojo.LeetCodeCN, language, version)
+            val template = challengeTemplate(data, CodeDojo.LeetCodeCN, language)
             assertEquals("9001", template.questionId)
             assertEquals("26", template.frontendQuestionId)
             assertEquals("two-sum", template.slug)
@@ -52,23 +41,22 @@ class DefaultLanguageSettingsTest {
             assertEquals("easy", template.difficulty)
             assertEquals("leetcodecn", template.getCodeDojo())
             assertEquals(language.value, template.getLanguage())
-            assertEquals(version.version, template.getLanguageVersion())
             assertSame(data, template.content)
             assertTrue(template.description.contains("<p>中文题面</p>"))
             assertFalse(template.description.contains("Original"))
             assertEquals(if (language == Language.GO) goTemplateStub(snippet) else snippet, language.extractCodeFromRegion(template.getCode()).trim())
             assertEquals("26. 两数之和", template.getHeadingText())
             if (language == Language.GO) assertTrue(template.getCode().contains("panic(\"Not implemented\")"))
-            val unsafeTitle = challengeTemplate(data.copy(translatedTitle = "标题 */\r\n下一行"), CodeDojo.LeetCodeCN, language, version)
+            val unsafeTitle = challengeTemplate(data.copy(translatedTitle = "标题 */\r\n下一行"), CodeDojo.LeetCodeCN, language)
             assertEquals("26. 标题 * /  下一行", unsafeTitle.getHeadingText())
             assertEquals(
                 "9001/26/two-sum",
-                renderTemplate("\${challenge.questionId}/\${challenge.frontendQuestionId}/\${challenge.slug}", template)
+                renderTemplate("{{questionId}}/{{frontendQuestionId}}/{{slug}}", template)
             )
             for (translation in listOf(null, "")) {
                 val fallback = challengeTemplate(
                     data.copy(translatedTitle = translation, translatedContent = translation),
-                    CodeDojo.LeetCodeCN, language, version
+                    CodeDojo.LeetCodeCN, language
                 )
                 assertEquals("Two Sum", fallback.name)
                 assertEquals("26. Two Sum", fallback.getHeadingText())
@@ -79,9 +67,9 @@ class DefaultLanguageSettingsTest {
 
     @Test
     fun generationValidatesRenderedUrlAndRegionWithoutAddingAHeader() {
-        for ((language, version) in ChallengeConventions.languages) {
+        for (language in ChallengeConventions.languages) {
             val snippet = if (language == Language.Java) "class Solution {}" else "func solve() { return }"
-            val slug = language.toLeetCode(version)
+            val slug = language.toLeetCode()
             val data = LeetCodeChallengeData(
                 "9001", "1", "Two Sum", "two-sum", "<p>Fixture</p>",
                 difficulty = "Easy",
@@ -93,20 +81,20 @@ class DefaultLanguageSettingsTest {
             val valid = "// template-owned\n$url$region"
             val setting = GenerationSettings("/unused", "Fixture", valid)
             assertEquals(if (language == Language.Java) formatGeneratedJava("Fixture.java", valid) else valid,
-                renderChallenge(data, CodeDojo.LeetCodeCN, language, version, setting).code)
+                renderChallenge(data, CodeDojo.LeetCodeCN, language, setting).code)
             for (invalid in listOf(
                 region, url, valid.replace("two-sum", "three-sum"), valid + region,
                 "var url = \"https://leetcode.cn/problems/two-sum/\";\n$region"
             )) {
                 assertThrows(IllegalArgumentException::class.java) {
-                    renderChallenge(data, CodeDojo.LeetCodeCN, language, version, setting.copy(code = invalid))
+                    renderChallenge(data, CodeDojo.LeetCodeCN, language, setting.copy(code = invalid))
                 }
             }
-            // 固定 AnyVersion 必须精确匹配实际 API slug，不能悄悄选另一版本的签名。
+            // 平台签名必须精确匹配内置 slug，不能悄悄选另一带版本号的签名。
             val otherVersion =
                 data.copy(codeSnippets = listOf(LeetCodeQuestionCodeSnippet("fixture", "${slug}17", snippet)))
             assertThrows(IllegalArgumentException::class.java) {
-                renderChallenge(otherVersion, CodeDojo.LeetCodeCN, language, version, setting)
+                renderChallenge(otherVersion, CodeDojo.LeetCodeCN, language, setting)
             }
         }
     }
@@ -124,7 +112,6 @@ class DefaultLanguageSettingsTest {
             assertEquals(root.resolve("code/java/src/main/java/leetcodecn").toString(), setting.folder)
             assertFalse(setting.fileName.contains("OldName"))
             assertFalse(setting.code.contains("old code"))
-            assertEquals(2, ChallengeConventions.languages.size)
             assertEquals(old, Files.readString(xml))
             assertFalse(Files.exists(root.resolve("code")))
         } finally {
@@ -142,8 +129,8 @@ class DefaultLanguageSettingsTest {
                     Triple("12345", "P12345_TwoSum", "p12345_two_sum"),
                     Triple("Interview 4", "TwoSum", "two_sum")
                 )) {
-                    for ((language, version) in ChallengeConventions.languages) {
-                        val setting = ChallengeConventions.generation(root, dojo, language, version)
+                    for (language in ChallengeConventions.languages) {
+                        val setting = ChallengeConventions.generation(root, dojo, language)
                         val snippet =
                             if (language == Language.Java) "class Solution { public int solve() { return 0; } }" else "func solve() int { return 0 }"
                         val data = LeetCodeChallengeData(
@@ -158,7 +145,7 @@ class DefaultLanguageSettingsTest {
                                 )
                             )
                         )
-                        val prepared = renderChallenge(data, dojo, language, LanguageVersion.AnyVersion, setting)
+                        val prepared = renderChallenge(data, dojo, language, setting)
                         val expected = if (language == Language.Java) "code/java/src/main/java/${dojo.value}/$javaName.java"
                         else "code/go/${dojo.value}/$goName/main.go"
                         assertEquals(root.resolve(expected).toFile(), prepared.file)

@@ -4,12 +4,11 @@ import java.net.URI
 
 /** 平台题号只用于 API 请求，不作为本地身份，也不使用展示题号或哈希替代。 */
 data class ChallengeIdentity(
-    val dojo: CodeDojo, val slug: String, val language: Language,
-    val version: LanguageVersion = LanguageVersion.AnyVersion
+    val dojo: CodeDojo, val slug: String, val language: Language
 )
 
 internal enum class RecognitionFailure(val description: String) {
-    UNSUPPORTED_LANGUAGE("文件扩展名无法唯一确定语言"),
+    UNSUPPORTED_LANGUAGE("文件扩展名不支持：仅支持 Java 与 Go"),
     INVALID_DECLARATION("@leetcode 声明格式或题目 URL 非法；应独占注释行并使用可信中国站 URL"),
     CONFLICTING_DECLARATIONS("@leetcode 主身份声明重复或冲突；每份文件只能声明一次"),
     INTERNATIONAL_URL("无主身份声明的旧文件包含国际站链接，不能确定中国站身份"),
@@ -33,15 +32,15 @@ object ChallengeRecognition {
     internal fun inspect(text: String, extension: String): RecognitionResult {
         val candidates = Language.entries.filter { it.fileExt == extension }
         val language = candidates.singleOrNull() ?: return rejected(RecognitionFailure.UNSUPPORTED_LANGUAGE)
-        val comments = if (language == Language.Java || language == Language.GO) SourceRegions.comments(text, language) else null
-        val commentTexts = comments?.map {
+        val comments = SourceRegions.comments(text, language)
+        val commentTexts = comments.map {
             text.substring(it.start + 2, if (it.line) it.end else it.end - 2)
-        } ?: listOf(headerComments(text.removePrefix("\uFEFF"), candidates))
-        // 只有 Java/Go 的真实注释行可声明身份；正文中的普通链接只是引用。
-        val declarations = if (comments != null) commentTexts.flatMap { comment ->
+        }
+        // 真实注释行可声明身份；正文中的普通链接只是引用。
+        val declarations = commentTexts.flatMap { comment ->
             comment.lineSequence().map { it.trim().removePrefix("*").trimStart() }
                 .filter { it.startsWith("@leetcode", ignoreCase = true) }.toList()
-        } else emptyList()
+        }
         val link = if (declarations.isNotEmpty()) {
             if (declarations.size != 1) return rejected(RecognitionFailure.CONFLICTING_DECLARATIONS)
             val value = declaration.matchEntire(declarations.single())?.groupValues?.get(1)
@@ -73,32 +72,5 @@ object ChallengeRecognition {
             || uri.host !in setOf("leetcode.cn", "www.leetcode.cn")) return null
         val slug = slugPath.matchEntire(uri.path)?.groupValues?.get(1) ?: return null
         return CodeDojo.LeetCodeCN to slug
-    }
-
-    private fun headerComments(text: String, candidates: List<Language>): String {
-        val header = StringBuilder()
-        var offset = 0
-        while (offset < text.length) {
-            if (text[offset].isWhitespace()) {
-                offset++; continue
-            }
-            if (text.startsWith("/*", offset)) {
-                val end = text.indexOf("*/", offset + 2)
-                if (end < 0) break
-                header.appendLine(text.substring(offset + 2, end))
-                offset = end + 2
-                continue
-            }
-            if (candidates.any { text.startsWith(it.createComment("").removeSuffix("*)"), offset) }) {
-                val end = text.indexOfAny(charArrayOf('\r', '\n'), offset).takeIf { it >= 0 } ?: text.length
-                val prefix = candidates.first { text.startsWith(it.createComment("").removeSuffix("*)"), offset) }
-                    .createComment("").removeSuffix("*)")
-                header.appendLine(text.substring(offset + prefix.length, end))
-                offset = end
-                continue
-            }
-            break
-        }
-        return header.toString()
     }
 }

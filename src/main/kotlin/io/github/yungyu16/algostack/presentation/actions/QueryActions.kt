@@ -26,7 +26,6 @@ abstract class FilterAction(private val kind: FilterKind) : ComboBoxAction(), Du
             FilterKind.Company -> AllIcons.Nodes.ModuleGroup
             FilterKind.Position -> AllIcons.General.User
             FilterKind.InterviewPeriod -> AllIcons.General.History
-            else -> null
         }
     }
 
@@ -89,13 +88,13 @@ class OpenChallengeGroup : ActionGroup(), DumbAware {
     override fun getChildren(event: AnActionEvent?): Array<AnAction> {
         val project = event?.project ?: return emptyArray()
         val host = event.getData(ActionContext.CHALLENGES) ?: return emptyArray()
-        return ChallengeConventions.languages.map { (language, version) ->
+        return ChallengeConventions.languages.map { language ->
             object : com.intellij.openapi.project.DumbAwareAction(
-                Language.prettyPrint(language, version),
+                language.show,
                 null,
                 language.icon
             ) {
-                override fun actionPerformed(event: AnActionEvent) = host.openSelection(language, version)
+                override fun actionPerformed(event: AnActionEvent) = host.openSelection(language)
             }
         }.toTypedArray()
     }

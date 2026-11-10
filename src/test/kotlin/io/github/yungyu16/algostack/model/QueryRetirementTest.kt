@@ -16,35 +16,40 @@ class QueryRetirementTest {
         val groups = (0 until nodes.length).map { nodes.item(it) as Element }.associateBy { it.getAttribute("id") }
         assertFalse("AlgoStack.Dojos.TitleToolbar" in groups)
         assertFalse("AlgoStack.Sidebar.Webview.PopupMenu" in groups)
+        // 未挂载的纯声明壳不得回归：action 声明必须落在实际挂载的 group 内。
+        assertFalse("AlgoStack.Group" in groups)
+        assertFalse("AlgoStack.LeetCode.Group" in groups)
 
-        fun references(id: String): List<String> {
+        /** 提取 group 直接子项的 action id / reference ref，锁定挂载内容与顺序。 */
+        fun childIds(id: String): List<String> {
             val group = requireNotNull(groups[id]) { "Missing group: $id" }
-            val refs = group.getElementsByTagName("reference")
-            return (0 until refs.length).map { (refs.item(it) as Element).getAttribute("ref") }
+            val children = (0 until group.childNodes.length)
+                .map { group.childNodes.item(it) }
+                .filterIsInstance<Element>()
+                .filter { it.tagName == "action" || it.tagName == "reference" }
+            return children.map {
+                if (it.tagName == "action") it.getAttribute("id") else it.getAttribute("ref")
+            }
         }
         assertEquals(
             listOf("AlgoStack.Actions.Login", "AlgoStack.Dojos.TitleToolbar.Account"),
-            references(Actions.LEETCODE_SITE_ACTIONS_GROUP)
+            childIds(Actions.LEETCODE_SITE_ACTIONS_GROUP)
         )
         val account = requireNotNull(groups["AlgoStack.Dojos.TitleToolbar.Account"])
         assertEquals("io.github.yungyu16.algostack.presentation.actions.AccountGroup", account.getAttribute("class"))
         assertEquals("true", account.getAttribute("popup"))
-        assertEquals(listOf("AlgoStack.Actions.Logout"), references("AlgoStack.Dojos.TitleToolbar.Account"))
-        assertEquals(
-            "AlgoStack.Actions.UserAccountInfo",
-            (account.getElementsByTagName("action").item(0) as Element).getAttribute("id")
-        )
+        assertEquals(listOf("AlgoStack.Actions.UserAccountInfo", "AlgoStack.Actions.Logout"), childIds("AlgoStack.Dojos.TitleToolbar.Account"))
         assertEquals(
             listOf(
                 "AlgoStack.Actions.Webview.ZoomIn",
                 "AlgoStack.Actions.Webview.ZoomOut",
                 "AlgoStack.Actions.Webview.ActualZoom"
             ),
-            references("AlgoStack.Sidebar.Webview.Toolbar")
+            childIds("AlgoStack.Sidebar.Webview.Toolbar")
         )
         assertEquals(
             listOf("AlgoStack.Dojos.Actions.OpenChallengeGroup"),
-            references(Actions.CHALLENGES_TABLE_POPUP_GROUP)
+            childIds(Actions.CHALLENGES_TABLE_POPUP_GROUP)
         )
         assertEquals(
             listOf(
@@ -54,7 +59,7 @@ class QueryRetirementTest {
                 "AlgoStack.Actions.ActivateSolutionsView",
                 "AlgoStack.Actions.ActivateDescriptionView"
             ),
-            references(Actions.CHALLENGE_EDITOR_TOOLBAR_GROUP)
+            childIds(Actions.CHALLENGE_EDITOR_TOOLBAR_GROUP)
         )
 
         val actions = document.getElementsByTagName("action")
@@ -99,9 +104,8 @@ class QueryRetirementTest {
                 assertFalse(retired, "$root$retired.class" in entries)
             }
             assertFalse(entries.any { it.startsWith("${root}leetcode/api/") })
-            // 共享稳定值协议与真实站点 DTO 不属于 queryCriteria 持久化。
+            // 真实站点 DTO 的序列化器不属于 queryCriteria 持久化。
             for (retained in listOf(
-                "domain/LanguageSerializer", "domain/CodeDojoSerializer", "domain/StableValueSerializer",
                 "leetcode/model/LeetCodeTag\$\$serializer", "leetcode/model/LeetCodeCategoryListItem\$\$serializer"
             )) {
                 assertTrue(retained, "$root$retained.class" in entries)

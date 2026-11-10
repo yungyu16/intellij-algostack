@@ -12,15 +12,23 @@ data class QueryOrder(val field: String, val direction: OrderDirection) {
 }
 
 data class TagSelection(val name: String, val value: String, val groupValue: String, val userObj: LeetCodeTag)
+
+/** 两套查询条件共有的筛选维度；ProblemFilters 按当前模式读写对应侧。 */
+interface SharedFilterDimensions {
+    val selectedDifficulty: ChallengeDifficulty?
+    val selectedStatus: ChallengeStatus?
+    val selectedTags: List<TagSelection>
+}
+
 data class ProblemCriteria(
     val selectedCategory: LeetCodeCategoryListItem? = null,
     val selectedFavorite: LeetCodeFavoriteItem? = null,
-    val selectedDifficulty: ChallengeDifficulty? = null,
-    val selectedStatus: ChallengeStatus? = null,
-    val selectedTags: List<TagSelection> = emptyList(),
+    override val selectedDifficulty: ChallengeDifficulty? = null,
+    override val selectedStatus: ChallengeStatus? = null,
+    override val selectedTags: List<TagSelection> = emptyList(),
     val orderBy: QueryOrder? = null,
     val keyword: String = ""
-) {
+) : SharedFilterDimensions {
     fun api() = LeetCodeClient.Filters(
         selectedCategory?.slug ?: "all-code-essentials", selectedFavorite?.id,
         selectedDifficulty?.apiValue, selectedStatus?.apiValue, selectedTags.map { it.value }, orderBy?.api(), keyword
@@ -41,13 +49,13 @@ enum class InterviewPeriod(val slug: String, private val label: String) {
 data class CompanyCriteria(
     val selectedCompanies: Set<LeetCodeQuestionCompanyTag> = emptySet(),
     val selectedPositions: List<LeetCodeProblemsetPositionTag> = emptyList(),
-    val selectedDifficulty: ChallengeDifficulty? = null,
-    val selectedStatus: ChallengeStatus? = null,
+    override val selectedDifficulty: ChallengeDifficulty? = null,
+    override val selectedStatus: ChallengeStatus? = null,
     val selectedInterviewPeriod: InterviewPeriod = InterviewPeriod.ThirtyDays,
-    val selectedTags: List<TagSelection> = emptyList(),
+    override val selectedTags: List<TagSelection> = emptyList(),
     val orderBy: QueryOrder? = null,
     val keyword: String = ""
-) {
+) : SharedFilterDimensions {
     fun api() = LeetCodeClient.Filters(
         difficulty = selectedDifficulty?.apiValue,
         status = selectedStatus?.apiValue,

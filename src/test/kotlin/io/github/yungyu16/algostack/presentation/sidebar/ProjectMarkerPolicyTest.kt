@@ -1,11 +1,11 @@
-package io.github.yungyu16.algostack.configuration
+package io.github.yungyu16.algostack.presentation.sidebar
 
-import io.github.yungyu16.algostack.presentation.sidebar.SidebarPolicy
 import org.junit.Assert.*
 import org.junit.Test
 import java.nio.file.Files
 
-class PlatformStorageMigrationTest {
+/** root `.leetcode` 仅作启用标记：接受文件或目录，不读取也不写入其内容。 */
+class ProjectMarkerPolicyTest {
     @Test
     fun rootMarkerAcceptsFileOrDirectoryWithoutWritingAnything() {
         val root = Files.createTempDirectory("leetcode-marker")

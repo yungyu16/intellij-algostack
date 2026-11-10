@@ -26,10 +26,6 @@ sourceSets {
     }
 }
 
-configurations.configureEach {
-    exclude(group = "org.slf4j")
-}
-
 // The target IDE provides the Kotlin runtime; do not package another copy.
 configurations.matching { it.name == "runtimeClasspath" || it.name.endsWith("RuntimeClasspath") }.configureEach {
     exclude(group = "org.jetbrains.kotlin")
@@ -84,6 +80,11 @@ intellijPlatform {
         ideaVersion { sinceBuild = providers.gradleProperty("platformSinceBuild") }
     }
     pluginVerification { ides { current() } }
+    // 首次上架需网页上传并过人工审核；此后版本更新用 ./gradlew publishPlugin。
+    // token 从 ~/.gradle/gradle.properties 的 intellijPublishingToken 读取，不入库。
+    publishing {
+        token = providers.gradleProperty("intellijPublishingToken")
+    }
 }
 
 val npmInstall = tasks.register<Exec>("npmInstall") {
@@ -113,7 +114,7 @@ val verifyRuntimeLibraries = tasks.register("verifyRuntimeLibraries") {
     description = "Check that retired database, Scala and jOOQ libraries are not packaged transitively."
     val runtime = configurations.named("runtimeClasspath")
     doLast {
-        val retired = setOf("org.scala-lang", "org.scala-lang.modules", "org.typelevel", "io.circe", "org.http4s", "co.fs2", "org.jooq", "com.zaxxer", "org.xerial", "org.flywaydb")
+        val retired = setOf("org.slf4j", "org.scala-lang", "org.scala-lang.modules", "org.typelevel", "io.circe", "org.http4s", "co.fs2", "org.jooq", "com.zaxxer", "org.xerial", "org.flywaydb")
         val found = runtime.get().resolvedConfiguration.resolvedArtifacts.map { it.moduleVersion.id }
             .filter { it.group in retired }.distinct()
         check(found.isEmpty()) { "Retired runtime libraries are still present: ${found.joinToString()}" }

@@ -11,7 +11,6 @@ import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.JBUI
 import io.github.yungyu16.algostack.PluginBundle
 import io.github.yungyu16.algostack.domain.*
-import io.github.yungyu16.algostack.execution.ChallengeConventions
 import io.github.yungyu16.algostack.execution.openChallenge
 import io.github.yungyu16.algostack.leetcode.model.LeetCodeChallengeListItem
 import io.github.yungyu16.algostack.leetcode.model.LeetCodeUserInfo
@@ -180,9 +179,7 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
         table.addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(event: MouseEvent) {
                 if (event.clickCount == 2 && SwingUtilities.isLeftMouseButton(event)) {
-                    val languages = ChallengeConventions.languages
-                    if (languages.size == 1) openSelection(languages.single().first, languages.single().second)
-                    else ActionManager.getInstance().createActionPopupMenu(
+                    ActionManager.getInstance().createActionPopupMenu(
                         Actions.CHALLENGES_TABLE_POPUP_PLACE,
                         ActionManager.getInstance()
                             .getAction("AlgoStack.Dojos.Actions.OpenChallengeGroup") as ActionGroup
@@ -406,11 +403,11 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
         table.selectedRows.asSequence().mapNotNull { model.rows.getOrNull(it) }.toList()
 
     override val canOpenSelection: Boolean get() = selectedRows().any { !it.paidOnly || userInfo?.isPremium == true }
-    override fun openSelection(language: Language, version: LanguageVersion) {
+    override fun openSelection(language: Language) {
         selectedRows().filter { !it.paidOnly || userInfo?.isPremium == true }.forEach { item ->
             scope.launch {
                 try {
-                    openChallenge(project, dojo, item.titleSlug, language, version)
+                    openChallenge(project, dojo, item.titleSlug, language)
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (failure: Exception) {
@@ -423,6 +420,9 @@ class ChallengesView(private val project: Project, override val dojo: CodeDojo) 
     private inner class ProblemTable : AbstractTableModel() {
         var rows = emptyList<LeetCodeChallengeListItem>()
         private val premium get() = userInfo?.isPremium == true
+
+        // 列标识同时是站点排序协议键（经 QueryOrder→LeetCodeClient.Sort 直传 API），
+        // 改名需同步核对平台接受的排序字段；null 列为状态图标列不参与排序。
         val fields: List<String?>
             get() = listOf(null, "FRONTEND_ID", "DIFFICULTY") +
                 (if (mode != QueryMode.CompanyQuery) listOf("SOLUTION_NUM") else emptyList()) +

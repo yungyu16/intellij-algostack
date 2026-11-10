@@ -29,7 +29,7 @@ class GeneratedChallengeFileTest {
                 public String done() { return "P0001_TwoSum"; }
             }
         """.trimIndent() else "func solve() string { return \"public class P0001_TwoSum\" }"
-        val slug = language.toLeetCode(LanguageVersion.AnyVersion)
+        val slug = language.toLeetCode()
         val data = LeetCodeChallengeData(
             "9001", "1", "Two Sum", "two-sum", "<p>public class P0001_TwoSum</p>",
             difficulty = "Easy",
@@ -37,14 +37,14 @@ class GeneratedChallengeFileTest {
             codeSnippets = listOf(LeetCodeQuestionCodeSnippet(slug, slug, snippet))
         )
         return renderChallenge(
-            data, CodeDojo.LeetCodeCN, language, LanguageVersion.AnyVersion,
+            data, CodeDojo.LeetCodeCN, language,
             ChallengeConventions.generation(root, CodeDojo.LeetCodeCN, language)
         )
     }
 
     @Test
     fun pivotIndexTemplatesKeepRelatedProblemLinksWithoutLosingIdentity() {
-        for ((language, version) in ChallengeConventions.languages) {
+        for (language in ChallengeConventions.languages) {
             val platform = if (language == Language.Java) "class Solution { public int pivotIndex(int[] nums) {} }"
             else "func pivotIndex(nums []int) int {}"
             val reference = "https://leetcode.cn/problems/find-the-middle-index-in-array/"
@@ -53,10 +53,10 @@ class GeneratedChallengeFileTest {
                 translatedTitle = "寻找数组的中心下标",
                 translatedContent = "<p>注意：本题与1991题相同：<a href='$reference'>$reference</a></p>",
                 difficulty = "Easy", exampleTestcaseList = listOf("[1,7,3,6,5,6]"),
-                codeSnippets = listOf(LeetCodeQuestionCodeSnippet("fixture", language.toLeetCode(version), platform))
+                codeSnippets = listOf(LeetCodeQuestionCodeSnippet("fixture", language.toLeetCode(), platform))
             )
             val prepared = renderChallenge(
-                data, CodeDojo.LeetCodeCN, language, version,
+                data, CodeDojo.LeetCodeCN, language,
                 ChallengeConventions.generation(Path.of("/unused"), CodeDojo.LeetCodeCN, language)
             )
             assertTrue(prepared.code.contains("@leetcode https://leetcode.cn/problems/find-pivot-index/"))

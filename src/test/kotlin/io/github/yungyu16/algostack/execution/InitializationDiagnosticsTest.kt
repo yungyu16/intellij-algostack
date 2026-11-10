@@ -18,8 +18,7 @@ class InitializationDiagnosticsTest {
             ChallengeSourceException(RecognitionFailure.IDENTITY_MISMATCH) to "本次预期题目不一致",
             LeetCodeClient.InvalidResponse("response=secret") to "GraphQL 契约异常",
             SocketTimeoutException("Cookie: secret") to "网络请求超时",
-            CancellationException("Authorization: secret") to "初始化任务已取消",
-            IllegalArgumentException("Template must provide a matching problem URL and one submission region") to "唯一提交区域"
+            CancellationException("Authorization: secret") to "初始化任务已取消"
         )
         for ((failure, explanation) in cases) {
             val details = initializationFailureDetails(failure)

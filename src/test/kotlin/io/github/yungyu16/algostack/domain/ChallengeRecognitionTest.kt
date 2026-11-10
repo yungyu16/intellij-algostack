@@ -300,7 +300,7 @@ class ChallengeRecognitionTest {
     }
 
     @Test
-    fun extensionAndUniqueProblemUrlDetermineIdentityWithAnyVersion() {
+    fun extensionAndUniqueProblemUrlDetermineIdentity() {
         val code = "// https://leetcode.cn/problems/two-sum/\n" + Language.Java.encloseCodeInRegion("class Solution {}")
         val identity = ChallengeIdentity(CodeDojo.LeetCodeCN, "two-sum", Language.Java)
         assertEquals(identity, ChallengeRecognition.recognize(code, "java"))

@@ -65,6 +65,8 @@ class PreviewEditor(private val project: Project, private val preview: PreviewFi
         loading = ProjectTasks.getInstance(project).launch {
             try {
                 runInterruptible(Dispatchers.IO) { pending.forEach { it.get(10, TimeUnit.SECONDS) } }
+                // 会话 cookie 写入后落盘，防止重启后丢失；落盘失败不影响本次加载。
+                panel.getJBCefCookieManager().cefCookieManager.flushStore(null)
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) { /* The page can still use its existing browser session. */
@@ -101,5 +103,7 @@ fun openWebPreview(project: Project, dojo: CodeDojo, url: String, title: String)
     val file = PreviewFile(url, dojo, title)
     val manager = FileEditorManager.getInstance(project)
     if (manager.isFileOpen(file)) manager.getEditors(file).filterIsInstance<PreviewEditor>().forEach { it.reload() }
+    // 暂用 deprecated 同步 openFile：新 API 为 suspend，会传染 EDT 链接回调链；
+    // 迁移需在真实 IDEA 核对 FileEditorOpenRequest 焦点语义后再一并处理。
     manager.openFile(file, true)
 }

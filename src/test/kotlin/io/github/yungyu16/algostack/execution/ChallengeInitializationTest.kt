@@ -41,11 +41,11 @@ class ChallengeInitializationTest {
                 codeSnippets = listOf(LeetCodeQuestionCodeSnippet(snippetSlug, snippetSlug, snippet))
             )
             val prepared = renderChallenge(
-                data, CodeDojo.LeetCodeCN, language, LanguageVersion.AnyVersion,
+                data, CodeDojo.LeetCodeCN, language,
                 GenerationSettings(
                     root.toString(),
-                    "case_\${challenge.frontendQuestionId}_\${challenge.slug}",
-                    "// https://leetcode.cn/problems/\${challenge.slug}/\n/*\${challenge.descriptionText}*/\n\${challenge.code}"
+                    "case_{{frontendQuestionId}}_{{slug}}",
+                    "// https://leetcode.cn/problems/{{slug}}/\n/*{{descriptionText}}*/\n{{code}}"
                 )
             )
             val target = prepared.file.toPath()
@@ -97,7 +97,6 @@ class ChallengeInitializationTest {
             Files.writeString(file, code)
             assertEquals("already_exists", initialize().status)
             assertEquals("conflict", initialize(identity.copy(slug = "three-sum")).status)
-            assertEquals("conflict", initialize(identity.copy(version = LanguageVersion.SpecificVersion("17"))).status)
             Files.delete(file)
             assertEquals("created", initialize().status)
         }

@@ -10,7 +10,4 @@ object PluginBundle {
     @JvmStatic
     fun message(@PropertyKey(resourceBundle = BUNDLE) key: String, vararg params: Any?): String =
         bundle.getMessage(key, *params)
-
-    @JvmStatic
-    fun messageOfBuildKey(key: String): String? = bundle.messageOrNull(key)
 }

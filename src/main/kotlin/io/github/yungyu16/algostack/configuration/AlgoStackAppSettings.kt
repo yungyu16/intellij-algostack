@@ -18,7 +18,7 @@ class AlgoStackAppSettings : PersistentStateComponent<AlgoStackAppSettings.AppSt
     }
 
     class AppState {
-        @field:Attribute(converter = ConfigConverters.StringConverter::class)
+        @field:Attribute
         var version: String? = null
     }
 

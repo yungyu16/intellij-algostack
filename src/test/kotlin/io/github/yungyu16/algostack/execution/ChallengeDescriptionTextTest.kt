@@ -2,7 +2,6 @@ package io.github.yungyu16.algostack.execution
 
 import io.github.yungyu16.algostack.domain.CodeDojo
 import io.github.yungyu16.algostack.domain.Language
-import io.github.yungyu16.algostack.domain.LanguageVersion
 import io.github.yungyu16.algostack.leetcode.model.LeetCodeChallengeData
 import io.github.yungyu16.algostack.leetcode.model.LeetCodeQuestionCodeSnippet
 import org.junit.Assert.assertEquals
@@ -68,7 +67,7 @@ class ChallengeDescriptionTextTest {
     }
 
     @Test
-    fun exposesTextThroughVelocityWithoutChangingHtmlOrSubmissionCode() {
+    fun exposesTextThroughTemplateWithoutChangingHtmlOrSubmissionCode() {
         for (dojo in CodeDojo.entries) {
             for ((language, slug) in listOf(Language.Java to "java", Language.GO to "golang")) {
                 val html = "<p><font color='red'>10</font><sup>5</sup> &lt;= n; List&lt;Node&gt; */</p>\n"
@@ -78,16 +77,15 @@ class ChallengeDescriptionTextTest {
                     exampleTestcaseList = emptyList(),
                     codeSnippets = listOf(LeetCodeQuestionCodeSnippet(slug, slug, "fixture code"))
                 )
-                val challenge = challengeTemplate(data, dojo, language, LanguageVersion.AnyVersion)
+                val challenge = challengeTemplate(data, dojo, language)
                 val originalHtml = challenge.description
                 assertTrue(originalHtml.contains("<font"))
-                assertEquals(originalHtml, renderTemplate("\${challenge.description}", challenge))
-                val rendered = renderTemplate("/*\n\${challenge.descriptionText}*/\n\${challenge.code}", challenge)
+                assertEquals(originalHtml, challenge.description)
+                val rendered = renderTemplate("/*\n{{descriptionText}}*/\n{{code}}", challenge)
                 assertEquals("/*\n10^5 <= n; List<Node> * /\n*/\n${challenge.getCode()}", rendered)
                 assertEquals(originalHtml, challenge.description)
-                // 新默认资源包含纯文本题面，但不改变平台代码和提交区域。
-                val defaultTemplate =
-                    javaClass.getResource("/templates/${dojo.value}/code/${language.fileExt}.ft")!!.readText()
+                // 内置代码模板包含纯文本题面，但不改变平台代码和提交区域。
+                val defaultTemplate = ChallengeConventions.generation(java.nio.file.Path.of("/unused"), dojo, language).code
                 val defaultCode = renderTemplate(defaultTemplate, challenge)
                 assertTrue(defaultCode.contains(challenge.getCode()))
                 assertTrue(defaultCode.contains("10^5 <= n; List<Node> * /"))

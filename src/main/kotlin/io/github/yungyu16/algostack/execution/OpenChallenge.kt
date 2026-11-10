@@ -29,14 +29,13 @@ internal data class PreparedChallenge(val file: File, val code: String, val iden
 private fun generationSettings(
     project: Project,
     dojo: CodeDojo,
-    language: Language,
-    version: LanguageVersion
+    language: Language
 ): GenerationSettings =
-    ChallengeConventions.generation(Path.of(requireNotNull(project.basePath)), dojo, language, version)
+    ChallengeConventions.generation(Path.of(requireNotNull(project.basePath)), dojo, language)
 
 private suspend fun prepareChallenge(
     dojo: CodeDojo, slug: String, language: Language,
-    version: LanguageVersion, setting: GenerationSettings,
+    setting: GenerationSettings,
     onStage: (String) -> Unit = {}
 ): PreparedChallenge {
     onStage("question_fetch_decode")
@@ -44,18 +43,17 @@ private suspend fun prepareChallenge(
     onStage("question_identity")
     require(data.titleSlug == slug) { "Question identity mismatch" }
     onStage("template_render_recognition")
-    return renderChallenge(data, dojo, language, version, setting)
+    return renderChallenge(data, dojo, language, setting)
 }
 
 internal fun renderChallenge(
-    data: LeetCodeChallengeData, dojo: CodeDojo, language: Language,
-    version: LanguageVersion, setting: GenerationSettings
+    data: LeetCodeChallengeData, dojo: CodeDojo, language: Language, setting: GenerationSettings
 ): PreparedChallenge {
-    val template = challengeTemplate(data, dojo, language, version)
+    val template = challengeTemplate(data, dojo, language)
     val parts = setting.fileName.split(Regex("[\\\\/]"))
         .filter { it.isNotEmpty() }.map { FileUtils.sanitizeFilename(renderTemplate(it, template).trim()) }
     require(parts.isNotEmpty() && parts.none { it.isBlank() }) { "File name template generated an empty path" }
-    val identity = ChallengeIdentity(dojo, data.titleSlug, language, version)
+    val identity = ChallengeIdentity(dojo, data.titleSlug, language)
     val rendered = renderTemplate(setting.code, template)
     val code = if (language == Language.Java) formatGeneratedJava(parts.last() + ".java", rendered) else rendered
     // 这里验证产物的可恢复性，不靠源码猜测本次请求的已知身份。
@@ -75,25 +73,22 @@ suspend fun openChallenge(
     project: Project,
     dojo: CodeDojo,
     slug: String,
-    language: Language,
-    version: LanguageVersion
+    language: Language
 ) {
     check(SidebarPolicy.enabled(project.basePath)) { "Create a root .leetcode marker and reopen the project first" }
-    val setting = generationSettings(project, dojo, language, version)
+    val setting = generationSettings(project, dojo, language)
     if (!ensureLoggedIn(project, dojo)) return
-    val prepared = prepareChallenge(dojo, slug, language, version, setting)
+    val prepared = prepareChallenge(dojo, slug, language, setting)
     val root = withContext(Dispatchers.IO) { Path.of(requireNotNull(project.basePath)).toRealPath() }
-    if (language == Language.Java || language == Language.GO) {
-        val folder = Path.of(setting.folder).toAbsolutePath().normalize()
-        require(
-            prepared.file.toPath().toAbsolutePath().normalize().startsWith(folder)
-        ) { "Generated file must stay inside the conventional source folder" }
-        withContext(Dispatchers.IO) { safeInitializationPath(root, prepared.file.toPath()) }
-    }
+    val folder = Path.of(setting.folder).toAbsolutePath().normalize()
+    require(
+        prepared.file.toPath().toAbsolutePath().normalize().startsWith(folder)
+    ) { "Generated file must stay inside the conventional source folder" }
+    withContext(Dispatchers.IO) { safeInitializationPath(root, prepared.file.toPath()) }
     ensureLanguageProject(root, dojo, language)
     val file = saveNewFile(
         project, prepared.file,
-        root.takeIf { language == Language.Java || language == Language.GO },
+        root,
         isValidName = { isChallengeFileNameValid(it, language) },
         contentForFile = prepared::codeForFile
     )
@@ -109,7 +104,6 @@ suspend fun initializeChallenge(
     onStage: (String) -> Unit = {}
 ): InitializationResult {
     onStage("initialization_preconditions")
-    require(language == Language.Java || language == Language.GO) { "Only Java and Go are supported" }
     require(slug.length <= 160 && Regex("[a-z0-9]+(?:-[a-z0-9]+)*").matches(slug)) { "Invalid slug" }
     check(!project.isDisposed && project.isOpen) { "Project is not open" }
     if (!SidebarPolicy.enabled(project.basePath)) return InitializationResult(
@@ -117,10 +111,10 @@ suspend fun initializeChallenge(
         reason = "root_leetcode_marker_required"
     )
     onStage("generation_settings")
-    val setting = generationSettings(project, dojo, language, LanguageVersion.AnyVersion)
+    val setting = generationSettings(project, dojo, language)
     onStage("project_real_path")
     val root = withContext(Dispatchers.IO) { Path.of(requireNotNull(project.basePath)).toRealPath() }
-    val prepared = prepareChallenge(dojo, slug, language, LanguageVersion.AnyVersion, setting, onStage)
+    val prepared = prepareChallenge(dojo, slug, language, setting, onStage)
     onStage("destination_validation")
     val target = prepared.file.toPath().toAbsolutePath().normalize()
     val folder = Path.of(setting.folder).toAbsolutePath().normalize()

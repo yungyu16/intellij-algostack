@@ -37,7 +37,6 @@ private fun safeInitializationMessage(error: Throwable): String = when (error) {
 private val knownInitializationMessages = mapOf(
     "Question identity mismatch" to "平台返回的题目 slug 与请求不一致",
     "File name template generated an empty path" to "内置命名模板未能生成有效文件名",
-    "Template must provide a matching problem URL and one submission region" to "生成骨架的题目 URL 或唯一提交区域未通过身份检查",
     "Automation destination must stay inside the open project and conventional folder" to "生成路径越出当前项目或约定源码目录",
     "Project is not open" to "目标 IDEA 项目已关闭或正在释放",
     "Cannot refresh generated file" to "文件已生成，但 IDEA VFS 刷新失败；先检查目标文件",

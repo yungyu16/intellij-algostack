@@ -78,6 +78,8 @@ class LeetCodeClient(
     }
 
     private suspend fun request(path: String, body: JsonElement? = null): JsonElement {
+        // 每次请求前直打 api/home/ 获取最新 csrftoken，不复用 cookie 中的旧值：
+        // 上游行为，站点 csrftoken 轮换策略未验证，避免缓存失效导致 403；代价是每请求两次往返。
         val csrfToken = getCSRFToken()
         val builder = Request.Builder().url(baseUrl.resolve(path)!!)
             .header("x-csrftoken", csrfToken).header("Referer", baseUrl.toString())

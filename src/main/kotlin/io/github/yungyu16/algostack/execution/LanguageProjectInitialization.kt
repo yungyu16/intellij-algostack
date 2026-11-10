@@ -22,7 +22,6 @@ internal suspend fun ensureLanguageProject(
     root: Path, dojo: CodeDojo, language: Language,
     goVersion: () -> String = ::installedGoVersion
 ) {
-    if (language != Language.Java && language != Language.GO) return
     languageProjectLock.withLock {
         withContext(Dispatchers.IO) {
             val base = root.toRealPath()

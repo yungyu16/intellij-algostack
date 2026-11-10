@@ -3,7 +3,6 @@ package io.github.yungyu16.algostack.execution
 import io.github.yungyu16.algostack.domain.ChallengeIdentity
 import io.github.yungyu16.algostack.domain.CodeDojo
 import io.github.yungyu16.algostack.domain.Language
-import io.github.yungyu16.algostack.domain.LanguageVersion
 import io.github.yungyu16.algostack.leetcode.model.LeetCodeChallengeData
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -28,7 +27,6 @@ class ExecutionRequestTest {
             assertEquals("[2,7,11,15]\n9\n[3,2,4]\n6", request.testInput)
             assertEquals("[3,2,4]\n6", request.defaultCases[1])
             assertEquals(language, request.language)
-            assertEquals(LanguageVersion.AnyVersion, request.version)
             assertEquals("updated", executionRequest(data(listOf("updated")), identity).testInput)
             assertEquals("", executionRequest(data(emptyList()), identity).testInput)
         }

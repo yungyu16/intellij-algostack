@@ -1,6 +1,7 @@
 package io.github.yungyu16.algostack.presentation.problems
 
 import com.intellij.openapi.actionSystem.ActionGroup
+import com.intellij.openapi.actionSystem.ActionUiKind
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataContext
@@ -96,8 +97,11 @@ class ProblemFilterPipelineTest {
                 context
             )
         ).single { it.templatePresentation.text == text } as CheckboxAction
-        // 弹窗事件没有 FILTERS 时仍应使用创建菜单时捕获的 host。
-        val event = AnActionEvent.createFromAnAction(item, null, "test", DataContext.EMPTY_CONTEXT)
+        // 弹窗事件没有 FILTERS 时仍应使用创建菜单时捕获的 host；presentation 需克隆，
+        // 事件不允许直接复用模板 presentation。
+        val event = AnActionEvent.createEvent(
+            item, DataContext.EMPTY_CONTEXT, item.templatePresentation.clone(), "test", ActionUiKind.POPUP, null
+        )
         if (perform) item.actionPerformed(event) else item.setSelected(event, selected)
         assertEquals(selected, item.isSelected(event))
     }

@@ -66,6 +66,7 @@ internal class ChallengeBridgeServer(
         require(!Files.isSymbolicLink(directory)) { "Bridge directory must not be a symlink" }
         Files.setPosixFilePermissions(directory, PosixFilePermissions.fromString("rwx------"))
         val target = directory.resolve("${ProcessHandle.current().pid()}.json")
+        // 先写临时文件再原子替换，客户端不会读到半写状态；同名重发布覆盖旧描述符。
         val temporary = Files.createTempFile(
             directory, ".bridge-", ".tmp",
             PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"))

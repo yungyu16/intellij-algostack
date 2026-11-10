@@ -32,6 +32,10 @@ internal class ProblemFilters(
             criteria.company = value
         }
 
+    /** Difficulty/Status/Tags 为两套条件共有维度；按当前模式读写对应侧。 */
+    private val shared: SharedFilterDimensions
+        get() = if (mode == QueryMode.CompanyQuery) company else parameters
+
     private fun tagChoices(): List<TagSelection> = metadata?.tags.orEmpty().flatMap { group ->
         group.tagRelation.map {
             TagSelection(
@@ -47,19 +51,19 @@ internal class ProblemFilters(
         if (kind !in activeFilterKinds) return emptyList()
         val data = metadata ?: return emptyList()
         return when (kind) {
-            FilterKind.Category -> if (mode == QueryMode.QueryParameters) data.categories.map {
+            FilterKind.Category -> data.categories.map {
                 FilterItem(
                     it.slug,
                     it.title
                 )
-            } else emptyList()
+            }
 
-            FilterKind.Favorite -> if (mode == QueryMode.QueryParameters) data.favorites.map {
+            FilterKind.Favorite -> data.favorites.map {
                 FilterItem(
                     it.id,
                     it.name
                 )
-            } else emptyList()
+            }
 
             FilterKind.Difficulty -> listOf(
                 ChallengeDifficulty.Easy,
@@ -69,28 +73,26 @@ internal class ProblemFilters(
 
             FilterKind.Status -> ChallengeStatus.entries.map { FilterItem(it.value, it.show) }
             FilterKind.Tags -> tagChoices().map { FilterItem(it.value, it.name, group = it.groupValue) }
-            FilterKind.Company -> if (mode == QueryMode.CompanyQuery) data.companies.map {
+            FilterKind.Company -> data.companies.map {
                 FilterItem(
                     it.slug,
                     it.name
                 )
-            } else emptyList()
+            }
 
-            FilterKind.Position -> if (mode == QueryMode.CompanyQuery) data.positions.map {
+            FilterKind.Position -> data.positions.map {
                 FilterItem(
                     it.slug,
                     it.nameTranslated ?: it.name
                 )
-            } else emptyList()
+            }
 
-            FilterKind.InterviewPeriod -> if (mode == QueryMode.CompanyQuery) InterviewPeriod.entries.map {
+            FilterKind.InterviewPeriod -> InterviewPeriod.entries.map {
                 FilterItem(
                     it.slug,
                     it.show
                 )
-            } else emptyList()
-
-            else -> emptyList()
+            }
         }
     }
 
@@ -102,12 +104,10 @@ internal class ProblemFilters(
             FilterKind.Company -> company.selectedCompanies.map { it.slug }.toSet()
             FilterKind.Position -> company.selectedPositions.map { it.slug }.toSet()
             FilterKind.InterviewPeriod -> setOf(company.selectedInterviewPeriod.slug)
-            FilterKind.Difficulty -> setOfNotNull((if (mode == QueryMode.CompanyQuery) company.selectedDifficulty else parameters.selectedDifficulty)?.value)
-            FilterKind.Status -> setOfNotNull((if (mode == QueryMode.CompanyQuery) company.selectedStatus else parameters.selectedStatus)?.value)
-            FilterKind.Tags -> (if (mode == QueryMode.CompanyQuery) company.selectedTags else parameters.selectedTags).map { it.value }
+            FilterKind.Difficulty -> setOfNotNull(shared.selectedDifficulty?.value)
+            FilterKind.Status -> setOfNotNull(shared.selectedStatus?.value)
+            FilterKind.Tags -> shared.selectedTags.map { it.value }
                 .toSet()
-
-            else -> emptySet()
         }
     }
 
@@ -149,39 +149,22 @@ internal class ProblemFilters(
 
             FilterKind.Difficulty -> {
                 val choices = listOf(ChallengeDifficulty.Easy, ChallengeDifficulty.Medium, ChallengeDifficulty.Hard)
-                if (mode == QueryMode.CompanyQuery) company = company.copy(
-                    selectedDifficulty = toggleSingle(
-                        company.selectedDifficulty,
-                        choices,
-                        id
-                    ) { it.value })
-                else parameters = parameters.copy(
-                    selectedDifficulty = toggleSingle(
-                        parameters.selectedDifficulty,
-                        choices,
-                        id
-                    ) { it.value })
+                val next = toggleSingle(shared.selectedDifficulty, choices, id) { it.value }
+                if (mode == QueryMode.CompanyQuery) company = company.copy(selectedDifficulty = next)
+                else parameters = parameters.copy(selectedDifficulty = next)
             }
 
-            FilterKind.Status -> if (mode == QueryMode.CompanyQuery) company = company.copy(
-                selectedStatus = toggleSingle(
-                    company.selectedStatus,
-                    ChallengeStatus.entries,
-                    id
-                ) { it.value })
-            else parameters = parameters.copy(
-                selectedStatus = toggleSingle(
-                    parameters.selectedStatus,
-                    ChallengeStatus.entries,
-                    id
-                ) { it.value })
+            FilterKind.Status -> {
+                val next = toggleSingle(shared.selectedStatus, ChallengeStatus.entries, id) { it.value }
+                if (mode == QueryMode.CompanyQuery) company = company.copy(selectedStatus = next)
+                else parameters = parameters.copy(selectedStatus = next)
+            }
 
-            FilterKind.Tags -> if (mode == QueryMode.CompanyQuery) company =
-                company.copy(selectedTags = toggleMultiple(company.selectedTags, tagChoices(), id) { it.value })
-            else parameters =
-                parameters.copy(selectedTags = toggleMultiple(parameters.selectedTags, tagChoices(), id) { it.value })
-
-            else -> return
+            FilterKind.Tags -> {
+                val next = toggleMultiple(shared.selectedTags, tagChoices(), id) { it.value }
+                if (mode == QueryMode.CompanyQuery) company = company.copy(selectedTags = next)
+                else parameters = parameters.copy(selectedTags = next)
+            }
         }
         changed(kind, id)
     }

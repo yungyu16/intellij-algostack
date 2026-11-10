@@ -8,7 +8,6 @@ internal object SourceRegions {
     data class Region(val start: Int, val end: Int)
 
     fun comments(text: String, language: Language): List<Comment> {
-        require(language == Language.Java || language == Language.GO)
         val result = mutableListOf<Comment>()
         var offset = 0
         while (offset < text.length) {
@@ -42,17 +41,10 @@ internal object SourceRegions {
 
     /** 必须恰好一对独占行标记；不拼接多段，不从歧义区域中挑选第一段。 */
     fun locate(text: String, language: Language, scannedComments: List<Comment>? = null): Region? {
-        val lines = if (language == Language.Java || language == Language.GO) {
-            (scannedComments ?: comments(text, language)).filter { it.line }.mapNotNull { comment ->
-                val start = text.lastIndexOfAny(charArrayOf('\r', '\n'), comment.start - 1) + 1
-                if (!text.substring(start, comment.start).removePrefix("\uFEFF").isBlank()) null
-                else Triple(start, comment.end, text.substring(comment.start, comment.end).trim())
-            }
-        } else {
-            // 其他语言沿用整行模板标记契约，不冒充完整的多语言词法解析。
-            Regex("[^\\r\\n]+|[\\r\\n]").findAll(text).map {
-                Triple(it.range.first, it.range.last + 1, it.value.removePrefix("\uFEFF").trim())
-            }.toList()
+        val lines = (scannedComments ?: comments(text, language)).filter { it.line }.mapNotNull { comment ->
+            val start = text.lastIndexOfAny(charArrayOf('\r', '\n'), comment.start - 1) + 1
+            if (!text.substring(start, comment.start).removePrefix("\uFEFF").isBlank()) null
+            else Triple(start, comment.end, text.substring(comment.start, comment.end).trim())
         }
         val begins = lines.filter { language.matchRegion(it.third, Constants.SUBMIT_CODE_REGION_BEGIN) }
         val ends = lines.filter { language.matchRegion(it.third, Constants.SUBMIT_CODE_REGION_END) }

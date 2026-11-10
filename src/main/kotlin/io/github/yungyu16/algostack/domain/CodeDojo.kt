@@ -1,8 +1,5 @@
 package io.github.yungyu16.algostack.domain
 
-import kotlinx.serialization.Serializable
-
-@Serializable(with = CodeDojoSerializer::class)
 enum class CodeDojo(val domain: String, val value: String) {
     LeetCodeCN("leetcode.cn", "leetcodecn");
 
@@ -17,5 +14,3 @@ enum class CodeDojo(val domain: String, val value: String) {
         }
     }
 }
-
-object CodeDojoSerializer : StableValueSerializer<CodeDojo>("CodeDojo", CodeDojo.entries, { it.value })

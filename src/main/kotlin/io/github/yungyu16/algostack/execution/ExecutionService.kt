@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 internal data class ExecutionRequest(
     val questionId: String, val slug: String, val defaultCases: List<String>,
-    val language: Language, val version: LanguageVersion
+    val language: Language
 ) {
     val testInput: String get() = defaultCases.joinToString("\n")
 }
@@ -36,8 +36,7 @@ internal fun executionRequest(data: LeetCodeChallengeData, identity: ChallengeId
         data.questionId,
         identity.slug,
         data.exampleTestcaseList,
-        identity.language,
-        identity.version
+        identity.language
     )
 }
 
@@ -102,7 +101,7 @@ class ExecutionService(private val project: Project, private val scope: Coroutin
         val input = request.testInput
         HttpService.getInstance().api(item.dojo).runAnswer(
             request.questionId, request.slug, input,
-            request.language.toLeetCode(request.version), code
+            request.language.toLeetCode(), code
         ).collect { result ->
             if (result is LeetCodeRunResult.Success) {
                 val state = SubmissionResult.fromApi(result.statusMsg, result.correctAnswer)
@@ -111,10 +110,13 @@ class ExecutionService(private val project: Project, private val scope: Coroutin
                     SubmissionResult.Success -> if (result.correctAnswer == true) PluginBundle.message("submission.passed")
                     else result.statusMsg
 
-                    SubmissionResult.CompilationError -> result.fullCompileError ?: result.compileError
-                    ?: result.statusMsg
+                    SubmissionResult.CompilationError -> compileDetail(
+                        result.fullCompileError, result.compileError, result.statusMsg
+                    )
 
-                    SubmissionResult.RuntimeError -> result.fullRuntimeError ?: result.runtimeError ?: result.statusMsg
+                    SubmissionResult.RuntimeError -> runtimeDetail(
+                        result.fullRuntimeError, result.runtimeError, result.statusMsg
+                    )
                     SubmissionResult.Failure -> result.codeAnswer.zip(result.expectedCodeAnswer)
                         .mapIndexed { index, pair ->
                             "${PluginBundle.message("testcases.title", index + 1)}\n=========================\n" +
@@ -146,7 +148,7 @@ class ExecutionService(private val project: Project, private val scope: Coroutin
     ) {
         HttpService.getInstance().api(item.dojo).submitAnswer(
             request.questionId, request.slug,
-            request.language.toLeetCode(request.version), code
+            request.language.toLeetCode(), code
         ).collect { response ->
             val state =
                 if (response is LeetCodeSubmitAnswerResult.Success) SubmissionResult.fromApi(response.statusMsg) else SubmissionResult.Processing
@@ -197,10 +199,13 @@ class ExecutionService(private val project: Project, private val scope: Coroutin
                 listOf("Memory", "${response.statusMemory} (Beats ${"%.2f".format(response.memoryPercentile ?: 0f)}%)")
             )
 
-            SubmissionResult.CompilationError -> response.fullCompileError ?: response.compileError
-            ?: response.statusMsg
+            SubmissionResult.CompilationError -> compileDetail(
+                response.fullCompileError, response.compileError, response.statusMsg
+            )
 
-            SubmissionResult.RuntimeError -> response.fullRuntimeError ?: response.runtimeError ?: response.statusMsg
+            SubmissionResult.RuntimeError -> runtimeDetail(
+                response.fullRuntimeError, response.runtimeError, response.statusMsg
+            )
             SubmissionResult.Failure -> "\n-------------------------\n" +
                 "${PluginBundle.message("leetcode.submissionResult.wrongAnswer.input.text")}:\n${response.input.orEmpty()}\n" +
                 "-------------------------\n" +
@@ -217,6 +222,10 @@ class ExecutionService(private val project: Project, private val scope: Coroutin
         fun getInstance(project: Project): ExecutionService = project.getService(ExecutionService::class.java)
     }
 }
+
+/** 测试与提交共用同一回退链：完整错误优先，其次简短错误，最后状态描述。 */
+private fun compileDetail(full: String?, brief: String?, status: String): String = full ?: brief ?: status
+private fun runtimeDetail(full: String?, brief: String?, status: String): String = full ?: brief ?: status
 
 /**
  * 与上游 Tabulator 一致的带边框表格：首行为表头，列宽取各列最大值，单元格右对齐。

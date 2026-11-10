@@ -57,7 +57,7 @@ class JavaTemplateStubTest {
                 Language.Java to "class Solution { public int solve() {} public void update() {} }",
                 Language.GO to "func solve() int { panic(\"not implemented\") }"
             )) {
-                val slug = language.toLeetCode(LanguageVersion.AnyVersion)
+                val slug = language.toLeetCode()
                 val data = LeetCodeChallengeData(
                     "9001", "1", "Two Sum", "two-sum", "<p>Fixture</p>",
                     difficulty = "Easy",
@@ -65,7 +65,7 @@ class JavaTemplateStubTest {
                     codeSnippets = listOf(LeetCodeQuestionCodeSnippet(slug, slug, snippet))
                 )
                 val prepared = renderChallenge(
-                    data, CodeDojo.LeetCodeCN, language, LanguageVersion.AnyVersion,
+                    data, CodeDojo.LeetCodeCN, language,
                     ChallengeConventions.generation(root, CodeDojo.LeetCodeCN, language)
                 )
                 assertEquals(prepared.identity, ChallengeRecognition.recognize(prepared.code, language.fileExt))

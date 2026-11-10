@@ -22,54 +22,22 @@
     <actions>
         <group id="AlgoStack.Dojos.Actions.OpenChallengeGroup" popup="true"
             class="io.github.yungyu16.algostack.presentation.actions.OpenChallengeGroup" />
-        <group id="AlgoStack.Group">
-            <action id="AlgoStack.Actions.Refresh"
-                class="io.github.yungyu16.algostack.presentation.actions.RefreshAction"
-                icon="AllIcons.Actions.Refresh" />
-            <action id="AlgoStack.Actions.Login" class="io.github.yungyu16.algostack.presentation.actions.LoginAction"
-                icon="AlgoStackIcons.LOGIN" />
-            <action id="AlgoStack.Actions.Logout" class="io.github.yungyu16.algostack.presentation.actions.LogoutAction"
-                icon="AlgoStackIcons.LOGOUT" />
-            <action id="AlgoStack.Actions.Difficulty"
-                class="io.github.yungyu16.algostack.presentation.actions.DifficultyAction" />
-            <action id="AlgoStack.Actions.Status"
-                class="io.github.yungyu16.algostack.presentation.actions.StatusAction" />
-            <action id="AlgoStack.Actions.Tags" class="io.github.yungyu16.algostack.presentation.actions.TagsAction" />
 
+        <group id="AlgoStack.Editor.Group">
             <action id="AlgoStack.Actions.RunTest"
                 class="io.github.yungyu16.algostack.presentation.editor.RunTestAction" icon="AlgoStackIcons.RUN" />
             <action id="AlgoStack.Actions.SubmitCode"
                 class="io.github.yungyu16.algostack.presentation.editor.SubmitCodeAction"
                 icon="AlgoStackIcons.SUBMIT" />
-            <action id="AlgoStack.Actions.ActivateDescriptionView"
-                class="io.github.yungyu16.algostack.presentation.sidebar.ActivateDescriptionAction"
-                icon="AlgoStackIcons.DESCRIPTION" />
-            <action id="AlgoStack.Actions.ActivateSolutionsView"
-                class="io.github.yungyu16.algostack.presentation.sidebar.ActivateSolutionsAction"
-                icon="AlgoStackIcons.SOLUTION" />
             <action id="AlgoStack.Actions.SurroundSubmissionRegion"
                 class="io.github.yungyu16.algostack.presentation.editor.SurroundSubmissionRegionAction"
                 icon="AlgoStackIcons.APP_BRACKETS" />
-        </group>
-        <group id="AlgoStack.LeetCode.Group">
-            <action id="AlgoStack.Actions.LeetCode.Favorite"
-                class="io.github.yungyu16.algostack.presentation.actions.FavoriteAction" />
-            <action id="AlgoStack.Actions.LeetCode.Category"
-                class="io.github.yungyu16.algostack.presentation.actions.CategoryAction" />
-            <action id="AlgoStack.Actions.LeetCode.Company"
-                class="io.github.yungyu16.algostack.presentation.actions.CompanyAction" />
-            <action id="AlgoStack.Actions.LeetCode.Position"
-                class="io.github.yungyu16.algostack.presentation.actions.PositionAction" />
-            <action id="AlgoStack.Actions.LeetCode.InterviewPeriod"
-                class="io.github.yungyu16.algostack.presentation.actions.InterviewPeriodAction" />
-        </group>
-
-        <group id="AlgoStack.Editor.Group">
-            <reference ref="AlgoStack.Actions.RunTest" />
-            <reference ref="AlgoStack.Actions.SubmitCode" />
-            <reference ref="AlgoStack.Actions.SurroundSubmissionRegion" />
-            <reference ref="AlgoStack.Actions.ActivateSolutionsView" />
-            <reference ref="AlgoStack.Actions.ActivateDescriptionView" />
+            <action id="AlgoStack.Actions.ActivateSolutionsView"
+                class="io.github.yungyu16.algostack.presentation.sidebar.ActivateSolutionsAction"
+                icon="AlgoStackIcons.SOLUTION" />
+            <action id="AlgoStack.Actions.ActivateDescriptionView"
+                class="io.github.yungyu16.algostack.presentation.sidebar.ActivateDescriptionAction"
+                icon="AlgoStackIcons.DESCRIPTION" />
         </group>
 
         <group id="AlgoStack.ChallengeEditor.Toolbar.Group">
@@ -88,15 +56,24 @@
 
 
         <group id="AlgoStack.Dojos.LeetCode.Toolbar">
-            <reference ref="AlgoStack.Actions.LeetCode.Category" />
-            <reference ref="AlgoStack.Actions.LeetCode.Favorite" />
-            <reference ref="AlgoStack.Actions.LeetCode.Company" />
-            <reference ref="AlgoStack.Actions.LeetCode.Position" />
-            <reference ref="AlgoStack.Actions.Difficulty" />
-            <reference ref="AlgoStack.Actions.Status" />
-            <reference ref="AlgoStack.Actions.Tags" />
-            <reference ref="AlgoStack.Actions.LeetCode.InterviewPeriod" />
-            <reference ref="AlgoStack.Actions.Refresh" />
+            <action id="AlgoStack.Actions.LeetCode.Category"
+                class="io.github.yungyu16.algostack.presentation.actions.CategoryAction" />
+            <action id="AlgoStack.Actions.LeetCode.Favorite"
+                class="io.github.yungyu16.algostack.presentation.actions.FavoriteAction" />
+            <action id="AlgoStack.Actions.LeetCode.Company"
+                class="io.github.yungyu16.algostack.presentation.actions.CompanyAction" />
+            <action id="AlgoStack.Actions.LeetCode.Position"
+                class="io.github.yungyu16.algostack.presentation.actions.PositionAction" />
+            <action id="AlgoStack.Actions.Difficulty"
+                class="io.github.yungyu16.algostack.presentation.actions.DifficultyAction" />
+            <action id="AlgoStack.Actions.Status"
+                class="io.github.yungyu16.algostack.presentation.actions.StatusAction" />
+            <action id="AlgoStack.Actions.Tags" class="io.github.yungyu16.algostack.presentation.actions.TagsAction" />
+            <action id="AlgoStack.Actions.LeetCode.InterviewPeriod"
+                class="io.github.yungyu16.algostack.presentation.actions.InterviewPeriodAction" />
+            <action id="AlgoStack.Actions.Refresh"
+                class="io.github.yungyu16.algostack.presentation.actions.RefreshAction"
+                icon="AllIcons.Actions.Refresh" />
         </group>
 
 
@@ -104,12 +81,14 @@
             class="io.github.yungyu16.algostack.presentation.actions.AccountGroup">
             <action id="AlgoStack.Actions.UserAccountInfo"
                 class="io.github.yungyu16.algostack.presentation.actions.UserInfoAction" />
-            <reference ref="AlgoStack.Actions.Logout" />
+            <action id="AlgoStack.Actions.Logout" class="io.github.yungyu16.algostack.presentation.actions.LogoutAction"
+                icon="AlgoStackIcons.LOGOUT" />
         </group>
 
         <!-- 题库面板迁入底部工具窗口后，站点相关动作改挂在面板工具栏上 -->
         <group id="AlgoStack.Dojos.LeetCode.SiteActions">
-            <reference ref="AlgoStack.Actions.Login" />
+            <action id="AlgoStack.Actions.Login" class="io.github.yungyu16.algostack.presentation.actions.LoginAction"
+                icon="AlgoStackIcons.LOGIN" />
             <reference ref="AlgoStack.Dojos.TitleToolbar.Account" />
         </group>
 
@@ -154,35 +133,7 @@
 
         <lang.foldingBuilder language="JAVA"
             implementationClass="io.github.yungyu16.algostack.presentation.editor.SubmissionRegionFoldingBuilder" />
-        <lang.foldingBuilder language="Kotlin"
-            implementationClass="io.github.yungyu16.algostack.presentation.editor.SubmissionRegionFoldingBuilder" />
-        <lang.foldingBuilder language="Scala"
-            implementationClass="io.github.yungyu16.algostack.presentation.editor.SubmissionRegionFoldingBuilder" />
-        <lang.foldingBuilder language="Dart"
-            implementationClass="io.github.yungyu16.algostack.presentation.editor.SubmissionRegionFoldingBuilder" />
-        <lang.foldingBuilder language="Haskell"
-            implementationClass="io.github.yungyu16.algostack.presentation.editor.SubmissionRegionFoldingBuilder" />
-        <lang.foldingBuilder language="Python"
-            implementationClass="io.github.yungyu16.algostack.presentation.editor.SubmissionRegionFoldingBuilder" />
-        <lang.foldingBuilder language="JavaScript"
-            implementationClass="io.github.yungyu16.algostack.presentation.editor.SubmissionRegionFoldingBuilder" />
-        <lang.foldingBuilder language="TypeScript"
-            implementationClass="io.github.yungyu16.algostack.presentation.editor.SubmissionRegionFoldingBuilder" />
-        <lang.foldingBuilder language="ObjectiveC"
-            implementationClass="io.github.yungyu16.algostack.presentation.editor.SubmissionRegionFoldingBuilder" />
-        <lang.foldingBuilder language="C++"
-            implementationClass="io.github.yungyu16.algostack.presentation.editor.SubmissionRegionFoldingBuilder" />
-        <lang.foldingBuilder language="C"
-            implementationClass="io.github.yungyu16.algostack.presentation.editor.SubmissionRegionFoldingBuilder" />
-        <lang.foldingBuilder language="C#"
-            implementationClass="io.github.yungyu16.algostack.presentation.editor.SubmissionRegionFoldingBuilder" />
-        <lang.foldingBuilder language="Rust"
-            implementationClass="io.github.yungyu16.algostack.presentation.editor.SubmissionRegionFoldingBuilder" />
         <lang.foldingBuilder language="go"
-            implementationClass="io.github.yungyu16.algostack.presentation.editor.SubmissionRegionFoldingBuilder" />
-        <lang.foldingBuilder language="Python"
-            implementationClass="io.github.yungyu16.algostack.presentation.editor.SubmissionRegionFoldingBuilder" />
-        <lang.foldingBuilder language="PHP"
             implementationClass="io.github.yungyu16.algostack.presentation.editor.SubmissionRegionFoldingBuilder" />
 
 

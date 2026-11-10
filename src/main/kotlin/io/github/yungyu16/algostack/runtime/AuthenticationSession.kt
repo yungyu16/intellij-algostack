@@ -24,6 +24,15 @@ internal class AuthenticationSession<T>(
     var revision = 0L
         private set
 
+    /*
+     * 不变式（ticket 协议）：
+     * - 手动验证（accept）开始时 ++generation，使所有更早的 ticket 立即过期，旧结果不再提交；
+     *   静默恢复（restore）不递增，检测到有手动验证进行中（validations>0）时直接让位；
+     * - commit 成功后再次 ++generation，使包括本次在内的所有未决 ticket 失效；
+     * - 因此双递增不是冗余：前者隔离并发 restore 与手动登录，后者隔离已完成提交与后续变更。
+     * - logout 同样走 ticket，确保取消的验证不能覆盖登出结果。
+     */
+
     suspend fun restore(): Boolean {
         if (authenticated()) return true
         val ticket = mutex.withLock {

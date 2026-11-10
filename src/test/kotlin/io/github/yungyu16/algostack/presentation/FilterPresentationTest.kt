@@ -51,8 +51,7 @@ class FilterPresentationTest {
         assertEquals(listOf("java", "old-language"), choices.map { it.id })
         assertEquals("Java", choices.first().text)
         assertFalse(FilterKind.InterviewPeriod.clearable)
-        assertTrue(FilterKind.Language.clearable)
-        assertTrue(FilterKind.Dojo.clearable)
+        assertTrue(FilterKind.Category.clearable)
     }
 
     @Test

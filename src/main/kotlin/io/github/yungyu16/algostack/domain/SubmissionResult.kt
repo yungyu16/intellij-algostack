@@ -1,8 +1,5 @@
 package io.github.yungyu16.algostack.domain
 
-import kotlinx.serialization.Serializable
-
-@Serializable(with = SubmissionResultSerializer::class)
 enum class SubmissionResult(val value: String) {
     Processing("processing"),
     Success("success"),
@@ -28,6 +25,3 @@ enum class SubmissionResult(val value: String) {
         }
     }
 }
-
-object SubmissionResultSerializer :
-    StableValueSerializer<SubmissionResult>("SubmissionResult", SubmissionResult.entries, { it.value })

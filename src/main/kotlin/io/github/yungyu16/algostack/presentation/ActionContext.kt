@@ -3,19 +3,16 @@ package io.github.yungyu16.algostack.presentation
 import com.intellij.openapi.actionSystem.DataKey
 import io.github.yungyu16.algostack.domain.CodeDojo
 import io.github.yungyu16.algostack.domain.Language
-import io.github.yungyu16.algostack.domain.LanguageVersion
 import io.github.yungyu16.algostack.leetcode.model.LeetCodeUserInfo
 import io.github.yungyu16.algostack.presentation.problems.QueryMode
 import javax.swing.Icon
 
-enum class FilterKind { Category, Favorite, Difficulty, Status, Tags, Company, Position, InterviewPeriod, Language, Dojo }
+enum class FilterKind { Category, Favorite, Difficulty, Status, Tags, Company, Position, InterviewPeriod }
 data class FilterItem(val id: String, val text: String, val icon: Icon? = null, val group: String? = null)
 interface FilterHost {
     fun items(kind: FilterKind): List<FilterItem>
     fun selected(kind: FilterKind): Set<String>
     fun toggle(kind: FilterKind, id: String)
-    fun multiple(kind: FilterKind): Boolean =
-        kind in setOf(FilterKind.Tags, FilterKind.Company, FilterKind.Position, FilterKind.Language, FilterKind.Dojo)
 }
 
 interface QueryHost {
@@ -26,7 +23,7 @@ interface QueryHost {
 interface ChallengeHost {
     val dojo: CodeDojo
     val canOpenSelection: Boolean
-    fun openSelection(language: Language, version: LanguageVersion)
+    fun openSelection(language: Language)
 }
 
 interface SiteHost {

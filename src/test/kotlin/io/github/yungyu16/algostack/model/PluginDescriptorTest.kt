@@ -1,5 +1,6 @@
 package io.github.yungyu16.algostack.model
 
+import io.github.yungyu16.algostack.utils.IdeUtils
 import org.junit.Assert.*
 import org.junit.Test
 import javax.xml.parsers.DocumentBuilderFactory
@@ -14,7 +15,8 @@ class PluginDescriptorTest {
             val document = jar.getInputStream(requireNotNull(jar.getJarEntry("META-INF/plugin.xml"))).use {
                 DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(it)
             }
-            assertEquals("com.yungyu.leetcode-editor", document.getElementsByTagName("id").item(0).textContent.trim())
+            // plugin.xml <id> 与 IdeUtils.PLUGIN_ID 双源硬编码，由本断言守卫一致。
+            assertEquals(IdeUtils.PLUGIN_ID, document.getElementsByTagName("id").item(0).textContent.trim())
             assertEquals(version, document.getElementsByTagName("version").item(0).textContent.trim())
             assertEquals("AlgoStack", document.getElementsByTagName("name").item(0).textContent.trim())
             val description = document.getElementsByTagName("description").item(0).textContent
@@ -61,7 +63,6 @@ class PluginDescriptorTest {
             assertFalse(entries.any { it.startsWith("templates/leetcode/") })
             assertFalse(entries.any { it.endsWith("/LeetCodeSettings.class") || it.endsWith("/LeetCodeSettingsConfigurable.class") })
             assertFalse(entries.any { it.contains("ugcArticle") || it.endsWith("problemsetQuestionListV2.graphql") })
-            assertTrue("templates/leetcodecn/code/java.ft" in entries)
             assertFalse(entries.any {
                 it.endsWith("/PlatformSettings.class") || it.endsWith("/LeetCodeCNSettings.class") || it.endsWith(
                     "/CodeEpiphanySettings.class"
@@ -101,9 +102,7 @@ class PluginDescriptorTest {
         val artifact = requireNotNull(System.getProperty("algostack.pluginArtifact"))
         java.util.jar.JarFile(artifact).use { jar ->
             val entries = jar.entries().asSequence().filterNot { it.isDirectory }.map { it.name }.toSet()
-            val templates = setOf("code/java.ft", "code/go.ft", "filename/java.ft", "filename/go.ft")
-                .map { "templates/leetcodecn/$it" }.toSet()
-            assertEquals(templates, entries.filter { it.startsWith("templates/") }.toSet())
+            assertTrue(entries.none { it.startsWith("templates/") })
             for (name in listOf("building", "console", "filter", "search", "vialVirus")) {
                 for (suffix in listOf("", "_dark")) {
                     val path = "icons/$name$suffix.svg"
@@ -171,7 +170,12 @@ class PluginDescriptorTest {
     fun descriptorClassesAndAllFoldingRegistrationsResolve() {
         val document = descriptor()
         val folding = document.getElementsByTagName("lang.foldingBuilder")
-        assertEquals(16, folding.length)
+        assertEquals(2, folding.length)
+        // 折叠注册与题目语言支持面一致，只保留 Java/Go。
+        assertEquals(
+            setOf("JAVA", "go"),
+            (0 until folding.length).map { folding.item(it).attributes.getNamedItem("language").nodeValue }.toSet()
+        )
         for (index in 0 until folding.length) {
             val name = folding.item(index).attributes.getNamedItem("implementationClass").nodeValue
             assertEquals("io.github.yungyu16.algostack.presentation.editor.SubmissionRegionFoldingBuilder", name)

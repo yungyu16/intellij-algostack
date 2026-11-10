@@ -1,25 +1,18 @@
 package io.github.yungyu16.algostack.domain
 
-import io.github.yungyu16.algostack.leetcode.LeetCodeJson
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LanguageContractTest {
     @Test
-    fun storedIdentifiersDoNotDependOnEnumOrdinals() {
-        val json = LeetCodeJson.format
-        assertEquals("\"leetcodecn\"", json.encodeToString(CodeDojo.LeetCodeCN))
-        assertEquals(CodeDojo.LeetCodeCN, json.decodeFromString<CodeDojo>("\"LEETCODECN\""))
-        assertEquals("\"java\"", json.encodeToString(Language.Java))
-        assertEquals(Language.Java, json.decodeFromString<Language>("\"JAVA\""))
+    fun submissionResultRoundTripsThroughWireValues() {
         for (result in SubmissionResult.entries) assertEquals(result, SubmissionResult.fromString(result.value))
     }
 
     @Test
-    fun submissionRegionsKeepTheSourceLanguageSyntaxAndLineEndings() {
+    fun submissionRegionsKeepTheLineCommentSyntaxAndLineEndings() {
         val code = "first\r\nsecond\r\n"
-        for (language in listOf(Language.Java, Language.Python, Language.OCaml, Language.MySQL)) {
+        for (language in listOf(Language.Java, Language.GO)) {
             val source = language.encloseCodeInRegion(code)
             assertEquals(language.name, code + "\n", language.extractCodeFromRegion(source))
         }
@@ -27,10 +20,11 @@ class LanguageContractTest {
     }
 
     @Test
-    fun leetCodeLanguageMappingsKeepVersionAndPandasRules() {
-        assertEquals("java8", Language.Java.toLeetCode(LanguageVersion.SpecificVersion("8")))
-        assertEquals("golang", Language.GO.toLeetCode(LanguageVersion.AnyVersion))
-        assertEquals(Language.Pandas to LanguageVersion.AnyVersion, languageFromLeetCode("pythondata"))
-        assertTrue(LanguageVersion.SpecificVersion("8") < LanguageVersion.SpecificVersion("17"))
+    fun leetCodeLanguageMappingsKeepPlatformSlugs() {
+        assertEquals("java", Language.Java.toLeetCode())
+        assertEquals("golang", Language.GO.toLeetCode())
+        assertEquals(Language.Java, languageFromLeetCode("java"))
+        assertEquals(Language.GO, languageFromLeetCode("golang"))
+        assertEquals(null, languageFromLeetCode("python3"))
     }
 }

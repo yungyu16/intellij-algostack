@@ -3,7 +3,6 @@ package io.github.yungyu16.algostack.execution
 import io.github.yungyu16.algostack.domain.ChallengeRecognition
 import io.github.yungyu16.algostack.domain.CodeDojo
 import io.github.yungyu16.algostack.domain.Language
-import io.github.yungyu16.algostack.domain.LanguageVersion
 import io.github.yungyu16.algostack.leetcode.model.LeetCodeChallengeData
 import io.github.yungyu16.algostack.leetcode.model.LeetCodeQuestionCodeSnippet
 import kotlinx.coroutines.*
@@ -48,7 +47,7 @@ class LanguageProjectInitializationTest {
                 )
             )
         )
-        return renderChallenge(data, CodeDojo.LeetCodeCN, language, LanguageVersion.AnyVersion, setting)
+        return renderChallenge(data, CodeDojo.LeetCodeCN, language, setting)
     }
 
     private suspend fun initialize(
