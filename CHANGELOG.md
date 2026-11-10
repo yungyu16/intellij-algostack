@@ -2,7 +2,7 @@
 
 ## 1.0.22
 
-- 插件 ID 从 `com.yungyu.leetcode-editor` 换为 `io.github.yungyu16.algostack`，与包名、仓库名对齐，并与同 ID 上游插件解耦；凭据与设置文件锚点（`com.wenjun.codeepiphany`）不变，旧安装升级需先卸载旧 ID 版本。GitHub 仓库名同步改为 `yungyu16/intellij-algostack`。
+- 插件 ID 从 `com.yungyu.leetcode-editor` 换为 `io.github.yungyu16.algostack`，磁盘锚点（凭据服务名、设置文件 `AlgoStack_app.xml`）同步统一；旧 CodeEpiphany 锚点下的文件与凭据不读取、不迁移、不删除，升级后首次使用需重新登录。GitHub 仓库名同步改为 `yungyu16/intellij-algostack`。
 - 题目语言收窄到 Java／Go：不再识别其他语言的旧题目文件（tab 标题、侧栏联动与提交区域折叠不再对其生效），提交区域折叠注册同步收窄；生成、测试与提交链路不变。
 - 移除收窄后残留的上游冗余：语言图标、多语言序列化、Velocity 模板运行时与恒为 AnyVersion 的语言版本抽象。
 - 预览页会话 cookie 写入后显式落盘（flushStore），重启后登录态保留更可靠；落盘失败不影响当次加载。

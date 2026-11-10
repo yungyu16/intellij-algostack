@@ -2,10 +2,12 @@ package io.github.yungyu16.algostack.model
 
 
 object Constants {
-    // 持久化锚点：磁盘上的配置文件名与凭据服务名，历史用户数据依赖这些字面量，不随插件改名。
-    const val PROJECT_NAME = "CodeEpiphany"
+    // 持久化锚点：磁盘上的设置文件名与凭据服务名。1.0.22 起与插件 ID 统一为
+    // io.github.yungyu16.algostack；旧 CodeEpiphany 锚点下的文件与凭据不读取、不迁移、不删除，
+    // 升级后首次使用需重新登录。
+    const val PROJECT_NAME = "AlgoStack"
 
-    const val PROJECT_ID = "com.wenjun.codeepiphany"
+    const val PROJECT_ID = "io.github.yungyu16.algostack"
 
     const val APP_SETTING = PROJECT_ID + ".app.settings"
 
