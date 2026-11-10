@@ -80,8 +80,9 @@ intellijPlatform {
         ideaVersion { sinceBuild = providers.gradleProperty("platformSinceBuild") }
     }
     pluginVerification { ides { current() } }
-    // 首次上架需网页上传并过人工审核；此后版本更新用 ./gradlew publishPlugin。
-    // token 从 ~/.gradle/gradle.properties 的 intellijPublishingToken 读取，不入库。
+    // 发布由 .github/workflows/publish.yaml 在推送 v* tag 时执行；此处仅供
+    // 手动跑 ./gradlew publishPlugin 兜底。token 从 ~/.gradle/gradle.properties 的
+    // intellijPublishingToken 读取，不入库。
     publishing {
         token = providers.gradleProperty("intellijPublishingToken")
     }
