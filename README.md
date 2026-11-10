@@ -1,5 +1,7 @@
 # AlgoStack
 
+[![JetBrains Marketplace](https://img.shields.io/jetbrains/plugin/d/35965-algostack.svg)](https://plugins.jetbrains.com/plugin/35965-algostack)
+
 AlgoStack（题栈）是面向 IntelliJ IDEA 的个人维护版刷题插件，仅支持[力扣中国站 LeetCodeCN](https://leetcode.cn)。基于 [WenjunHuang/CodeEpiphany](https://github.com/WenjunHuang/CodeEpiphany) 开发，采用 [Apache License 2.0](LICENSE)。
 
 支持题目搜索与筛选、Java／Go 骨架和语言工程生成、平台默认用例测试、代码提交及平台题解阅读。没有设置页、自定义用例、本地笔记或提交历史；结果输出到 Console，并提供平台详情链接。本机 Agent／脚本可以初始化骨架，但不能通过桥接执行解法、测试或提交。
@@ -8,9 +10,12 @@ AlgoStack（题栈）是面向 IntelliJ IDEA 的个人维护版刷题插件，�
 
 目标为 IntelliJ IDEA 2026.3。源码版本与目标平台以 [gradle.properties](gradle.properties) 为准，安装包名为 `AlgoStack-<pluginVersion>.zip`；构建包版本不代表本机正在运行的版本。
 
-1. 按[开发指南](docs/开发指南.md)构建 ZIP。通过 **Settings → Plugins → 齿轮 → Install Plugin from Disk** 安装，按提示重启。
-2. 在刷题项目根目录放置 `.leetcode` 标记（文件或目录均可），重新打开项目。无标记时不显示插件工具窗口、不恢复登录或启动桥接。
-3. 插件在后台静默恢复已保存的中国站会话；无凭据或恢复失败时不会自动弹窗。需要时点击题库面板的 **Login**，然后搜索题目、选择 Java 或 Go、编码、测试和提交。
+**推荐**：在 **Settings → Plugins → Marketplace** 搜索 `AlgoStack` 安装，按提示重启，后续版本自动更新。也可从[插件页](https://plugins.jetbrains.com/plugin/35965-algostack)下载 ZIP，通过 **齿轮 → Install Plugin from Disk** 安装，或按[开发指南](docs/开发指南.md)自构建。
+
+1. 安装完成后，在刷题项目根目录放置 `.leetcode` 标记（文件或目录均可），重新打开项目。无标记时不显示插件工具窗口、不恢复登录或启动桥接。
+2. 插件在后台静默恢复已保存的中国站会话；无凭据或恢复失败时不会自动弹窗。需要时点击题库面板的 **Login**，然后搜索题目、选择 Java 或 Go、编码、测试和提交。
+
+从磁盘安装与 Marketplace 安装是两条更新链：磁盘安装不会被商店自动更新覆盖，切换安装来源需先卸载再重装。
 
 新题使用固定的 Java／Go 约定，不读取自定义路径或模板：
 
